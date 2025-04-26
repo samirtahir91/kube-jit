@@ -1,5 +1,5 @@
 # build and compile
-FROM node:23.11.0-slim as build-stage
+FROM node:23.11.0-slim AS build-stage
 WORKDIR /app
 COPY ./kube-jit/ /app/
 # ADD wss.crt /etc/ssl/wss.crt
