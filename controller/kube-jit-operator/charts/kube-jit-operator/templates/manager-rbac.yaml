@@ -5,6 +5,12 @@ metadata:
   labels:
   {{- include "kube-jit-operator.labels" . | nindent 4 }}
 rules:
+- resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - jit.kubejit.io
   resources:
