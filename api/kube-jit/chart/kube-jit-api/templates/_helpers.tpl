@@ -71,6 +71,8 @@ ca
 insecure
 tokenSecret
 type
+projectID
+region
 {{- end -}}
 
 {{/*

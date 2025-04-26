@@ -11,7 +11,7 @@ controllerManager:
         drop:
         - ALL
     image:
-      repository: controller
+      repository: samirtahir91076/kube-jit-controller:latest
       tag: latest
     resources:
       limits:

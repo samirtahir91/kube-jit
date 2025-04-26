@@ -18,6 +18,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"google.golang.org/api/container/v1"
+	containerpb "google.golang.org/genproto/googleapis/container/v1"
 )
 
 type Config struct {
@@ -34,6 +36,8 @@ type ClusterConfig struct {
 	TokenSecret string `yaml:"tokenSecret"`
 	Token       string `yaml:"token"`
 	Type        string `yaml:"type"` // e.g., "gke" or "generic"
+	ProjectID   string `yaml:"projectID"` // GCP project ID for GKE clusters
+	Region      string `yaml:"region"`    // Region for GKE clusters
 }
 
 var (
@@ -139,11 +143,39 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 	var err error
 
 	if selectedCluster.Type == "gke" {
-		// Use in-cluster config for GKE clusters
-		log.Printf("Using in-cluster config for GKE cluster: %s", req.ClusterName)
-		restConfig, err = rest.InClusterConfig()
+		// Use Google Cloud SDK to fetch cluster details
+		log.Printf("Using Google Cloud SDK to access GKE cluster: %s", req.ClusterName)
+
+		// Set up the GKE client
+		ctx := context.Background()
+		client, err := container.NewClusterManagerClient(ctx)
 		if err != nil {
-			log.Fatalf("Failed to load in-cluster config for GKE cluster: %v\n", err)
+			log.Fatalf("Failed to create GKE client: %v", err)
+		}
+		defer client.Close()
+
+		// Fetch cluster details using ProjectID and Region from the config
+		clusterReq := &containerpb.GetClusterRequest{
+			ProjectId: selectedCluster.ProjectID,
+			Zone:      selectedCluster.Region,
+			ClusterId: selectedCluster.Name,
+		}
+
+		cluster, err := client.GetCluster(ctx, clusterReq)
+		if err != nil {
+			log.Fatalf("Failed to get GKE cluster details: %v", err)
+		}
+
+		// Extract the cluster endpoint and CA certificate
+		clusterEndpoint := cluster.Endpoint
+		caCertificate := cluster.MasterAuth.ClusterCaCertificate
+
+		// Generate the rest.Config
+		restConfig = &rest.Config{
+			Host: "https://" + clusterEndpoint,
+			TLSClientConfig: rest.TLSClientConfig{
+				CAData: []byte(caCertificate),
+			},
 		}
 	} else {
 		// Use custom config for non-GKE clusters
