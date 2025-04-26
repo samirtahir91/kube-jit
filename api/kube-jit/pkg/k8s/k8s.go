@@ -8,6 +8,7 @@ import (
 	"kube-jit/pkg/utils"
 	"log"
 	"os"
+	"sync"
 
 	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,6 +48,7 @@ var (
 		Version:  "v1",
 		Resource: "jitrequests",
 	}
+	dynamicClientCache sync.Map
 )
 
 // init loads clusters, roles and approver teams from configMap into global vars
@@ -122,7 +124,13 @@ func getTokenFromSecret(secretName string) string {
 
 // createDynamicClient creates and returns a dynamic client based on cluster in request
 func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
-	// get config for cluster name in request for dynamic client
+	// Check if the dynamic client for the cluster is already cached
+	if client, exists := dynamicClientCache.Load(req.ClusterName); exists {
+		log.Printf("Using cached dynamic client for cluster: %s", req.ClusterName)
+		return client.(*dynamic.DynamicClient)
+	}
+
+	// Get config for cluster name in request for dynamic client
 	selectedCluster := ClusterConfigs[req.ClusterName]
 	apiServerURL := selectedCluster.Host
 	saToken := selectedCluster.Token
@@ -146,6 +154,10 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 		log.Printf("Failed to create k8s client: %v\n", err)
 		panic(err.Error())
 	}
+
+	// Cache the dynamic client
+	dynamicClientCache.Store(req.ClusterName, dynamicClient)
+	log.Printf("Cached dynamic client for cluster: %s", req.ClusterName)
 
 	return dynamicClient
 }
