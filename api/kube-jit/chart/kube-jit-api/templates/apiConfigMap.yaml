@@ -18,6 +18,9 @@ data:
         {{- if gt (len $invalidKeys) 0 }}
           {{- fail (printf "Invalid keys found: %v" $invalidKeys) }}
         {{- end }}
+        {{- if not (include "isValidType" .type) }}
+          {{- fail (printf "Invalid cluster type '%s'. Allowed types are: gke, generic" .type) }}
+        {{- end }}
       {{- end }}
       {{- toYaml .Values.config.clusters | nindent 4 }}
     allowedRoles:

@@ -70,6 +70,7 @@ host
 ca
 insecure
 tokenSecret
+type
 {{- end -}}
 
 {{/*
@@ -104,3 +105,16 @@ Used for configMap key validation
 {{- end }}
 {{- $found }}
 {{- end -}}
+
+{{/*
+Check if a value is in a list of allowed values.
+*/}}
+{{- define "isValidType" -}}
+{{- $validTypes := list "gke" "generic" -}}
+{{- $type := . -}}
+{{- if has $type $validTypes -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end }}

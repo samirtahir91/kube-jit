@@ -33,6 +33,7 @@ type ClusterConfig struct {
 	Insecure    bool   `yaml:"insecure"`
 	TokenSecret string `yaml:"tokenSecret"`
 	Token       string `yaml:"token"`
+	Type        string `yaml:"type"` // e.g., "gke" or "generic"
 }
 
 var (
@@ -92,9 +93,10 @@ func init() {
 	// Get cluster tokens and add to global cluster maps
 	fmt.Println("\nSuccessfully loaded config for clusters:")
 	for _, cluster := range ApiConfig.Clusters {
-		fmt.Printf("- %s\n", cluster.Name)
-		ClusterNames = append(ClusterNames, cluster.Name)
-		cluster.Token = getTokenFromSecret(cluster.TokenSecret)
+		fmt.Printf("- %s (Type: %s)\n", cluster.Name, cluster.Type)
+		if cluster.Type != "gke" {
+			cluster.Token = getTokenFromSecret(cluster.TokenSecret)
+		}
 		ClusterConfigs[cluster.Name] = cluster
 	}
 	fmt.Print("\n")
@@ -130,25 +132,39 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 		return client.(*dynamic.DynamicClient)
 	}
 
-	// Get config for cluster name in request for dynamic client
+	// Get the cluster configuration
 	selectedCluster := ClusterConfigs[req.ClusterName]
-	apiServerURL := selectedCluster.Host
-	saToken := selectedCluster.Token
-	caData, err := base64.StdEncoding.DecodeString(selectedCluster.CA)
-	if err != nil {
-		log.Fatalf("Failed to decode CA certificate: %v\n", err)
+
+	var restConfig *rest.Config
+	var err error
+
+	if selectedCluster.Type == "gke" {
+		// Use in-cluster config for GKE clusters
+		log.Printf("Using in-cluster config for GKE cluster: %s", req.ClusterName)
+		restConfig, err = rest.InClusterConfig()
+		if err != nil {
+			log.Fatalf("Failed to load in-cluster config for GKE cluster: %v\n", err)
+		}
+	} else {
+		// Use custom config for non-GKE clusters
+		apiServerURL := selectedCluster.Host
+		saToken := selectedCluster.Token
+		caData, err := base64.StdEncoding.DecodeString(selectedCluster.CA)
+		if err != nil {
+			log.Fatalf("Failed to decode CA certificate: %v\n", err)
+		}
+
+		restConfig = &rest.Config{
+			Host:        apiServerURL,
+			BearerToken: saToken,
+			TLSClientConfig: rest.TLSClientConfig{
+				Insecure: selectedCluster.Insecure,
+				CAData:   caData,
+			},
+		}
 	}
 
-	restConfig := &rest.Config{
-		Host:        apiServerURL,
-		BearerToken: saToken,
-		TLSClientConfig: rest.TLSClientConfig{
-			Insecure: selectedCluster.Insecure,
-			CAData:   caData,
-		},
-	}
-
-	// Create client for selected cluster
+	// Create the dynamic client
 	dynamicClient, err := dynamic.NewForConfig(restConfig)
 	if err != nil {
 		log.Printf("Failed to create k8s client: %v\n", err)
