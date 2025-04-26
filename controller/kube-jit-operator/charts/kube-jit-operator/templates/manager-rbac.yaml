@@ -5,7 +5,9 @@ metadata:
   labels:
   {{- include "kube-jit-operator.labels" . | nindent 4 }}
 rules:
-- resources:
+- apiGroups:
+  - ""
+  resources:
   - namespaces
   verbs:
   - get

@@ -46,7 +46,7 @@ type JitRequestReconciler struct {
 // +kubebuilder:rbac:groups=jit.kubejit.io,resources=jitrequests,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=jit.kubejit.io,resources=jitrequests/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=jit.kubejit.io,resources=jitrequests/finalizers,verbs=update
-// +kubebuilder:rbac:groups=,resources=namespaces,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 
 // Reconcile is the main loop for reconciling a JitRequest
 func (r *JitRequestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
