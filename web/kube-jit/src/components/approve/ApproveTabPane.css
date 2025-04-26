@@ -1,0 +1,15 @@
+.search-button {
+    width: 100%;
+}
+
+.refresh-button {
+    background-color: #ffffff00;
+    height: 2.3rem;
+    width: 2rem;
+    border-radius: 0.25rem;
+    border: none
+}
+
+.refresh-button:hover {
+    background-color: #336f7d;
+}

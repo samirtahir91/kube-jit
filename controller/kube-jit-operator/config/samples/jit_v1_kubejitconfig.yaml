@@ -1,0 +1,12 @@
+apiVersion: jit.kubejit.io/v1
+kind: KubeJitConfig
+metadata:
+  labels:
+    app.kubernetes.io/name: kube-jit-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: kube-jit-operator-default
+spec:
+  allowedClusterRoles:
+    - admin
+    - edit
+  namespaceAllowedRegex: ".*"

@@ -1,0 +1,36 @@
+config:
+  allowedRoles:
+    - name: edit
+    - name: admin
+  allowedApproverTeams:
+    - name: "jit approvers"
+      id: 12769788
+    - name: "Team A"
+      id: 1234
+    - name: "Team B"
+      id: 12345
+    - name: "Team C"
+      id: 123456
+  cors:
+    allowOrigins:
+      - "http://host.docker.internal:5173"
+      - "http://localhost:5173"
+  clusters:
+    - name: kind-jit-ext
+      host: https://host.docker.internal:53166
+      tokenSecret: kind-jit-ext-sa-token
+      insecure: true
+
+env:
+  ghAppClientID: Iv23likSg0AQoOUi18q7
+  ghAppInstallId: 64433781
+  ghAppId: 1212598
+  ghOrg: "samirtahir91-org"
+  dbHost: host.docker.internal
+  dbConnTimeout: "10"
+  dbName: postgres
+  dbPort: "5432"
+  dbSslMode: "prefer"
+  dbTimezone: "Europe/London"
+  callbackHostOverride: http://localhost:8589
+

@@ -1,0 +1,9 @@
+.table-container {
+    max-height: 50vh; /* Set max height to 100% of the viewport height */
+    overflow-y: auto; /* Add scroll if content exceeds the max height */
+}
+
+.table-colour {
+    background-color: #088ec8 !important; /* Replace with your desired color */
+    color: #ffffff !important; /* Text color */
+}

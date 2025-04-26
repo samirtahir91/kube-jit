@@ -1,0 +1,142 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kube-jit-api.fullname" . }}
+  labels:
+    {{- include "kube-jit-api.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "kube-jit-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "kube-jit-api.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "kube-jit-api.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: CONFIG_MOUNT_PATH
+            value: {{ quote .Values.env.configMountPath | default "/etc/config/" }}
+          - name: ALLOW_ORIGINS
+            value: '{{ .Values.config.cors.allowOrigins | toJson }}'
+          - name: CALLBACK_HOST_OVERRIDE
+            {{- if .Values.ingress.enabled }}
+            value: {{ quote .Values.env.callbackHostOverride | default .Values.ingress.hosts }}
+            {{- else }}
+            value: {{ quote .Values.env.callbackHostOverride }}
+            {{- end }}
+          - name: LISTEN_PORT
+            value: {{ quote .Values.service.port }}
+          - name: GH_APP_CLIENT_ID
+            value: {{ quote .Values.env.ghAppClientID }}
+          - name: GH_APP_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: kube-jit-api-secrets
+                key: ghAppClientSecret
+          - name: GH_APP_INSTALL_ID
+            value: {{ quote .Values.env.ghAppInstallId }}
+          - name: GH_APP_ID
+            value: {{ quote .Values.env.ghAppId }}
+          - name: GH_ORG
+            value: {{ quote .Values.env.ghOrg }}
+          - name: GH_APP_PK
+            value: /etc/secrets/ghAppPrivateKey
+          - name: DB_HOST
+            value: {{ quote .Values.env.dbHost }}
+          - name: DB_CONN_TIMEOUT
+            value: {{ quote .Values.env.dbConnTimeout }}
+          - name: DB_NAME
+            value: {{ quote .Values.env.dbName }}
+          - name: DB_PORT
+            value: {{ quote .Values.env.dbPort }}
+          - name: DB_SSLMODE
+            value: {{ quote .Values.env.dbSslMode }}
+          - name: DB_TIMEZONE
+            value: {{ quote .Values.env.dbTimezone }}
+          - name: DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: kube-jit-api-secrets
+                key: dbUser
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: kube-jit-api-secrets
+                key: dbPassword
+          - name: HMAC_SECRET
+            valueFrom:
+              secretKeyRef:
+                key: hmac-secret
+                name: kube-jit-api-secrets
+          - name: COOKIE_SECRET
+            valueFrom:
+              secretKeyRef:
+                key: cookie-secret
+                name: kube-jit-api-secrets
+          - name: API_NAMESPACE
+            valueFrom:
+              fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+          - name: config
+            mountPath: {{ printf "%s/apiConfig.yaml" (.Values.env.configMountPath | default "/etc/config") | quote }}
+            subPath: clusters.yaml
+          # - name: kube-jit-api-secrets
+          #   mountPath: /etc/secrets
+          #   readOnly: true
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /kube-jit-api/healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /kube-jit-api/healthz
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - name: config
+        configMap:
+          name: api-config
+          items:
+          - key: apiConfig
+            path: clusters.yaml
+      # - name: kube-jit-api-secrets
+      #   secret:
+      #     secretName: kube-jit-api-secrets
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

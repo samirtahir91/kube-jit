@@ -1,0 +1,146 @@
+# Default values for kube-jit-api.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: kube-jit-api
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+config:
+  # List of allowed origins (CORS), usually the client/frontend url
+  cors:
+    allowOrigins:
+      - "http://example.com:80"
+      - "http://localhost:5173"
+  
+  # List of allowed cluster roles to request for jit requests (name as per cluster role)
+  allowedRoles: []
+  #- name: edit
+  #- name: admin
+
+  # List of allowed approver teams for jit requests (name and id as per github)
+  allowedApproverTeams: []
+  #- name: "some approver team"
+  #  id: 123
+  #- name: "some approver team 2"
+  #  id: 1234
+
+  # Cluster connector config for external clusters
+  # name - the name of the cluster (can be any string you want to identify your cluster)
+  # host - the api endpoint
+  # ca - optional ca cert
+  # insecure - optional bool for https
+  # tokenSecret - the name of the secret in the same namespace as this api, to get the service account token for auth.
+  clusters: []
+  # - name: cluster1
+  #   host: https://cluster1.example.com
+  #   ca: base64-encoded-ca-cert
+  #   insecure: false
+  #   tokenSecret: cluster1-token-secret
+  # - name: cluster2
+  #   host: https://cluster2.example.com
+  #   ca: base64-encoded-ca-cert
+  #   insecure: true
+  #   tokenSecret: cluster2-token-secret
+
+env:
+  # sets the mountPath of the api configMap in the pod, defaults to /etc/config/
+  #configMountPath: ""
+  # Your Github App Client ID
+  ghAppClientID: "your-github-app-client-id"
+  # Your Github App Client Install ID
+  ghAppInstallId: "your-github-app-install-id"
+  # Your Github App ID
+  ghAppId: "your-github-app-id"
+  # Your Github Org
+  ghOrg: "your-github-org"
+  # Your Postgres hostname
+  dbHost: "your-db-host"
+  # Your Postgres connection timeout
+  dbConnTimeout: "10"
+  # Your Postgres database name
+  dbName: "your-db-name"
+  # Your Postgres database port
+  dbPort: "5432"
+  # Your Postgres database ssl mode
+  dbSslMode: "prefer"
+  # Your Postgres database time zone
+  dbTimezone: "Europe/London"
+  # Sets the callback base url for external clusters running the kube-jit operator to callback to the api for status updates.
+  # defaults to the ingress host
+  #callbackHostOverride: http://callback-example.com:8589
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8589
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
