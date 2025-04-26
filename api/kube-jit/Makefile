@@ -113,6 +113,9 @@ template:
 deploy:
 		helm install -n kube-jit-api kube-jit-api chart/kube-jit-api --create-namespace -f ./sample/helm-values.yaml
 
+deploy-gke:
+		helm install -n kube-jit-api kube-jit-api chart/kube-jit-api --create-namespace -f ./sample/gke-values.yaml
+
 delete:
 		helm delete -n kube-jit-api kube-jit-api || true
 

@@ -22,6 +22,9 @@ template:
 deploy:
 		helm install -n kube-jit-web kube-jit-web chart/kube-jit-web --create-namespace -f sample/helm-values.yaml
 
+deploy-gke:
+		helm install -n kube-jit-web kube-jit-web chart/kube-jit-web --create-namespace -f sample/gke-values.yaml
+
 delete:
 		helm delete -n kube-jit-web kube-jit-web || true
 

@@ -35,5 +35,6 @@ env:
   callbackHostOverride: http://localhost:8589
 
 image:
-  repository: samirtahir91076/kube-jit-api:latest
+  repository: samirtahir91076/kube-jit-api
   tag: latest
+  imagePullPolicy: Always

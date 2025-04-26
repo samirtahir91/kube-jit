@@ -1,5 +1,2 @@
 nginx:
   apiUrl: http://kube-jit-api.kube-jit-api:8589
-image:
-  repository: samirtahir91076/kube-jit-web:latest
-  tag: latest

@@ -10,8 +10,10 @@ import (
 	"os"
 	"sync"
 
-	container "cloud.google.com/go/container/apiv1"
+	containerapiv1 "cloud.google.com/go/container/apiv1"
 	"cloud.google.com/go/container/apiv1/containerpb"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/container/v1"
 	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -102,6 +104,9 @@ func init() {
 			cluster.Token = getTokenFromSecret(cluster.TokenSecret)
 		}
 		ClusterConfigs[cluster.Name] = cluster
+
+		// Append cluster name to ClusterNames
+		ClusterNames = append(ClusterNames, cluster.Name)
 	}
 	fmt.Print("\n")
 
@@ -148,17 +153,22 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 
 		// Set up the GKE client
 		ctx := context.Background()
-		client, err := container.NewClusterManagerClient(ctx)
+		client, err := containerapiv1.NewClusterManagerClient(ctx)
 		if err != nil {
 			log.Fatalf("Failed to create GKE client: %v", err)
 		}
 		defer client.Close()
 
-		// Fetch cluster details using ProjectID and Region from the config
+		// Construct the fully qualified cluster name
+		location := selectedCluster.Region
+		if location == "" {
+			location = selectedCluster.Region // Use zone if region is not specified
+		}
+		clusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", selectedCluster.ProjectID, location, selectedCluster.Name)
+
+		// Fetch cluster details using the Name field
 		clusterReq := &containerpb.GetClusterRequest{
-			ProjectId: selectedCluster.ProjectID,
-			Zone:      selectedCluster.Region,
-			ClusterId: selectedCluster.Name,
+			Name: clusterName,
 		}
 
 		cluster, err := client.GetCluster(ctx, clusterReq)
@@ -170,11 +180,31 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 		clusterEndpoint := cluster.Endpoint
 		caCertificate := cluster.MasterAuth.ClusterCaCertificate
 
+		// Decode the base64-encoded CA certificate
+		decodedCACertificate, err := base64.StdEncoding.DecodeString(caCertificate)
+		if err != nil {
+			log.Fatalf("Failed to decode CA certificate: %v", err)
+		}
+
+		// Get the default Google credentials (Workload Identity will provide these)
+		credentials, err := google.FindDefaultCredentials(ctx, container.CloudPlatformScope)
+		if err != nil {
+			log.Fatalf("Failed to get default credentials: %v", err)
+		}
+
+		// Generate the OAuth2 token
+		tokenSource := credentials.TokenSource
+		token, err := tokenSource.Token()
+		if err != nil {
+			log.Fatalf("Failed to get OAuth2 token: %v", err)
+		}
+
 		// Generate the rest.Config
 		restConfig = &rest.Config{
-			Host: "https://" + clusterEndpoint,
+			Host:        "https://" + clusterEndpoint,
+			BearerToken: token.AccessToken, // Use the OAuth2 token
 			TLSClientConfig: rest.TLSClientConfig{
-				CAData: []byte(caCertificate),
+				CAData: decodedCACertificate,
 			},
 		}
 	} else {
