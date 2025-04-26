@@ -10,6 +10,8 @@ import (
 	"os"
 	"sync"
 
+	container "cloud.google.com/go/container/apiv1"
+	"cloud.google.com/go/container/apiv1/containerpb"
 	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -18,8 +20,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"google.golang.org/api/container/v1"
-	containerpb "google.golang.org/genproto/googleapis/container/v1"
 )
 
 type Config struct {
@@ -35,7 +35,7 @@ type ClusterConfig struct {
 	Insecure    bool   `yaml:"insecure"`
 	TokenSecret string `yaml:"tokenSecret"`
 	Token       string `yaml:"token"`
-	Type        string `yaml:"type"` // e.g., "gke" or "generic"
+	Type        string `yaml:"type"`      // e.g., "gke" or "generic"
 	ProjectID   string `yaml:"projectID"` // GCP project ID for GKE clusters
 	Region      string `yaml:"region"`    // Region for GKE clusters
 }
