@@ -63,9 +63,9 @@ spec:
             value: /etc/secrets/ghAppPrivateKey
           # Database environment variables
           - name: DB_HOST
-            value: {{ if .Values.env.db.useCloudSqlProxy }}"127.0.0.1"{{ else }}{{ quote .Values.env.db.host }}{{ end }}
+            value: {{ if .Values.env.db.cloudSqlProxy.enabled }}"127.0.0.1"{{ else }}{{ quote .Values.env.db.host }}{{ end }}
           - name: DB_PORT
-            value: {{ if .Values.env.db.useCloudSqlProxy }}"5432"{{ else }}{{ quote .Values.env.db.port }}{{ end }}
+            value: {{ if .Values.env.db.cloudSqlProxy.enabled }}"5432"{{ else }}{{ quote .Values.env.db.port }}{{ end }}
           - name: DB_NAME
             value: {{ quote .Values.env.db.name }}
           - name: DB_CONN_TIMEOUT
@@ -129,7 +129,7 @@ spec:
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-        {{- if .Values.env.db.useCloudSqlProxy }}
+        {{- if .Values.env.db.cloudSqlProxy.enabled }}
         - name: cloud-sql-proxy
           image: {{ quote .Values.cloudSqlProxy.image | default "gcr.io/cloudsql-docker/gce-proxy:1.33.2" }}
           command:
