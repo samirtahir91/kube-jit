@@ -23,14 +23,22 @@ config:
       type: generic
 
 env:
-  ghAppClientID: Iv23likSg0AQoOUi18q7
-  ghAppInstallId: 64433781
-  ghAppId: 1212598
-  ghOrg: "samirtahir91-org"
-  dbHost: host.docker.internal
-  dbConnTimeout: "10"
-  dbName: postgres
-  dbPort: "5432"
-  dbSslMode: "prefer"
-  dbTimezone: "Europe/London"
   callbackHostOverride: http://localhost:8589
+
+  gh:
+    clientID: Iv23likSg0AQoOUi18q7
+    installId: 64433781
+    appId: 1212598
+    org: "samirtahir91-org"
+
+  db:
+    host: host.docker.internal
+    connTimeout: "10"
+    name: postgres
+    port: "5432"
+    sslMode: "prefer"
+    timezone: "Europe/London"
+    maxOpenConns: "50"
+    maxIdleConns: "20"
+    connMaxLifetime: "10m"
+    connMaxIdleTime: "15m"

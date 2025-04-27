@@ -47,18 +47,18 @@ spec:
           - name: LISTEN_PORT
             value: {{ quote .Values.service.port }}
           - name: GH_APP_CLIENT_ID
-            value: {{ quote .Values.env.gh.ghAppClientID }}
+            value: {{ quote .Values.env.gh.clientID }}
           - name: GH_APP_CLIENT_SECRET
             valueFrom:
               secretKeyRef:
                 name: kube-jit-api-secrets
                 key: ghAppClientSecret
           - name: GH_APP_INSTALL_ID
-            value: {{ quote .Values.env.gh.ghAppInstallId }}
+            value: {{ quote .Values.env.gh.installId }}
           - name: GH_APP_ID
-            value: {{ quote .Values.env.gh.ghAppId }}
+            value: {{ quote .Values.env.gh.appId }}
           - name: GH_ORG
-            value: {{ quote .Values.env.gh.ghOrg }}
+            value: {{ quote .Values.env.gh.org }}
           - name: GH_APP_PK
             value: /etc/secrets/ghAppPrivateKey
           # Database environment variables

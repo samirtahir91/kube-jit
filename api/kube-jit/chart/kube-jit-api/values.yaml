@@ -62,28 +62,28 @@ env:
   # Github App Oauth config
   gh:
     # Your Github App Client ID
-    ghAppClientID: "your-github-app-client-id"
+    clientID: "your-github-app-client-id"
     # Your Github App Install ID
-    ghAppInstallId: "your-github-app-install-id"
+    installId: "your-github-app-install-id"
     # Your Github App ID
-    ghAppId: "your-github-app-id"
+    appId: "your-github-app-id"
     # Your Github Org
-    ghOrg: "your-github-org"
+    org: "your-github-org"
 
   # Postgres database connection details
   db:
     # Your Postgres hostname
-    dbHost: "your-db-host"
+    host: "your-db-host"
     # Your Postgres connection timeout
-    dbConnTimeout: "10"
+    connTimeout: "10"
     # Your Postgres database name
-    dbName: "your-db-name"
+    name: "your-db-name"
     # Your Postgres database port
-    dbPort: "5432"
+    port: "5432"
     # Your Postgres database ssl mode
-    dbSslMode: "prefer"
+    sslMode: "prefer"
     # Your Postgres database time zone
-    dbTimezone: "Europe/London"
+    timezone: "Europe/London"
     # Connection pool settings
     maxOpenConns: "50"
     maxIdleConns: "20"
@@ -93,7 +93,7 @@ env:
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
-  # Annotations to add to the service account
+  # Annotations to add to the service account (i.e. GKE workload identity)
   annotations: {}
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
