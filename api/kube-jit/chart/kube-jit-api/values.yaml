@@ -14,6 +14,7 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+# Config for the kube-jit-api
 config:
   # List of allowed origins (CORS), usually the client/frontend url
   cors:
@@ -51,7 +52,6 @@ config:
   #   insecure: true
   #   tokenSecret: cluster2-token-secret
 
-env:
   # callbackHostOverride sets the callback base url for external clusters running the kube-jit operator to callback to the api for status updates.
   # defaults to the ingress host
   #callbackHostOverride: http://callback-example.com:8589
@@ -70,39 +70,40 @@ env:
     # Your Github Org
     org: "your-github-org"
 
-  # Postgres database connection details
-  db:
-    # If using GCP Cloud SQL Proxy with GKE workload identity, set the cloudSqlProxy.enabled to true
-    # and provide the cloudSqlInstance name.
-    # If using a different database, set cloudSqlProxy.enabled to false
-    # and provide the database connection details.
-    cloudSqlProxy:
-      enabled: false
-      cloudSqlInstance: "project-id:region:instance-name"
-      resources:
-        limits:
-          cpu: "100m"
-          memory: "128Mi"
-        requests:
-          cpu: "50m"
-          memory: "64Mi"
-    # Your Postgres hostname, ignored if using Cloud SQL Proxy - sets to 127.0.0.1
-    host: "your-db-host"
-    # Your Postgres connection timeout
-    connTimeout: "10"
-    # Your Postgres database name
-    name: "your-db-name"
-    # Your Postgres database portm, ignored if using Cloud SQL Proxy - sets to 5432
-    port: "5432"
-    # Your Postgres database ssl mode
-    sslMode: "prefer"
-    # Your Postgres database time zone
-    timezone: "Europe/London"
-    # Connection pool settings
-    maxOpenConns: "50"
-    maxIdleConns: "20"
-    connMaxLifetime: "10m"
-    connMaxIdleTime: "15m"
+# Postgres database connection details
+db:
+  # If using GCP Cloud SQL Proxy with GKE workload identity, set the cloudSqlProxy.enabled to true
+  # and provide the cloudSqlInstance name.
+  # If using a different database, set cloudSqlProxy.enabled to false
+  # and provide the database connection details.
+  cloudSqlProxy:
+    enabled: false
+  #   image: gcr.io/cloudsql-docker/gce-proxy:1.33.2
+  #   cloudSqlInstance: "project-id:region:instance-name"
+  #   resources:
+  #     limits:
+  #       cpu: "100m"
+  #       memory: "128Mi"
+  #     requests:
+  #       cpu: "50m"
+  #       memory: "64Mi"
+  # Your Postgres hostname, ignored if using Cloud SQL Proxy - sets to 127.0.0.1
+  host: "your-db-host"
+  # Your Postgres connection timeout
+  connTimeout: "10"
+  # Your Postgres database name
+  name: "your-db-name"
+  # Your Postgres database portm, ignored if using Cloud SQL Proxy - sets to 5432
+  port: "5432"
+  # Your Postgres database ssl mode
+  sslMode: "prefer"
+  # Your Postgres database time zone
+  timezone: "Europe/London"
+  # Connection pool settings
+  maxOpenConns: "50"
+  maxIdleConns: "20"
+  connMaxLifetime: "10m"
+  connMaxIdleTime: "15m"
 
 serviceAccount:
   # Specifies whether a service account should be created

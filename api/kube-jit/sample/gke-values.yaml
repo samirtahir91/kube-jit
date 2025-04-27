@@ -2,6 +2,7 @@ config:
   allowedRoles:
     - name: edit
     - name: admin
+  
   allowedApproverTeams:
     - name: "jit approvers"
       id: 12769788
@@ -11,17 +12,18 @@ config:
       id: 12345
     - name: "Team C"
       id: 123456
+  
   cors:
     allowOrigins:
       - "http://host.docker.internal:5173"
       - "http://localhost:5173"
+  
   clusters:
     - name: autopilot-cluster-2
       type: gke
       projectID: sacred-entry-304212
       region: europe-west2
 
-env:
   callbackHostOverride: http://localhost:8589
 
   gh:
@@ -29,17 +31,18 @@ env:
     installId: 64433781
     appId: 1212598
     org: "samirtahir91-org"
-  db:
-    host: my-postgres-postgresql.default.svc.cluster.local
-    connTimeout: "10"
-    name: postgres
-    port: "5432"
-    sslMode: "prefer"
-    timezone: "Europe/London"
-    maxOpenConns: "50"
-    maxIdleConns: "20"
-    connMaxLifetime: "10m"
-    connMaxIdleTime: "15m"
+
+db:
+  host: my-postgres-postgresql.default.svc.cluster.local
+  connTimeout: "10"
+  name: postgres
+  port: "5432"
+  sslMode: "prefer"
+  timezone: "Europe/London"
+  maxOpenConns: "50"
+  maxIdleConns: "20"
+  connMaxLifetime: "10m"
+  connMaxIdleTime: "15m"
 
 image:
   repository: samirtahir91076/kube-jit-api

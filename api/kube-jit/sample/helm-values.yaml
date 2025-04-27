@@ -22,7 +22,6 @@ config:
       insecure: true
       type: generic
 
-env:
   callbackHostOverride: http://localhost:8589
 
   gh:
@@ -31,14 +30,14 @@ env:
     appId: 1212598
     org: "samirtahir91-org"
 
-  db:
-    host: host.docker.internal
-    connTimeout: "10"
-    name: postgres
-    port: "5432"
-    sslMode: "prefer"
-    timezone: "Europe/London"
-    maxOpenConns: "50"
-    maxIdleConns: "20"
-    connMaxLifetime: "10m"
-    connMaxIdleTime: "15m"
+db:
+  host: host.docker.internal
+  connTimeout: "10"
+  name: postgres
+  port: "5432"
+  sslMode: "prefer"
+  timezone: "Europe/London"
+  maxOpenConns: "50"
+  maxIdleConns: "20"
+  connMaxLifetime: "10m"
+  connMaxIdleTime: "15m"
