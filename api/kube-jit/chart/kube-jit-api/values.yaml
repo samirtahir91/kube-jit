@@ -16,6 +16,17 @@ fullnameOverride: ""
 
 # Config for the kube-jit-api
 config:
+
+  # This is the secret key in the kube-jit-api-secrets secret
+  # This secret key value will contain the hmac secret key for signing the jwt tokens
+  # This is used for the callback flow from downstream clusters
+  hmacSecretKey: hmacSecret
+
+  # This is the secret key in the kube-jit-api-secrets secret
+  # This secret key value will contain the cookie secret key for signing the cookies
+  # This is used for the cookie auth flow
+  cookieSecretKey: cookieSecret
+
   # List of allowed origins (CORS), usually the client/frontend url
   cors:
     allowOrigins:
@@ -69,6 +80,9 @@ config:
     appId: "your-github-app-id"
     # Your Github Org
     org: "your-github-org"
+    # This is the secret key in the kube-jit-api-secrets secret
+    # This secret key value will contain the client secret for the Github App
+    ghAppClientSecretKey: ghAppClientSecret
 
 # Postgres database connection details
 db:
@@ -78,8 +92,9 @@ db:
   # and provide the database connection details.
   cloudSqlProxy:
     enabled: false
-  #   image: gcr.io/cloudsql-docker/gce-proxy:1.33.2
+  #   image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.15.2
   #   cloudSqlInstance: "project-id:region:instance-name"
+  #   usePrivateIp: false # Set to true to enable the --private-ip flag
   #   resources:
   #     limits:
   #       cpu: "100m"
@@ -93,9 +108,15 @@ db:
   connTimeout: "10"
   # Your Postgres database name
   name: "your-db-name"
-  # Your Postgres database portm, ignored if using Cloud SQL Proxy - sets to 5432
+  # Your Postgres database user secret key
+  # This is the secret key in the kube-jit-api-secrets secret
+  userSecretKey: dbUser
+  # Your Postgres database password secret key
+  # This is the secret key in the kube-jit-api-secrets secret
+  passwordSecretKey: dbPassword
+  # Your Postgres database port, ignored if using Cloud SQL Proxy - sets to 5432
   port: "5432"
-  # Your Postgres database ssl mode
+  # Your Postgres database ssl mode, disabled if using Cloud SQL Proxy
   sslMode: "prefer"
   # Your Postgres database time zone
   timezone: "Europe/London"

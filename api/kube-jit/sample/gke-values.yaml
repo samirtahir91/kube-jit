@@ -32,12 +32,28 @@ config:
     appId: 1212598
     org: "samirtahir91-org"
 
+serviceAccount:
+  annotations:
+    iam.gke.io/gcp-service-account: kube-jit-api@sacred-entry-304212.iam.gserviceaccount.com
+
 db:
+  cloudSqlProxy:
+    enabled: true
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.15.2
+    cloudSqlInstance: sacred-entry-304212:europe-west2:kube-jit
+    usePrivateIp: true
+    resources:
+      limits:
+        cpu: "100m"
+        memory: "128Mi"
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
   host: my-postgres-postgresql.default.svc.cluster.local
   connTimeout: "10"
   name: postgres
   port: "5432"
-  sslMode: "prefer"
+  sslMode: "disable"
   timezone: "Europe/London"
   maxOpenConns: "50"
   maxIdleConns: "20"
@@ -46,5 +62,5 @@ db:
 
 image:
   repository: samirtahir91076/kube-jit-api
-  tag: latest
+  tag: v8
   imagePullPolicy: Always

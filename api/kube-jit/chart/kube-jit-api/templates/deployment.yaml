@@ -28,12 +28,31 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
+        {{- if .Values.db.cloudSqlProxy.enabled }}
+        - name: cloud-sql-proxy
+          image: {{ quote .Values.db.cloudSqlProxy.image | default "gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.15.2" }}
+          args:
+            - "{{ .Values.db.cloudSqlProxy.cloudSqlInstance }}"
+            - "--auto-iam-authn"
+            - "--structured-logs"
+            - "--port=5432"
+            {{- if .Values.db.cloudSqlProxy.usePrivateIp }}
+            - "--private-ip"
+            {{- end }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+          resources:
+            {{- toYaml .Values.db.cloudSqlProxy.resources | nindent 12 }}
+        {{- end }}
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
+          - name: CLOUD_SQL_PROXY_ENABLED
+            value: {{ quote (ternary "true" "false" .Values.db.cloudSqlProxy.enabled) }}
           - name: CONFIG_MOUNT_PATH
             value: {{ quote .Values.config.configMountPath | default "/etc/config/" }}
           - name: ALLOW_ORIGINS
@@ -52,7 +71,7 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: kube-jit-api-secrets
-                key: ghAppClientSecret
+                key: {{ .Values.config.gh.ghAppClientSecretKey }}
           - name: GH_APP_INSTALL_ID
             value: {{ quote .Values.config.gh.installId }}
           - name: GH_APP_ID
@@ -71,10 +90,9 @@ spec:
           - name: DB_CONN_TIMEOUT
             value: {{ quote .Values.db.connTimeout }}
           - name: DB_SSLMODE
-            value: {{ quote .Values.db.sslMode }}
+            value: {{ if .Values.db.cloudSqlProxy.enabled }}"disable"{{ else }}{{ quote .Values.db.sslMode }}{{ end }}
           - name: DB_TIMEZONE
             value: {{ quote .Values.db.timezone }}
-          {{- if not .Values.db.cloudSqlProxy.enabled }}
           - name: DB_USER
             valueFrom:
               secretKeyRef:
@@ -85,7 +103,6 @@ spec:
               secretKeyRef:
                 name: kube-jit-api-secrets
                 key: {{ .Values.db.passwordSecretKey }}
-          {{- end }}
           - name: DB_MAX_OPEN_CONNS
             value: {{ quote .Values.db.maxOpenConns }}
           - name: DB_MAX_IDLE_CONNS
@@ -97,12 +114,12 @@ spec:
           - name: HMAC_SECRET
             valueFrom:
               secretKeyRef:
-                key: hmac-secret
+                key: {{ .Values.config.hmacSecretKey }}
                 name: kube-jit-api-secrets
           - name: COOKIE_SECRET
             valueFrom:
               secretKeyRef:
-                key: cookie-secret
+                key: {{ .Values.config.cookieSecretKey }}
                 name: kube-jit-api-secrets
           - name: API_NAMESPACE
             valueFrom:
@@ -126,19 +143,6 @@ spec:
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-        {{- if .Values.db.cloudSqlProxy.enabled }}
-        - name: cloud-sql-proxy
-          image: {{ quote .Values.db.cloudSqlProxy.image | default "gcr.io/cloudsql-docker/gce-proxy:1.33.2" }}
-          command:
-            - "/cloud_sql_proxy"
-            - "--instances={{ .Values.db.cloudSqlProxy.cloudSqlInstance }}=tcp:5432"
-            - "--ip_address_types=PRIVATE"
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 2
-          resources:
-            {{- toYaml .Values.db.cloudSqlProxy.resources | nindent 12 }}
-        {{- end }}
       volumes:
       - name: config
         configMap:

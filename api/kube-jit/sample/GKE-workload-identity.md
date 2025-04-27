@@ -34,3 +34,15 @@ subjects:
   - kind: User
     name: "kube-jit-api@sacred-entry-304212.iam.gserviceaccount.com"
 ```
+
+## Cloud SQL Proxy
+https://cloud.google.com/sql/docs/mysql/connect-kubernetes-engine#workload-identity
+
+This will add permission for the api KSA to use GCP hosted Postgres (Cloud SQL)
+```sh
+gcloud projects add-iam-policy-binding sacred-entry-304212 \
+    --member "serviceAccount:kube-jit-api@sacred-entry-304212.iam.gserviceaccount.com" \
+    --role "roles/cloudsql.client"
+```
+
+https://cloud.google.com/sql/docs/mysql/connect-kubernetes-engine#run_the_in_a_sidecar_pattern
