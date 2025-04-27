@@ -63,27 +63,29 @@ spec:
             value: /etc/secrets/ghAppPrivateKey
           # Database environment variables
           - name: DB_HOST
-            value: {{ quote .Values.env.db.host }}
-          - name: DB_CONN_TIMEOUT
-            value: {{ quote .Values.env.db.connTimeout }}
+            value: {{ if .Values.env.db.useCloudSqlProxy }}"127.0.0.1"{{ else }}{{ quote .Values.env.db.host }}{{ end }}
+          - name: DB_PORT
+            value: {{ if .Values.env.db.useCloudSqlProxy }}"5432"{{ else }}{{ quote .Values.env.db.port }}{{ end }}
           - name: DB_NAME
             value: {{ quote .Values.env.db.name }}
-          - name: DB_PORT
-            value: {{ quote .Values.env.db.port }}
+          - name: DB_CONN_TIMEOUT
+            value: {{ quote .Values.env.db.connTimeout }}
           - name: DB_SSLMODE
             value: {{ quote .Values.env.db.sslMode }}
           - name: DB_TIMEZONE
             value: {{ quote .Values.env.db.timezone }}
+          {{- if not .Values.env.db.useCloudSqlProxy }}
           - name: DB_USER
             valueFrom:
               secretKeyRef:
                 name: kube-jit-api-secrets
-                key: dbUser
+                key: {{ .Values.env.db.userSecretKey }}
           - name: DB_PASSWORD
             valueFrom:
               secretKeyRef:
                 name: kube-jit-api-secrets
-                key: dbPassword
+                key: {{ .Values.env.db.passwordSecretKey }}
+          {{- end }}
           - name: DB_MAX_OPEN_CONNS
             value: {{ quote .Values.env.db.maxOpenConns }}
           - name: DB_MAX_IDLE_CONNS
@@ -127,6 +129,19 @@ spec:
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+        {{- if .Values.env.db.useCloudSqlProxy }}
+        - name: cloud-sql-proxy
+          image: {{ quote .Values.cloudSqlProxy.image | default "gcr.io/cloudsql-docker/gce-proxy:1.33.2" }}
+          command:
+            - "/cloud_sql_proxy"
+            - "--instances={{ .Values.env.db.cloudSqlInstance }}=tcp:5432"
+            - "--ip_address_types=PRIVATE"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 2
+          resources:
+            {{- toYaml .Values.cloudSqlProxy.resources | nindent 12 }}
+        {{- end }}
       volumes:
       - name: config
         configMap:

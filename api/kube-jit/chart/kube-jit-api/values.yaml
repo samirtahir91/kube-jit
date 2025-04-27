@@ -72,13 +72,27 @@ env:
 
   # Postgres database connection details
   db:
-    # Your Postgres hostname
+    # If using GCP Cloud SQL Proxy with GKE workload identity, set the cloudSqlProxy.enabled to true
+    # and provide the cloudSqlInstance name.
+    # If using a different database, set cloudSqlProxy.enabled to false
+    # and provide the database connection details.
+    cloudSqlProxy:
+      enabled: false
+      cloudSqlInstance: "project-id:region:instance-name"
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "128Mi"
+        requests:
+          cpu: "50m"
+          memory: "64Mi"
+    # Your Postgres hostname, ignored if using Cloud SQL Proxy - sets to 127.0.0.1
     host: "your-db-host"
     # Your Postgres connection timeout
     connTimeout: "10"
     # Your Postgres database name
     name: "your-db-name"
-    # Your Postgres database port
+    # Your Postgres database portm, ignored if using Cloud SQL Proxy - sets to 5432
     port: "5432"
     # Your Postgres database ssl mode
     sslMode: "prefer"
