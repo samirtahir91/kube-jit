@@ -119,7 +119,7 @@ func init() {
 	}
 	fmt.Println("\nApprover teams:")
 	for _, team := range ApproverTeams {
-		fmt.Printf("- %s (ID: %d)\n", team.Name, team.ID)
+		fmt.Printf("- %s (ID: %s)\n", team.Name, team.ID)
 	}
 }
 

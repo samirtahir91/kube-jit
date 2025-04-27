@@ -65,6 +65,7 @@ spec:
             {{- end }}
           - name: LISTEN_PORT
             value: {{ quote .Values.service.port }}
+          {{- if .Values.config.gh.enabled }}
           - name: GH_APP_CLIENT_ID
             value: {{ quote .Values.config.gh.clientID }}
           - name: GH_APP_CLIENT_SECRET
@@ -80,6 +81,18 @@ spec:
             value: {{ quote .Values.config.gh.org }}
           - name: GH_APP_PK
             value: /etc/secrets/ghAppPrivateKey
+          {{- end }}
+          {{- if .Values.config.googleOauth.enabled }}
+          - name: GOOGLE_CLIENT_ID
+            value: {{ quote .Values.config.googleOauth.clientID }}
+          - name: GOOGLE_REDIRECT_URL
+            value: {{ quote .Values.config.googleOauth.redirectUrl }}
+          - name: GOOGLE_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: kube-jit-api-secrets
+                key: {{ .Values.config.googleOauth.clientSecretKey }}
+          {{- end }}
           # Database environment variables
           - name: DB_HOST
             value: {{ if .Values.db.cloudSqlProxy.enabled }}"127.0.0.1"{{ else }}{{ quote .Values.db.host }}{{ end }}

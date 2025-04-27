@@ -7,7 +7,7 @@ import (
 )
 
 type Team struct {
-	ID   int    `json:"id" yaml:"id"`
+	ID   string `json:"id" yaml:"id"`
 	Name string `json:"name" yaml:"name"`
 }
 
@@ -21,7 +21,7 @@ type Cluster struct {
 
 type RequestData struct {
 	gorm.Model
-	ApprovingTeamID   int       `json:"approvingTeamID"`
+	ApprovingTeamID   string    `json:"approvingTeamID"`
 	ApprovingTeamName string    `json:"approvingTeamName"`
 	ApproverID        int       `json:"approverID"`
 	ApproverName      string    `json:"approverName"`

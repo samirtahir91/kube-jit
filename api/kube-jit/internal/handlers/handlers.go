@@ -20,6 +20,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"golang.org/x/oauth2"
 )
 
 var (
@@ -32,7 +33,150 @@ var (
 	httpClient        = &http.Client{
 		Timeout: 60 * time.Second, // Set a global timeout for all requests
 	}
+	googleOAuthConfig = &oauth2.Config{
+		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
+		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://accounts.google.com/o/oauth2/auth",
+			TokenURL: "https://oauth2.googleapis.com/token",
+		},
+	}
 )
+
+func GoogleLoginHandler(c *gin.Context) {
+	url := googleOAuthConfig.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+	c.Redirect(http.StatusTemporaryRedirect, url)
+}
+
+func GoogleCallbackHandler(c *gin.Context) {
+	code := c.Query("code")
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Code query parameter is required"})
+		return
+	}
+
+	// Exchange the authorization code for an access token
+	token, err := googleOAuthConfig.Exchange(context.Background(), code)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to exchange token"})
+		return
+	}
+
+	// Fetch user info (optional, for verification or additional data)
+	client := googleOAuthConfig.Client(context.Background(), token)
+	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
+		return
+	}
+	defer resp.Body.Close()
+
+	var userInfo map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user info"})
+		return
+	}
+
+	// Store the token in the session
+	session := sessions.Default(c)
+	session.Options(sessions.Options{
+		MaxAge:   int(token.ExpiresIn),
+		HttpOnly: true,
+		Secure:   true,
+		Path:     "/",
+	})
+	session.Set("googleToken", token.AccessToken)
+	if err := session.Save(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
+		return
+	}
+
+	// Respond with user info or redirect to the frontend
+	c.JSON(http.StatusOK, gin.H{
+		"userData":  userInfo,
+		"expiresIn": int(token.ExpiresIn),
+	})
+}
+
+func GetGoogleGroups(token string) ([]models.Team, error) {
+	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{
+		AccessToken: token,
+	}))
+	resp, err := client.Get("https://www.googleapis.com/admin/directory/v1/groups?userKey=me")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var groupsResponse struct {
+		Groups []struct {
+			Name string `json:"name"`
+			ID   string `json:"id"`
+		} `json:"groups"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&groupsResponse); err != nil {
+		return nil, err
+	}
+
+	var groups []models.Team
+	for _, group := range groupsResponse.Groups {
+		groups = append(groups, models.Team{
+			Name: group.Name,
+			ID:   group.ID,
+		})
+	}
+	return groups, nil
+}
+
+func GetUserGroups(provider string, token string, c *gin.Context) ([]models.Team, error) {
+	switch provider {
+	case "github":
+		// Retrieve GitHub token from session
+		session := sessions.Default(c)
+		token := session.Get("token")
+		if token == nil {
+			return nil, fmt.Errorf("unauthorized: no token in request cookie")
+		}
+
+		req, err := http.NewRequest("GET", "https://api.github.com/user/teams", nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Authorization", token.(string))
+
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("error fetching teams from GitHub")
+		}
+
+		var teams []models.Team
+		if err := json.NewDecoder(resp.Body).Decode(&teams); err != nil {
+			return nil, err
+		}
+
+		return teams, nil
+
+	case "google":
+		// Retrieve Google token from session
+		session := sessions.Default(c)
+		token := session.Get("googleToken")
+		if token == nil {
+			return nil, fmt.Errorf("unauthorized: no token in request cookie")
+		}
+
+		return GetGoogleGroups(token.(string))
+
+	default:
+		return nil, fmt.Errorf("unsupported provider: %s", provider)
+	}
+}
 
 // K8sCallback is used by downstream controller to callback for status update
 func K8sCallback(c *gin.Context) {
@@ -157,6 +301,11 @@ func GetGithubClientId(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// GetGoogleClientId returns the google app client_id
+func GetGoogleClientId(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"clientId": googleOAuthConfig.ClientID})
+}
+
 // GetClustersAndRoles gets clusters and roles
 func GetClustersAndRoles(c *gin.Context) {
 	response := map[string]interface{}{
@@ -277,7 +426,7 @@ func GetUsersGithubTeams(c *gin.Context) {
 	session := sessions.Default(c)
 	token := session.Get("token")
 	if token == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized no token in request cookie"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in request cookie"})
 		return
 	}
 
@@ -300,13 +449,24 @@ func GetUsersGithubTeams(c *gin.Context) {
 		return
 	}
 
-	var teams []models.Team
-	if err := json.NewDecoder(resp.Body).Decode(&teams); err != nil {
+	var githubTeams []struct {
+		ID   int    `json:"id"`   // GitHub returns ID as an integer
+		Name string `json:"name"` // Team name
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&githubTeams); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, teams)
+	var teams []models.Team
+	for _, team := range githubTeams {
+		teams = append(teams, models.Team{
+			ID:   strconv.Itoa(team.ID), // Convert integer ID to string
+			Name: team.Name,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"teams": teams})
 }
 
 // IsApprover checks is user belongs to an approver team and return bool
@@ -389,7 +549,7 @@ func GetPendingApprovals(c *gin.Context) {
 		return
 	}
 
-	var matchedTeams []int
+	var matchedTeams []string
 	for _, userTeam := range userTeams {
 		for _, approverTeam := range k8s.ApproverTeams {
 			if userTeam.ID == approverTeam.ID && userTeam.Name == approverTeam.Name {
@@ -409,6 +569,17 @@ func GetPendingApprovals(c *gin.Context) {
 
 // OauthRedirect used for github app oauhth flow
 func OauthRedirect(c *gin.Context) {
+	provider := c.Query("provider")
+	if provider == "github" {
+		handleGitHubLogin(c)
+	} else if provider == "google" {
+		handleGoogleLogin(c)
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported provider"})
+	}
+}
+
+func handleGitHubLogin(c *gin.Context) {
 	code := c.Query("code")
 	if code == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Code query parameter is required"})
@@ -494,6 +665,56 @@ func OauthRedirect(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"userData":  userData,
 		"expiresIn": tokenData.ExpiresIn,
+	})
+}
+
+func handleGoogleLogin(c *gin.Context) {
+	code := c.Query("code")
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Code query parameter is required"})
+		return
+	}
+
+	// Exchange the authorization code for an access token
+	token, err := googleOAuthConfig.Exchange(context.Background(), code)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to exchange token"})
+		return
+	}
+
+	// Fetch user info (optional, for verification or additional data)
+	client := googleOAuthConfig.Client(context.Background(), token)
+	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
+		return
+	}
+	defer resp.Body.Close()
+
+	var userInfo map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user info"})
+		return
+	}
+
+	// Store the token in the session
+	session := sessions.Default(c)
+	session.Options(sessions.Options{
+		MaxAge:   int(token.ExpiresIn),
+		HttpOnly: true,
+		Secure:   true,
+		Path:     "/",
+	})
+	session.Set("googleToken", token.AccessToken)
+	if err := session.Save(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
+		return
+	}
+
+	// Respond with user info or redirect to the frontend
+	c.JSON(http.StatusOK, gin.H{
+		"userData":  userInfo,
+		"expiresIn": int(token.ExpiresIn),
 	})
 }
 
@@ -588,4 +809,17 @@ func SubmitRequest(c *gin.Context) {
 
 	// Respond with success message
 	c.JSON(http.StatusOK, gin.H{"message": "Request submitted successfully"})
+}
+
+func UserGroupsHandler(c *gin.Context) {
+	provider := c.Query("provider") // e.g., "github" or "google"
+	token := c.Query("token")       // OAuth token for Google (not needed for GitHub)
+
+	groups, err := GetUserGroups(provider, token, c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"groups": groups})
 }

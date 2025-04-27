@@ -5,28 +5,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import './HistoryTabPane.css';
 import RequestTable from '../requestTable/RequestTable';
-
-type Request = {
-    ID: number;
-    userID: string;
-    username: string;
-    CreatedAt: string;
-    UpdatedAt: string;
-    startDate: string;
-    endDate: string;
-    DeletedAt: string | null;
-    approvingTeamID: number;
-    users: string[];
-    namespaces: string[];
-    justification: string;
-    approvingTeamName: string;
-    roleName: string;
-    status: string;
-    approverID: number;
-    approverName: string;
-    notes: string;
-    clusterName: string
-};
+import { Request } from '../../types'; // Import the shared Request type
 
 const HistoryTabPane = ({ activeTab, originTab, userId }: { activeTab: string, originTab: string, userId: string }) => {
     const [requests, setRequests] = useState<Request[]>([]);

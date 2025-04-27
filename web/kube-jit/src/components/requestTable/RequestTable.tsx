@@ -11,7 +11,7 @@ type Request = {
     startDate: string;
     endDate: string;
     DeletedAt: string | null;
-    approvingTeamID: number;
+    approvingTeamID: string;
     users: string[];
     namespaces: string[];
     justification: string;

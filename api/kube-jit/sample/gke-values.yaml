@@ -26,34 +26,40 @@ config:
 
   callbackHostOverride: http://localhost:8589
 
-  gh:
-    clientID: Iv23likSg0AQoOUi18q7
-    installId: 64433781
-    appId: 1212598
-    org: "samirtahir91-org"
+  # gh:
+  #   clientID: Iv23likSg0AQoOUi18q7
+  #   installId: 64433781
+  #   appId: 1212598
+  #   org: "samirtahir91-org"
+
+  googleOauth:
+    enabled: true
+    clientID: "630940189304-8uggsmkv6to2vu5sogsjrhge1m57t8cr.apps.googleusercontent.com"
+    redirectUrl: "http://localhost:5173/kube-jit-api/oauth/google/callback"
+    clientSecretKey: googleClientSecret
 
 serviceAccount:
   annotations:
     iam.gke.io/gcp-service-account: kube-jit-api@sacred-entry-304212.iam.gserviceaccount.com
 
 db:
-  cloudSqlProxy:
-    enabled: true
-    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.15.2
-    cloudSqlInstance: sacred-entry-304212:europe-west2:kube-jit
-    usePrivateIp: true
-    resources:
-      limits:
-        cpu: "100m"
-        memory: "128Mi"
-      requests:
-        cpu: "50m"
-        memory: "64Mi"
+  # cloudSqlProxy:
+  #   enabled: true
+  #   image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.15.2
+  #   cloudSqlInstance: sacred-entry-304212:europe-west2:kube-jit
+  #   usePrivateIp: true
+  #   resources:
+  #     limits:
+  #       cpu: "100m"
+  #       memory: "128Mi"
+  #     requests:
+  #       cpu: "50m"
+  #       memory: "64Mi"
   host: my-postgres-postgresql.default.svc.cluster.local
   connTimeout: "10"
   name: postgres
   port: "5432"
-  sslMode: "disable"
+  sslMode: "prefer"
   timezone: "Europe/London"
   maxOpenConns: "50"
   maxIdleConns: "20"
@@ -62,5 +68,5 @@ db:
 
 image:
   repository: samirtahir91076/kube-jit-api
-  tag: v8
+  tag: v9
   imagePullPolicy: Always

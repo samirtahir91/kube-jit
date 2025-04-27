@@ -4,32 +4,11 @@ import { Tab, Button, Col, ToggleButton } from 'react-bootstrap';
 import RequestTable from '../requestTable/RequestTable';
 import refreshLogo from '../../assets/refresh.svg';
 import './ApproveTabPane.css';
+import { Request } from '../../types'; // Import the shared Request type
 
 type ApproveTabPaneProps = {
     userId: string;
     username: string;
-};
-
-type Request = {
-    ID: number;
-    userID: string;
-    username: string;
-    CreatedAt: string;
-    UpdatedAt: string;
-    startDate: string;
-    endDate: string;
-    DeletedAt: string | null;
-    approvingTeamID: number;
-    users: string[];
-    namespaces: string[];
-    justification: string;
-    approvingTeamName: string;
-    clusterName: string;
-    roleName: string;
-    status: string;
-    approverID: number;
-    approverName: string;
-    notes: string;
 };
 
 const ApproveTabPane = ({ userId, username }: ApproveTabPaneProps) => {

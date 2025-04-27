@@ -5,7 +5,7 @@ import NavBrand from '../navBrand/NavBrand';
 import axios from 'axios';
 import { useState, useEffect } from 'react';
 
-const Login = () => {
+const GitHubLogin = () => {
 
   const [clientID, setClientID] = useState('');
 
@@ -71,4 +71,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default GitHubLogin;
