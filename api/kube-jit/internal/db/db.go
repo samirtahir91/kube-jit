@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"time"
 
 	"kube-jit/internal/models"
 
@@ -35,6 +37,23 @@ func InitDB() {
 		log.Fatal(err)
 	}
 
+	// Configure connection pool
+	sqlDB, err := DB.DB()
+	if err != nil {
+		log.Fatalf("Failed to get database connection: %v", err)
+	}
+
+	// Read connection pool settings from environment variables
+	maxOpenConns, _ := strconv.Atoi(getEnv("DB_MAX_OPEN_CONNS", "25"))
+	maxIdleConns, _ := strconv.Atoi(getEnv("DB_MAX_IDLE_CONNS", "10"))
+	connMaxLifetime, _ := time.ParseDuration(getEnv("DB_CONN_MAX_LIFETIME", "5m"))
+	connMaxIdleTime, _ := time.ParseDuration(getEnv("DB_CONN_MAX_IDLE_TIME", "10m"))
+
+	sqlDB.SetMaxOpenConns(maxOpenConns)       // Maximum number of open connections
+	sqlDB.SetMaxIdleConns(maxIdleConns)       // Maximum number of idle connections
+	sqlDB.SetConnMaxLifetime(connMaxLifetime) // Maximum lifetime of a connection
+	sqlDB.SetConnMaxIdleTime(connMaxIdleTime) // Maximum idle time for a connection
+
 	// Auto migrate the schema
 	log.Println("Migrating database schema...")
 	err = DB.AutoMigrate(&models.RequestData{})
@@ -42,4 +61,12 @@ func InitDB() {
 		log.Fatalf("Error migrating database: %v", err)
 	}
 	log.Println("Database schema migrated successfully")
+}
+
+// getEnv reads an environment variable or returns a default value if not set
+func getEnv(key, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return defaultValue
 }

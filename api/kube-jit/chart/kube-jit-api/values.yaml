@@ -52,31 +52,43 @@ config:
   #   tokenSecret: cluster2-token-secret
 
 env:
-  # sets the mountPath of the api configMap in the pod, defaults to /etc/config/
-  #configMountPath: ""
-  # Your Github App Client ID
-  ghAppClientID: "your-github-app-client-id"
-  # Your Github App Client Install ID
-  ghAppInstallId: "your-github-app-install-id"
-  # Your Github App ID
-  ghAppId: "your-github-app-id"
-  # Your Github Org
-  ghOrg: "your-github-org"
-  # Your Postgres hostname
-  dbHost: "your-db-host"
-  # Your Postgres connection timeout
-  dbConnTimeout: "10"
-  # Your Postgres database name
-  dbName: "your-db-name"
-  # Your Postgres database port
-  dbPort: "5432"
-  # Your Postgres database ssl mode
-  dbSslMode: "prefer"
-  # Your Postgres database time zone
-  dbTimezone: "Europe/London"
-  # Sets the callback base url for external clusters running the kube-jit operator to callback to the api for status updates.
+  # callbackHostOverride sets the callback base url for external clusters running the kube-jit operator to callback to the api for status updates.
   # defaults to the ingress host
   #callbackHostOverride: http://callback-example.com:8589
+
+  # configMountPath sets the mountPath of the api configMap in the pod, defaults to /etc/config/
+  #configMountPath: ""
+  
+  # Github App Oauth config
+  gh:
+    # Your Github App Client ID
+    ghAppClientID: "your-github-app-client-id"
+    # Your Github App Install ID
+    ghAppInstallId: "your-github-app-install-id"
+    # Your Github App ID
+    ghAppId: "your-github-app-id"
+    # Your Github Org
+    ghOrg: "your-github-org"
+
+  # Postgres database connection details
+  db:
+    # Your Postgres hostname
+    dbHost: "your-db-host"
+    # Your Postgres connection timeout
+    dbConnTimeout: "10"
+    # Your Postgres database name
+    dbName: "your-db-name"
+    # Your Postgres database port
+    dbPort: "5432"
+    # Your Postgres database ssl mode
+    dbSslMode: "prefer"
+    # Your Postgres database time zone
+    dbTimezone: "Europe/London"
+    # Connection pool settings
+    maxOpenConns: "50"
+    maxIdleConns: "20"
+    connMaxLifetime: "10m"
+    connMaxIdleTime: "15m"
 
 serviceAccount:
   # Specifies whether a service account should be created

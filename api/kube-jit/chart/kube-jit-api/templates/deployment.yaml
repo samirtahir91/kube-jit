@@ -47,32 +47,33 @@ spec:
           - name: LISTEN_PORT
             value: {{ quote .Values.service.port }}
           - name: GH_APP_CLIENT_ID
-            value: {{ quote .Values.env.ghAppClientID }}
+            value: {{ quote .Values.env.gh.ghAppClientID }}
           - name: GH_APP_CLIENT_SECRET
             valueFrom:
               secretKeyRef:
                 name: kube-jit-api-secrets
                 key: ghAppClientSecret
           - name: GH_APP_INSTALL_ID
-            value: {{ quote .Values.env.ghAppInstallId }}
+            value: {{ quote .Values.env.gh.ghAppInstallId }}
           - name: GH_APP_ID
-            value: {{ quote .Values.env.ghAppId }}
+            value: {{ quote .Values.env.gh.ghAppId }}
           - name: GH_ORG
-            value: {{ quote .Values.env.ghOrg }}
+            value: {{ quote .Values.env.gh.ghOrg }}
           - name: GH_APP_PK
             value: /etc/secrets/ghAppPrivateKey
+          # Database environment variables
           - name: DB_HOST
-            value: {{ quote .Values.env.dbHost }}
+            value: {{ quote .Values.env.db.host }}
           - name: DB_CONN_TIMEOUT
-            value: {{ quote .Values.env.dbConnTimeout }}
+            value: {{ quote .Values.env.db.connTimeout }}
           - name: DB_NAME
-            value: {{ quote .Values.env.dbName }}
+            value: {{ quote .Values.env.db.name }}
           - name: DB_PORT
-            value: {{ quote .Values.env.dbPort }}
+            value: {{ quote .Values.env.db.port }}
           - name: DB_SSLMODE
-            value: {{ quote .Values.env.dbSslMode }}
+            value: {{ quote .Values.env.db.sslMode }}
           - name: DB_TIMEZONE
-            value: {{ quote .Values.env.dbTimezone }}
+            value: {{ quote .Values.env.db.timezone }}
           - name: DB_USER
             valueFrom:
               secretKeyRef:
@@ -83,6 +84,14 @@ spec:
               secretKeyRef:
                 name: kube-jit-api-secrets
                 key: dbPassword
+          - name: DB_MAX_OPEN_CONNS
+            value: {{ quote .Values.env.db.maxOpenConns }}
+          - name: DB_MAX_IDLE_CONNS
+            value: {{ quote .Values.env.db.maxIdleConns }}
+          - name: DB_CONN_MAX_LIFETIME
+            value: {{ quote .Values.env.db.connMaxLifetime }}
+          - name: DB_CONN_MAX_IDLE_TIME
+            value: {{ quote .Values.env.db.connMaxIdleTime }}
           - name: HMAC_SECRET
             valueFrom:
               secretKeyRef:
