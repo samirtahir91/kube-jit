@@ -51,7 +51,7 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
     useEffect(() => {
         const fetchRoles = async () => {
             try {
-                const response = await axios.get('/kube-jit-api/roles-and-clusters');
+                const response = await axios.get('http://localhost:8589/kube-jit-api/roles-and-clusters');
                 setRoles(response.data.roles);
                 setClusters(response.data.clusters);
             } catch (error) {
@@ -102,7 +102,7 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
             endDate
         };
 
-        axios.post('/kube-jit-api/submit-request', payload)
+        axios.post('http://localhost:8589/kube-jit-api/submit-request', payload)
         .then(response => {
             setLoadingInCard(false);
             setShowModal(false);

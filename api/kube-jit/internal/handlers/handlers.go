@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"kube-jit/internal/db"
 	"kube-jit/internal/models"
 	"kube-jit/pkg/k8s"
@@ -19,17 +18,15 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/oauth2"
+	admin "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/option"
 )
 
 var (
+	oauthProvider     = os.Getenv("OAUTH_PROVIDER")
 	ghAppClientID     = os.Getenv("GH_APP_CLIENT_ID")
 	ghAppClientSecret = os.Getenv("GH_APP_CLIENT_SECRET")
-	ghAppInstallId, _ = strconv.Atoi(os.Getenv("GH_APP_INSTALL_ID"))
-	ghAppId, _        = strconv.Atoi(os.Getenv("GH_APP_ID"))
-	ghAppPrivateKey   = os.Getenv("GH_APP_PK")
-	ghOrg             = os.Getenv("GH_ORG")
 	httpClient        = &http.Client{
 		Timeout: 60 * time.Second, // Set a global timeout for all requests
 	}
@@ -37,7 +34,10 @@ var (
 		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 		RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email"},
+		Scopes: []string{
+			"https://www.googleapis.com/auth/userinfo.profile",
+			"https://www.googleapis.com/auth/userinfo.email",
+		},
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  "https://accounts.google.com/o/oauth2/auth",
 			TokenURL: "https://oauth2.googleapis.com/token",
@@ -45,140 +45,42 @@ var (
 	}
 )
 
-func GoogleLoginHandler(c *gin.Context) {
-	url := googleOAuthConfig.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	c.Redirect(http.StatusTemporaryRedirect, url)
-}
-
-func GoogleCallbackHandler(c *gin.Context) {
-	code := c.Query("code")
-	if code == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Code query parameter is required"})
-		return
-	}
-
-	// Exchange the authorization code for an access token
-	token, err := googleOAuthConfig.Exchange(context.Background(), code)
+// GetGoogleGroupsWithWorkloadIdentity fetches Google groups for a user using Workload Identity
+func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error) {
+	// Use the default credentials provided by Workload Identity
+	ctx := context.Background()
+	service, err := admin.NewService(ctx, option.WithScopes(admin.AdminDirectoryGroupReadonlyScope))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to exchange token"})
-		return
+		log.Printf("Error creating Admin SDK service: %v", err)
+		return nil, fmt.Errorf("failed to create admin service: %v", err)
 	}
 
-	// Fetch user info (optional, for verification or additional data)
-	client := googleOAuthConfig.Client(context.Background(), token)
-	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	// Impersonate the user and list their groups
+	groupsCall := service.Groups.List().UserKey(userEmail)
+	groupsResponse, err := groupsCall.Do()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
-		return
-	}
-	defer resp.Body.Close()
-
-	var userInfo map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user info"})
-		return
+		log.Printf("Error fetching groups for user %s: %v", userEmail, err)
+		return nil, fmt.Errorf("failed to list groups: %v", err)
 	}
 
-	// Store the token in the session
-	session := sessions.Default(c)
-	session.Options(sessions.Options{
-		MaxAge:   int(token.ExpiresIn),
-		HttpOnly: true,
-		Secure:   true,
-		Path:     "/",
-	})
-	session.Set("googleToken", token.AccessToken)
-	if err := session.Save(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
-		return
-	}
-
-	// Respond with user info or redirect to the frontend
-	c.JSON(http.StatusOK, gin.H{
-		"userData":  userInfo,
-		"expiresIn": int(token.ExpiresIn),
-	})
-}
-
-func GetGoogleGroups(token string) ([]models.Team, error) {
-	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{
-		AccessToken: token,
-	}))
-	resp, err := client.Get("https://www.googleapis.com/admin/directory/v1/groups?userKey=me")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var groupsResponse struct {
-		Groups []struct {
-			Name string `json:"name"`
-			ID   string `json:"id"`
-		} `json:"groups"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&groupsResponse); err != nil {
-		return nil, err
-	}
-
+	// Map the response to your models.Team struct
 	var groups []models.Team
 	for _, group := range groupsResponse.Groups {
+		log.Printf("Google Group - Name: %s, ID: %s", group.Name, group.Email)
 		groups = append(groups, models.Team{
 			Name: group.Name,
-			ID:   group.ID,
+			ID:   group.Email,
 		})
 	}
+
 	return groups, nil
 }
 
-func GetUserGroups(provider string, token string, c *gin.Context) ([]models.Team, error) {
-	switch provider {
-	case "github":
-		// Retrieve GitHub token from session
-		session := sessions.Default(c)
-		token := session.Get("token")
-		if token == nil {
-			return nil, fmt.Errorf("unauthorized: no token in request cookie")
-		}
-
-		req, err := http.NewRequest("GET", "https://api.github.com/user/teams", nil)
-		if err != nil {
-			return nil, err
-		}
-		req.Header.Set("Authorization", token.(string))
-
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("error fetching teams from GitHub")
-		}
-
-		var teams []models.Team
-		if err := json.NewDecoder(resp.Body).Decode(&teams); err != nil {
-			return nil, err
-		}
-
-		return teams, nil
-
-	case "google":
-		// Retrieve Google token from session
-		session := sessions.Default(c)
-		token := session.Get("googleToken")
-		if token == nil {
-			return nil, fmt.Errorf("unauthorized: no token in request cookie")
-		}
-
-		return GetGoogleGroups(token.(string))
-
-	default:
-		return nil, fmt.Errorf("unsupported provider: %s", provider)
-	}
-}
-
 // K8sCallback is used by downstream controller to callback for status update
+// It validates the signed URL and updates the request status in the database
+// It also processes the callback data and returns a success message
+// It is called by the K8s controller when the request is completed
+// It is used to update the status of the request in the database
 func K8sCallback(c *gin.Context) {
 	var callbackData struct {
 		TicketID string `json:"ticketID"`
@@ -217,6 +119,10 @@ func K8sCallback(c *gin.Context) {
 }
 
 // ApproveOrRejectRequests approves pending requests in db - status = Approved
+// or rejects them - status = Rejected
+// It creates the k8s object for each request if status is Approved
+// It updates the status of the requests in the database
+// It is called by the K8s controller when the request is completed
 func ApproveOrRejectRequests(c *gin.Context) {
 	type ApproveRequest struct {
 		Requests     []models.RequestData `json:"requests"`
@@ -264,6 +170,7 @@ func ApproveOrRejectRequests(c *gin.Context) {
 }
 
 // GetRecords returns the latest jit requests for a user with optional limit and date range
+// It fetches the records from the database and returns them as JSON
 func GetRecords(c *gin.Context) {
 	userID := c.Query("userID")       // Get userID from query parameters
 	limit := c.Query("limit")         // Get limit from query parameters
@@ -293,17 +200,24 @@ func GetRecords(c *gin.Context) {
 	c.JSON(http.StatusOK, requests) // Return the list of requests
 }
 
-// GetGithubClientId returns the github app client_id
-func GetGithubClientId(c *gin.Context) {
-	response := map[string]interface{}{
-		"client_id": ghAppClientID,
+// GetOauthClientId checks the oauthProvider and returns the appropriate client_id
+func GetOauthClientId(c *gin.Context) {
+	var clientId string
+	var provider string
+	if oauthProvider == "google" {
+		clientId = googleOAuthConfig.ClientID
+		provider = "google"
+	} else if oauthProvider == "github" {
+		clientId = ghAppClientID
+		provider = "github"
 	}
-	c.JSON(http.StatusOK, response)
-}
 
-// GetGoogleClientId returns the google app client_id
-func GetGoogleClientId(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"clientId": googleOAuthConfig.ClientID})
+	response := map[string]interface{}{
+		"client_id": clientId,
+		"provider":  provider,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // GetClustersAndRoles gets clusters and roles
@@ -317,160 +231,17 @@ func GetClustersAndRoles(c *gin.Context) {
 
 // GetApprovingGroups returns the list of approving groups
 func GetApprovingGroups(c *gin.Context) {
-	c.JSON(http.StatusOK, k8s.ApproverTeams)
-}
-
-// GenerateJWT creates a JWT for the github app
-func GenerateJWT() (string, error) {
-	privateKeyData, err := os.ReadFile(ghAppPrivateKey)
-	if err != nil {
-		return "", err
-	}
-
-	// Parse private key
-	parsedKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyData)
-	if err != nil {
-		return "", fmt.Errorf("failed to decode PEM block containing private key")
-	}
-
-	// Generate JWT
-	now := time.Now()
-	claims := jwt.RegisteredClaims{
-		Issuer:    fmt.Sprintf("%d", ghAppId),
-		IssuedAt:  jwt.NewNumericDate(now),
-		ExpiresAt: jwt.NewNumericDate(now.Add(10 * time.Minute)), // Expiry time is 10 minutes from now
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	tokenString, err := token.SignedString(parsedKey)
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
-}
-
-// GenerateInstallationAccessToken generates the installation access token
-func GenerateInstallationAccessToken(jwtToken string, installationID int) (string, error) {
-	url := fmt.Sprintf("https://api.github.com/app/installations/%d/access_tokens", installationID)
-	req, err := http.NewRequest("POST", url, nil)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Authorization", "Bearer "+jwtToken)
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated {
-		return "", fmt.Errorf("failed to generate access token: %s", resp.Status)
-	}
-
-	var tokenResponse struct {
-		Token string `json:"token"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
-		return "", err
-	}
-
-	return tokenResponse.Token, nil
-}
-
-// GetGithubTeams gets teams for a github org
-func GetGithubTeams(c *gin.Context) {
-	jwtToken, err := GenerateJWT()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	accessToken, err := GenerateInstallationAccessToken(jwtToken, ghAppInstallId)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	req, err := http.NewRequest("GET", "https://api.github.com/orgs/"+ghOrg+"/teams", nil)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Error fetching teams from GitHub"})
-		return
-	}
-
-	var teams interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&teams); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, teams)
-}
-
-// GetUsersGithubTeams gets teams for a user
-func GetUsersGithubTeams(c *gin.Context) {
 	session := sessions.Default(c)
 	token := session.Get("token")
 	if token == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in request cookie"})
 		return
 	}
-
-	req, err := http.NewRequest("GET", "https://api.github.com/user/teams", nil)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	req.Header.Set("Authorization", token.(string))
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Error fetching teams from GitHub"})
-		return
-	}
-
-	var githubTeams []struct {
-		ID   int    `json:"id"`   // GitHub returns ID as an integer
-		Name string `json:"name"` // Team name
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&githubTeams); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	var teams []models.Team
-	for _, team := range githubTeams {
-		teams = append(teams, models.Team{
-			ID:   strconv.Itoa(team.ID), // Convert integer ID to string
-			Name: team.Name,
-		})
-	}
-
-	c.JSON(http.StatusOK, gin.H{"teams": teams})
+	c.JSON(http.StatusOK, k8s.ApproverTeams)
 }
 
-// IsApprover checks is user belongs to an approver team and return bool
-func IsApprover(c *gin.Context) {
+// IsGithubApprover checks is user belongs to an approver team and return bool
+func IsGithubApprover(c *gin.Context) {
 	session := sessions.Default(c)
 	token := session.Get("token")
 	if token == nil {
@@ -506,6 +277,36 @@ func IsApprover(c *gin.Context) {
 	for _, userTeam := range userTeams {
 		for _, approverTeam := range k8s.ApproverTeams {
 			if userTeam.ID == approverTeam.ID && userTeam.Name == approverTeam.Name {
+				c.JSON(http.StatusOK, gin.H{"isApprover": true})
+				return
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"isApprover": false})
+}
+
+// IsGoogleApprover checks if user belongs to an approver group and returns bool
+func IsGoogleApprover(c *gin.Context) {
+	// Retrieve the user's email from the session
+	session := sessions.Default(c)
+	userEmail := session.Get("email")
+	if userEmail == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no email in session"})
+		return
+	}
+
+	// Fetch the user's groups using Workload Identity
+	userGroups, err := GetGoogleGroupsWithWorkloadIdentity(userEmail.(string))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Google groups"})
+		return
+	}
+
+	// Check if the user belongs to any approver groups
+	for _, userGroup := range userGroups {
+		for _, approverGroup := range k8s.ApproverTeams {
+			if userGroup.ID == approverGroup.ID && userGroup.Name == approverGroup.Name {
 				c.JSON(http.StatusOK, gin.H{"isApprover": true})
 				return
 			}
@@ -567,19 +368,8 @@ func GetPendingApprovals(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"pendingRequests": pendingRequests})
 }
 
-// OauthRedirect used for github app oauhth flow
-func OauthRedirect(c *gin.Context) {
-	provider := c.Query("provider")
-	if provider == "github" {
-		handleGitHubLogin(c)
-	} else if provider == "google" {
-		handleGoogleLogin(c)
-	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported provider"})
-	}
-}
-
-func handleGitHubLogin(c *gin.Context) {
+// HandleGitHubLogin handles the GitHub OAuth callback
+func HandleGitHubLogin(c *gin.Context) {
 	code := c.Query("code")
 	if code == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Code query parameter is required"})
@@ -607,21 +397,13 @@ func handleGitHubLogin(c *gin.Context) {
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	log.Printf("Response body: %s", body)
-
 	if resp.StatusCode != http.StatusOK {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching access token from GitHub"})
 		return
 	}
 
 	var tokenData models.GitHubTokenResponse
-	if err := json.Unmarshal(body, &tokenData); err != nil {
-		log.Printf("Error decoding response: %v", err)
+	if err := json.NewDecoder(resp.Body).Decode(&tokenData); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -645,10 +427,18 @@ func handleGitHubLogin(c *gin.Context) {
 		return
 	}
 
-	var userData interface{}
-	if err := json.NewDecoder(userResp.Body).Decode(&userData); err != nil {
+	var githubUser models.GitHubUser
+	if err := json.NewDecoder(userResp.Body).Decode(&githubUser); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	normalizedUserData := models.NormalizedUserData{
+		ID:        strconv.Itoa(githubUser.ID),
+		Name:      githubUser.Login,
+		Email:     "", // GitHub API may not return email by default
+		AvatarURL: githubUser.AvatarURL,
+		Provider:  "github",
 	}
 
 	session := sessions.Default(c)
@@ -657,32 +447,31 @@ func handleGitHubLogin(c *gin.Context) {
 		HttpOnly: true,
 		Secure:   true,
 		Path:     "/",
-		// SameSite:
 	})
 	session.Set("token", tokenData.TokenType+" "+tokenData.AccessToken)
 	session.Save()
 
 	c.JSON(http.StatusOK, gin.H{
-		"userData":  userData,
+		"userData":  normalizedUserData,
 		"expiresIn": tokenData.ExpiresIn,
 	})
 }
 
-func handleGoogleLogin(c *gin.Context) {
+func HandleGoogleLogin(c *gin.Context) {
 	code := c.Query("code")
 	if code == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Code query parameter is required"})
 		return
 	}
 
-	// Exchange the authorization code for an access token
+	// Exchange the authorization code for a token
 	token, err := googleOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to exchange token"})
 		return
 	}
 
-	// Fetch user info (optional, for verification or additional data)
+	// Use the token to fetch user info
 	client := googleOAuthConfig.Client(context.Background(), token)
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
@@ -691,30 +480,46 @@ func handleGoogleLogin(c *gin.Context) {
 	}
 	defer resp.Body.Close()
 
-	var userInfo map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user profile from Google"})
+		return
+	}
+
+	// Decode the user info
+	var googleUser models.GoogleUser
+	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user info"})
 		return
 	}
 
-	// Store the token in the session
+	// Normalize the user data
+	normalizedUserData := models.NormalizedUserData{
+		ID:        googleUser.ID,
+		Name:      googleUser.Name,
+		Email:     googleUser.Email,
+		AvatarURL: googleUser.Picture,
+		Provider:  "google",
+	}
+
+	// Save the email and token in the session
 	session := sessions.Default(c)
 	session.Options(sessions.Options{
-		MaxAge:   int(token.ExpiresIn),
+		MaxAge:   int(time.Until(token.Expiry).Seconds()),
 		HttpOnly: true,
 		Secure:   true,
 		Path:     "/",
 	})
-	session.Set("googleToken", token.AccessToken)
+	session.Set("email", googleUser.Email) // Store the email in the session
+	session.Set("token", token.AccessToken)
 	if err := session.Save(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
 		return
 	}
 
-	// Respond with user info or redirect to the frontend
+	// Respond with the normalized user data
 	c.JSON(http.StatusOK, gin.H{
-		"userData":  userInfo,
-		"expiresIn": int(token.ExpiresIn),
+		"userData":  normalizedUserData,
+		"expiresIn": int(time.Until(token.Expiry).Seconds()),
 	})
 }
 
@@ -723,8 +528,8 @@ func HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "healthy"})
 }
 
-// GetProfile gets the logged in users profile info
-func GetProfile(c *gin.Context) {
+// GetGithubProfile gets the logged in users profile info
+func GetGithubProfile(c *gin.Context) {
 	session := sessions.Default(c)
 	token := session.Get("token")
 	if token == nil {
@@ -758,6 +563,58 @@ func GetProfile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, userData)
+}
+
+// GetGoogleProfile gets the logged in user's profile info from Google
+func GetGoogleProfile(c *gin.Context) {
+	// Retrieve the Google token from the session
+	session := sessions.Default(c)
+	token := session.Get("token")
+	if token == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in request cookie"})
+		return
+	}
+
+	// Use the token to fetch the user's profile from Google's API
+	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{
+		AccessToken: token.(string),
+	}))
+	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user profile"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user profile from Google"})
+		return
+	}
+
+	// Decode the response into a struct
+	var googleUser struct {
+		ID            string `json:"id"`
+		Name          string `json:"name"`
+		Email         string `json:"email"`
+		Picture       string `json:"picture"`
+		VerifiedEmail bool   `json:"verified_email"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user profile"})
+		return
+	}
+
+	// Normalize the response to match the GitHub profile structure
+	normalizedUserData := map[string]interface{}{
+		"id":         googleUser.ID,
+		"name":       googleUser.Name,
+		"email":      googleUser.Email,
+		"avatar_url": googleUser.Picture,
+		"provider":   "google",
+	}
+
+	// Return the normalized user data
+	c.JSON(http.StatusOK, normalizedUserData)
 }
 
 // SubmitRequest creates the new jit record in postgress
@@ -809,17 +666,4 @@ func SubmitRequest(c *gin.Context) {
 
 	// Respond with success message
 	c.JSON(http.StatusOK, gin.H{"message": "Request submitted successfully"})
-}
-
-func UserGroupsHandler(c *gin.Context) {
-	provider := c.Query("provider") // e.g., "github" or "google"
-	token := c.Query("token")       // OAuth token for Google (not needed for GitHub)
-
-	groups, err := GetUserGroups(provider, token, c)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"groups": groups})
 }

@@ -6,8 +6,8 @@ config:
   allowedApproverTeams:
     - name: "jit approvers"
       id: 12769788
-    - name: "Team A"
-      id: 1234
+    - name: "jit approvers google"
+      id: jit-approvers-google@samirtahir.dev
     - name: "Team B"
       id: 12345
     - name: "Team C"
@@ -28,9 +28,6 @@ config:
 
   # gh:
   #   clientID: Iv23likSg0AQoOUi18q7
-  #   installId: 64433781
-  #   appId: 1212598
-  #   org: "samirtahir91-org"
 
   googleOauth:
     enabled: true
@@ -68,5 +65,5 @@ db:
 
 image:
   repository: samirtahir91076/kube-jit-api
-  tag: v9
+  tag: v1.1.2
   imagePullPolicy: Always

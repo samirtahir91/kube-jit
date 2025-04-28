@@ -78,12 +78,6 @@ config:
     enabled: false
   #   # Your Github App Client ID
   #   clientID: "your-github-app-client-id"
-  #   # Your Github App Install ID
-  #   installId: "your-github-app-install-id"
-  #   # Your Github App ID
-  #   appId: "your-github-app-id"
-  #   # Your Github Org
-  #   org: "your-github-org"
   #   # This is the secret key in the kube-jit-api-secrets secret
   #   # This secret key value will contain the client secret for the Github App
   #   ghAppClientSecretKey: ghAppClientSecret

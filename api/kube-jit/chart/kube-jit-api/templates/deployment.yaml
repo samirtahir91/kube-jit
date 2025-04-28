@@ -1,3 +1,9 @@
+{{- if and .Values.config.gh.enabled .Values.config.googleOauth.enabled }}
+{{- fail "Only one of GitHub OAuth or Google OAuth can be enabled at a time. Please disable one of them in your values.yaml." }}
+{{- end }}
+{{- if not (or .Values.config.gh.enabled .Values.config.googleOauth.enabled) }}
+{{- fail "At least one of GitHub OAuth or Google OAuth must be enabled. Please enable one of them in your values.yaml." }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -66,6 +72,8 @@ spec:
           - name: LISTEN_PORT
             value: {{ quote .Values.service.port }}
           {{- if .Values.config.gh.enabled }}
+          - name: OAUTH_PROVIDER
+            value: github
           - name: GH_APP_CLIENT_ID
             value: {{ quote .Values.config.gh.clientID }}
           - name: GH_APP_CLIENT_SECRET
@@ -73,16 +81,10 @@ spec:
               secretKeyRef:
                 name: kube-jit-api-secrets
                 key: {{ .Values.config.gh.ghAppClientSecretKey }}
-          - name: GH_APP_INSTALL_ID
-            value: {{ quote .Values.config.gh.installId }}
-          - name: GH_APP_ID
-            value: {{ quote .Values.config.gh.appId }}
-          - name: GH_ORG
-            value: {{ quote .Values.config.gh.org }}
-          - name: GH_APP_PK
-            value: /etc/secrets/ghAppPrivateKey
           {{- end }}
           {{- if .Values.config.googleOauth.enabled }}
+          - name: OAUTH_PROVIDER
+            value: google
           - name: GOOGLE_CLIENT_ID
             value: {{ quote .Values.config.googleOauth.clientID }}
           - name: GOOGLE_REDIRECT_URL

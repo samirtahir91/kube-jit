@@ -4,7 +4,7 @@ import { Tab, Button, Col, ToggleButton } from 'react-bootstrap';
 import RequestTable from '../requestTable/RequestTable';
 import refreshLogo from '../../assets/refresh.svg';
 import './ApproveTabPane.css';
-import { Request } from '../../types'; // Import the shared Request type
+import { Request } from '../../types';
 
 type ApproveTabPaneProps = {
     userId: string;
@@ -19,7 +19,7 @@ const ApproveTabPane = ({ userId, username }: ApproveTabPaneProps) => {
 
     const fetchPendingRequests = async () => {
         try {
-            const response = await axios.get('/kube-jit-api/approvals', {
+            const response = await axios.get('http://localhost:8589/kube-jit-api/approvals', {
                 withCredentials: true
             });
             setPendingRequests(response.data.pendingRequests);
@@ -43,7 +43,7 @@ const ApproveTabPane = ({ userId, username }: ApproveTabPaneProps) => {
     const handleSelected = async (status: string) => {
         try {
             const selectedRequestData = pendingRequests.filter(request => selectedRequests.includes(request.ID));
-            await axios.post('/kube-jit-api/approve-reject', {
+            await axios.post('http://localhost:8589/kube-jit-api/approve-reject', {
                 requests: selectedRequestData,
                 approverID: userId,
                 approverName: username,

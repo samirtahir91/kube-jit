@@ -19,3 +19,11 @@ export type Request = {
     approverName: string;
     notes: string;
 };
+
+export type UserData = {
+	avatar_url: string;
+	name: string;
+	id: string;
+	provider: string;
+	email: string
+};

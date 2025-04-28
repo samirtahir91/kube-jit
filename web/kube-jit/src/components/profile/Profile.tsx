@@ -3,15 +3,9 @@ import Container from 'react-bootstrap/Container';
 import Navbar from 'react-bootstrap/Navbar';
 import Nav from 'react-bootstrap/Nav'
 import NavBrand from '../navBrand/NavBrand';
+import { UserData } from '../../types';
 
-type UserType = {
-	avatar_url: string;
-	login: string;
-	id: string;
-	type: string;
-};
-
-const Profile = ({ user }: { user: UserType }) => {
+const Profile = ({ user }: { user: UserData }) => {
 	return (
 		<div className="py-5">
 			{/* Nav bar with sign in info and links */}
@@ -27,7 +21,7 @@ const Profile = ({ user }: { user: UserType }) => {
 						width="30"
 						height="30"
 						className="d-inline-block align-top"
-					/>{" " + user.login}
+					/>{" " + user.name}
 				</Navbar.Text>
 				</Navbar.Collapse>
 			</Container>
