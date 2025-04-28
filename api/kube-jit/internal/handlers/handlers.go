@@ -49,14 +49,14 @@ var (
 func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error) {
 	// Use the default credentials provided by Workload Identity
 	ctx := context.Background()
-	service, err := admin.NewService(ctx, option.WithScopes(admin.AdminDirectoryGroupReadonlyScope))
+	service, err := admin.NewService(ctx, option.WithScopes(admin.AdminDirectoryGroupReadonlyScope, admin.AdminDirectoryGroupScope, admin.AdminDirectoryGroupMemberReadonlyScope, admin.AdminDirectoryDomainScope))
 	if err != nil {
 		log.Printf("Error creating Admin SDK service: %v", err)
 		return nil, fmt.Errorf("failed to create admin service: %v", err)
 	}
 
 	// Impersonate the user and list their groups
-	groupsCall := service.Groups.List().UserKey(userEmail)
+	groupsCall := service.Groups.List().UserKey(userEmail).Domain("samirtahir.dev")
 	groupsResponse, err := groupsCall.Do()
 	if err != nil {
 		log.Printf("Error fetching groups for user %s: %v", userEmail, err)

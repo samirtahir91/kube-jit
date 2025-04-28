@@ -65,5 +65,5 @@ db:
 
 image:
   repository: samirtahir91076/kube-jit-api
-  tag: v1.1.2
+  tag: v1.1.4
   imagePullPolicy: Always
