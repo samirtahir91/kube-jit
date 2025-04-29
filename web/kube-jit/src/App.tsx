@@ -32,35 +32,38 @@ function App() {
     const [isApprover, setIsApprover] = useState<boolean>(false);
     const navigate = useNavigate();
 
+    // Define fetchGroups outside useEffect
+    const fetchGroups = async () => {
+        try {
+            const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/approving-groups`, {
+                withCredentials: true,
+            });
+            setApproverGroups(response.data);
+        } catch (error) {
+            console.error("Error fetching approver groups:", error);
+        }
+    };
+
+    // Define checkIsApprover outside useEffect
+    const checkIsApprover = async (provider: string | null) => {
+        try {
+            const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/${provider}/is-approver`, {
+                withCredentials: true,
+            });
+            setIsApprover(response.data.isApprover);
+        } catch (error) {
+            console.error("Error checking approver status:", error);
+        }
+    };
+
     useEffect(() => {
         const tokenExpiry = localStorage.getItem("tokenExpiry");
 
-        const fetchGroups = async () => {
-            try {
-                const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/approving-groups`, {
-                    withCredentials: true,
-                });
-                setApproverGroups(response.data);
-            } catch (error) {
-                console.error("Error fetching approver groups:", error);
-            }
-        };
-
-        const checkIsApprover = async (provider: string | null) => {
-            try {
-                const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/${provider}/is-approver`, {
-                    withCredentials: true,
-                });
-                setIsApprover(response.data.isApprover);
-            } catch (error) {
-                console.error("Error checking approver status:", error);
-            }
-        };
-
-        const fetchProfileAndData = async () => {
+        const fetchAllData = async () => {
             setLoading(true);
             const provider = localStorage.getItem("loginMethod");
             try {
+                // Fetch profile data
                 const res = await fetch(`${config.apiBaseUrl}/kube-jit-api/${provider}/profile`, {
                     credentials: "include",
                 });
@@ -74,8 +77,6 @@ function App() {
                         expiresIn: 0, // unused in profile fetch
                     });
                     navigate(window.location.pathname); // Clear the URL parameters
-                    fetchGroups();
-                    checkIsApprover(provider);
                 } else {
                     console.error("Invalid profile data structure:", profileData);
                 }
@@ -88,44 +89,38 @@ function App() {
         };
 
         if (tokenExpiry && new Date(tokenExpiry) > new Date()) {
-            fetchProfileAndData();
+            fetchAllData();
         } else {
             setLogin(true);
         }
     }, [navigate]);
 
-    // New useEffect to check approver status dynamically after login
+    // Simplified useEffect to dynamically check approver status and fetch groups after login
     useEffect(() => {
         if (data && data.userData) {
             const provider = localStorage.getItem("loginMethod");
             if (provider) {
-                const checkIsApprover = async (provider: string | null) => {
-                    try {
-                        const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/${provider}/is-approver`, {
-                            withCredentials: true,
-                        });
-                        setIsApprover(response.data.isApprover);
-                    } catch (error) {
-                        console.error("Error checking approver status:", error);
-                    }
+                const fetchApproverAndGroups = async () => {
+                    await checkIsApprover(provider);
+                    await fetchGroups();
                 };
-                checkIsApprover(provider);
+                fetchApproverAndGroups();
             }
         }
     }, [data]);
 
     if (loading) {
         return (
-            <div className="loader-container">
+            <div className="card-loader-container">
                 <SyncLoader color="#0494ba" size={20} />
             </div>
         );
     }
 
-    if (data && data.userData) {
+    if (data && data.userData && approverGroups.length > 0) {
         return (
             <div>
-                <SyncLoader  className="card-loader-container" color="#0494ba" size={20} loading={loadingInCard} />
+                <SyncLoader className="card-loader-container" color="#0494ba" size={20} loading={loadingInCard} />
                 <Profile user={data.userData} />
                 <Card className="d-flex justify-content-center align-items-start">
                     <Card.Body className="container">
@@ -185,8 +180,8 @@ function App() {
         return (
             <Login
                 onLoginSuccess={(data) => {
-                    setData(data);
-                    setLogin(false);
+                    setData(data)
+                    setLogin(false)
                 }}
             />
         );

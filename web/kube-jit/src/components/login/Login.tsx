@@ -5,6 +5,7 @@ import loginLogo from "../../assets/login-logo.png";
 import NavBrand from "../navBrand/NavBrand";
 import axios from "axios";
 import config from "../../config/config";
+import { useNavigate } from "react-router-dom";
 
 type LoginProps = {
   onLoginSuccess: (data: any) => void; // Define the onLoginSuccess prop
@@ -13,9 +14,8 @@ type LoginProps = {
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [loginMethod, setLoginMethod] = useState<"github" | "google" | "">("");
   const [clientID, setClientID] = useState<string | null>(null);
-  const [redirectUri, setRedirectUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
+  const [redirectUri, setRedirectUrl] = useState<string | null>(null);
   // Fetch the client ID and set provider
   useEffect(() => {
     axios

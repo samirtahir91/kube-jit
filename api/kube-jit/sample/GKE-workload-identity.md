@@ -48,9 +48,27 @@ gcloud projects add-iam-policy-binding sacred-entry-304212 \
 https://cloud.google.com/sql/docs/mysql/connect-kubernetes-engine#run_the_in_a_sidecar_pattern
 
 
-## Google Oauth GSA permission
+## Google Oauth 
+There are 2 parts for Google Oauth
+1. Login
+2. Group fetch (backend api calls google admin directory apis via impersonating user)
+
+### Login
+- Create a new client in cloud auth, i.e. kube-jit - https://console.cloud.google.com/auth/clients?
+- Add the authorised JavaScript origins - the url you are exposing the web deployment on (you may need to add the same url with and without the port if facing issues), i.e. for `http://localhost:5173`, add the 2 origins:
+  - `http://kube-jit.samirtahir.dev:5173`
+  - `http://kube-jit.samirtahir.dev`
+- Add the same URL to Authorised redirect URIs (this will be the same value you configure in helm values for oauth.redirectUri)
+  - `http://kube-jit.samirtahir.dev:5173`
+- Create, save the client ID and Client Secret safely
+  - Use the client ID in the helm value `oauth.clientID`
+  - Create the `kube-jit-api-secrets` secret and add your client secret to it, note the secret key ref and set that as the helm value for `oauth.clientSecretKeyRef`
+
+### Group fetch - via GSA
 Make sure your GSA being used via Workload Identity has:
-- Domain-wide delegation enabled in Google Workspace admin panel.
+- Domain-wide delegation enabled in Google Workspace admin panel (https://admin.google.com/).
+  - Add client ID of your GSA
+  - Add authorised scope https://www.googleapis.com/auth/admin.directory.group.readonly
 - IAM permission roles/iam.serviceAccountTokenCreator on itself.
 ```sh
 gcloud iam service-accounts add-iam-policy-binding \

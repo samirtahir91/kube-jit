@@ -9,9 +9,11 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	containerapiv1 "cloud.google.com/go/container/apiv1"
 	"cloud.google.com/go/container/apiv1/containerpb"
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/container/v1"
 	"gopkg.in/yaml.v2"
@@ -42,6 +44,11 @@ type ClusterConfig struct {
 	Region      string `yaml:"region"`    // Region for GKE clusters
 }
 
+type CachedClient struct {
+	Client       *dynamic.DynamicClient
+	TokenExpires int64 // Unix timestamp for token expiration
+}
+
 var (
 	ApiConfig      Config
 	AllowedRoles   []models.Roles
@@ -56,6 +63,7 @@ var (
 		Resource: "jitrequests",
 	}
 	dynamicClientCache sync.Map
+	tokenSource        oauth2.TokenSource
 )
 
 // init loads clusters, roles and approver teams from configMap into global vars
@@ -121,6 +129,14 @@ func init() {
 	for _, team := range ApproverTeams {
 		fmt.Printf("- %s (ID: %s)\n", team.Name, team.ID)
 	}
+
+	// Initialize token source for GKE clusters
+	ctx := context.Background()
+	credentials, err := google.FindDefaultCredentials(ctx, container.CloudPlatformScope)
+	if err != nil {
+		log.Fatalf("Failed to get default credentials: %v", err)
+	}
+	tokenSource = credentials.TokenSource
 }
 
 // getTokenFromSecret gets and returns the sa token from a k8s secret during init of kube configs
@@ -136,9 +152,17 @@ func getTokenFromSecret(secretName string) string {
 // createDynamicClient creates and returns a dynamic client based on cluster in request
 func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 	// Check if the dynamic client for the cluster is already cached
-	if client, exists := dynamicClientCache.Load(req.ClusterName); exists {
-		log.Printf("Using cached dynamic client for cluster: %s", req.ClusterName)
-		return client.(*dynamic.DynamicClient)
+	if cached, exists := dynamicClientCache.Load(req.ClusterName); exists {
+		cachedClient := cached.(*CachedClient)
+		currentTime := time.Now().Unix()
+
+		// Check if the token is expired
+		if cachedClient.TokenExpires > currentTime {
+			log.Printf("Using cached dynamic client for cluster: %s. Expires: %d", req.ClusterName, cachedClient.TokenExpires)
+			return cachedClient.Client
+		}
+
+		log.Printf("Token expired for cluster: %s, refreshing client", req.ClusterName)
 	}
 
 	// Get the cluster configuration
@@ -146,12 +170,12 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 
 	var restConfig *rest.Config
 	var err error
+	var tokenExpires int64
 
 	if selectedCluster.Type == "gke" {
 		// Use Google Cloud SDK to fetch cluster details
 		log.Printf("Using Google Cloud SDK to access GKE cluster: %s", req.ClusterName)
 
-		// Set up the GKE client
 		ctx := context.Background()
 		client, err := containerapiv1.NewClusterManagerClient(ctx)
 		if err != nil {
@@ -159,56 +183,38 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 		}
 		defer client.Close()
 
-		// Construct the fully qualified cluster name
 		location := selectedCluster.Region
-		if location == "" {
-			location = selectedCluster.Region // Use zone if region is not specified
-		}
 		clusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", selectedCluster.ProjectID, location, selectedCluster.Name)
 
-		// Fetch cluster details using the Name field
-		clusterReq := &containerpb.GetClusterRequest{
-			Name: clusterName,
-		}
-
+		clusterReq := &containerpb.GetClusterRequest{Name: clusterName}
 		cluster, err := client.GetCluster(ctx, clusterReq)
 		if err != nil {
 			log.Fatalf("Failed to get GKE cluster details: %v", err)
 		}
 
-		// Extract the cluster endpoint and CA certificate
 		clusterEndpoint := cluster.Endpoint
 		caCertificate := cluster.MasterAuth.ClusterCaCertificate
-
-		// Decode the base64-encoded CA certificate
 		decodedCACertificate, err := base64.StdEncoding.DecodeString(caCertificate)
 		if err != nil {
 			log.Fatalf("Failed to decode CA certificate: %v", err)
 		}
 
-		// Get the default Google credentials (Workload Identity will provide these)
-		credentials, err := google.FindDefaultCredentials(ctx, container.CloudPlatformScope)
-		if err != nil {
-			log.Fatalf("Failed to get default credentials: %v", err)
-		}
-
-		// Generate the OAuth2 token
-		tokenSource := credentials.TokenSource
 		token, err := tokenSource.Token()
 		if err != nil {
 			log.Fatalf("Failed to get OAuth2 token: %v", err)
 		}
 
-		// Generate the rest.Config
 		restConfig = &rest.Config{
 			Host:        "https://" + clusterEndpoint,
-			BearerToken: token.AccessToken, // Use the OAuth2 token
+			BearerToken: token.AccessToken,
 			TLSClientConfig: rest.TLSClientConfig{
 				CAData: decodedCACertificate,
 			},
 		}
+
+		// Set token expiration time (e.g., 5 minutes before actual expiration)
+		tokenExpires = token.Expiry.Unix() - 300
 	} else {
-		// Use custom config for non-GKE clusters
 		apiServerURL := selectedCluster.Host
 		saToken := selectedCluster.Token
 		caData, err := base64.StdEncoding.DecodeString(selectedCluster.CA)
@@ -224,17 +230,22 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 				CAData:   caData,
 			},
 		}
+
+		// Non-GKE clusters don't use token expiration
+		tokenExpires = time.Now().Add(24 * time.Hour).Unix() // Arbitrary long expiration
 	}
 
 	// Create the dynamic client
 	dynamicClient, err := dynamic.NewForConfig(restConfig)
 	if err != nil {
-		log.Printf("Failed to create k8s client: %v\n", err)
-		panic(err.Error())
+		log.Fatalf("Failed to create k8s client: %v", err)
 	}
 
-	// Cache the dynamic client
-	dynamicClientCache.Store(req.ClusterName, dynamicClient)
+	// Cache the dynamic client with expiration
+	dynamicClientCache.Store(req.ClusterName, &CachedClient{
+		Client:       dynamicClient,
+		TokenExpires: tokenExpires,
+	})
 	log.Printf("Cached dynamic client for cluster: %s", req.ClusterName)
 
 	return dynamicClient
