@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"kube-jit/internal/db"
 	"kube-jit/internal/models"
 	"kube-jit/pkg/k8s"
@@ -14,12 +15,14 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
 	admin "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/iamcredentials/v1"
 	"google.golang.org/api/option"
 )
 
@@ -43,38 +46,169 @@ var (
 			TokenURL: "https://oauth2.googleapis.com/token",
 		},
 	}
+	gsaEmail     string
+	gsaEmailErr  error
+	gsaEmailOnce sync.Once
 )
 
-// GetGoogleGroupsWithWorkloadIdentity fetches Google groups for a user using Workload Identity
+func getGSAEmail() (string, error) {
+	gsaEmailOnce.Do(func() {
+		req, err := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email", nil)
+		if err != nil {
+			gsaEmailErr = err
+			return
+		}
+		req.Header.Add("Metadata-Flavor", "Google")
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			gsaEmailErr = err
+			return
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			gsaEmailErr = err
+			return
+		}
+
+		gsaEmail = string(body)
+	})
+
+	return gsaEmail, gsaEmailErr
+}
+
 func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error) {
-	// Use the default credentials provided by Workload Identity
 	ctx := context.Background()
-	service, err := admin.NewService(ctx, option.WithScopes(admin.AdminDirectoryGroupReadonlyScope, admin.AdminDirectoryGroupScope, admin.AdminDirectoryGroupMemberReadonlyScope, admin.AdminDirectoryDomainScope))
+
+	// Get GSA email
+	serviceAccountEmail, err := getGSAEmail()
 	if err != nil {
-		log.Printf("Error creating Admin SDK service: %v", err)
-		return nil, fmt.Errorf("failed to create admin service: %v", err)
+		return nil, fmt.Errorf("failed to get GSA email: %v", err)
 	}
 
-	// Impersonate the user and list their groups
-	groupsCall := service.Groups.List().UserKey(userEmail).Domain("samirtahir.dev")
+	// Initialize IAMCredentials Service (to sign JWTs)
+	iamService, err := iamcredentials.NewService(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create IAM credentials service: %v", err)
+	}
+
+	// JWT Claims
+	now := time.Now()
+	claims := map[string]interface{}{
+		"iss":   serviceAccountEmail,
+		"sub":   userEmail, // <<<<<< IMPERSONATE USER HERE
+		"aud":   "https://oauth2.googleapis.com/token",
+		"scope": "https://www.googleapis.com/auth/admin.directory.group.readonly",
+		"iat":   now.Unix(),
+		"exp":   now.Add(time.Hour).Unix(),
+	}
+
+	// Marshal claims into JSON
+	claimsJSON, err := json.Marshal(claims)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal claims: %v", err)
+	}
+
+	// Sign the JWT
+	name := fmt.Sprintf("projects/-/serviceAccounts/%s", serviceAccountEmail)
+	signJwtRequest := &iamcredentials.SignJwtRequest{
+		Payload: string(claimsJSON),
+	}
+
+	signJwtResponse, err := iamService.Projects.ServiceAccounts.SignJwt(name, signJwtRequest).Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign JWT: %v", err)
+	}
+
+	signedJwt := signJwtResponse.SignedJwt
+
+	// Exchange signed JWT for OAuth2 token
+	resp, err := http.Post(
+		"https://oauth2.googleapis.com/token",
+		"application/x-www-form-urlencoded",
+		strings.NewReader(fmt.Sprintf("grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=%s", signedJwt)),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to exchange JWT for access token: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get token: %s", string(body))
+	}
+
+	var tokenResp struct {
+		AccessToken string `json:"access_token"`
+		ExpiresIn   int    `json:"expires_in"`
+		TokenType   string `json:"token_type"`
+	}
+	if err := json.Unmarshal(body, &tokenResp); err != nil {
+		return nil, fmt.Errorf("failed to parse token response: %v", err)
+	}
+
+	// Build Admin SDK Directory client
+	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
+		AccessToken: tokenResp.AccessToken,
+	})
+	service, err := admin.NewService(ctx, option.WithTokenSource(tokenSource))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Admin SDK service: %v", err)
+	}
+
+	// List Groups
+	groupsCall := service.Groups.List().UserKey(userEmail)
 	groupsResponse, err := groupsCall.Do()
 	if err != nil {
-		log.Printf("Error fetching groups for user %s: %v", userEmail, err)
 		return nil, fmt.Errorf("failed to list groups: %v", err)
 	}
 
-	// Map the response to your models.Team struct
-	var groups []models.Team
+	// Print the groups
+	var teams []models.Team
 	for _, group := range groupsResponse.Groups {
-		log.Printf("Google Group - Name: %s, ID: %s", group.Name, group.Email)
-		groups = append(groups, models.Team{
+		log.Printf("Group: %s (%s)", group.Name, group.Email)
+		teams = append(teams, models.Team{
 			Name: group.Name,
 			ID:   group.Email,
 		})
 	}
 
-	return groups, nil
+	return teams, nil
 }
+
+// // GetGoogleGroupsWithWorkloadIdentity fetches Google groups for a user using Workload Identity
+// func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error) {
+// 	// Use the default credentials provided by Workload Identity
+// 	ctx := context.Background()
+// 	service, err := admin.NewService(ctx, option.WithScopes(admin.AdminDirectoryGroupReadonlyScope, admin.AdminDirectoryGroupScope, admin.AdminDirectoryGroupMemberReadonlyScope, admin.AdminDirectoryDomainScope))
+// 	if err != nil {
+// 		log.Printf("Error creating Admin SDK service: %v", err)
+// 		return nil, fmt.Errorf("failed to create admin service: %v", err)
+// 	}
+
+// 	// Impersonate the user and list their groups
+// 	groupsCall := service.Groups.List().UserKey(userEmail).Domain("samirtahir.dev")
+// 	groupsResponse, err := groupsCall.Do()
+// 	if err != nil {
+// 		log.Printf("Error fetching groups for user %s: %v", userEmail, err)
+// 		return nil, fmt.Errorf("failed to list groups: %v", err)
+// 	}
+
+// 	// Map the response to your models.Team struct
+// 	var groups []models.Team
+// 	for _, group := range groupsResponse.Groups {
+// 		log.Printf("Google Group - Name: %s, ID: %s", group.Name, group.Email)
+// 		groups = append(groups, models.Team{
+// 			Name: group.Name,
+// 			ID:   group.Email,
+// 		})
+// 	}
+
+// 	return groups, nil
+// }
 
 // K8sCallback is used by downstream controller to callback for status update
 // It validates the signed URL and updates the request status in the database

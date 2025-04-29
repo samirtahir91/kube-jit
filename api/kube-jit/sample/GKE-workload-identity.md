@@ -46,3 +46,16 @@ gcloud projects add-iam-policy-binding sacred-entry-304212 \
 ```
 
 https://cloud.google.com/sql/docs/mysql/connect-kubernetes-engine#run_the_in_a_sidecar_pattern
+
+
+## Google Oauth GSA permission
+Make sure your GSA being used via Workload Identity has:
+- Domain-wide delegation enabled in Google Workspace admin panel.
+- IAM permission roles/iam.serviceAccountTokenCreator on itself.
+```sh
+gcloud iam service-accounts add-iam-policy-binding \
+  kube-jit-api@sacred-entry-304212.iam.gserviceaccount.com \
+  --member="serviceAccount:kube-jit-api@sacred-entry-304212.iam.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountTokenCreator" \
+  --project sacred-entry-304212
+```
