@@ -241,10 +241,17 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
                                 <Form.Label>Start Date</Form.Label>
                                 <div>
                                     <DatePicker
+                                        onKeyDown={(e) => {
+                                            e.preventDefault();
+                                        }}
                                         selected={startDate}
                                         onChange={(date: Date | null) => {
                                             if (date) {
                                                 setStartDate(date);
+                                                // Reset endDate if it is before the new startDate
+                                                if (endDate && date > endDate) {
+                                                    setEndDate(null);
+                                                }
                                             }
                                         }}
                                         showTimeSelect
@@ -253,6 +260,9 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
                                         dateFormat="yyyy-MM-dd HH:mm"
                                         className="form-control"
                                         placeholderText="Select Start Date"
+                                        minDate={new Date()} // Prevent selecting a date before today
+                                        minTime={new Date(new Date().setSeconds(0, 0))} // Prevent selecting a time before now if today
+                                        maxTime={new Date(new Date().setHours(23, 59, 59, 999))} // Allow selecting up to the end of the day
                                     />
                                 </div>
                             </Form.Group>
@@ -262,6 +272,9 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
                                 <Form.Label>End Date</Form.Label>
                                 <div>
                                     <DatePicker
+                                        onKeyDown={(e) => {
+                                            e.preventDefault();
+                                        }}
                                         selected={endDate}
                                         onChange={(date: Date | null) => {
                                             if (date) {
@@ -274,6 +287,13 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
                                         dateFormat="yyyy-MM-dd HH:mm"
                                         className="form-control"
                                         placeholderText="Select End Date"
+                                        minDate={startDate || new Date()} // Prevent selecting a date before startDate
+                                        minTime={
+                                            startDate && startDate.toDateString()
+                                                ? new Date(startDate.getTime() + 60 * 60 * 1000) // 1hr after startDate
+                                                : new Date(new Date().setHours(0, 0, 0, 0)) // Default to midnight
+                                        }
+                                        maxTime={new Date(new Date().setHours(23, 59, 59, 999))} // Allow selecting up to the end of the day
                                     />
                                 </div>
                             </Form.Group>
@@ -316,11 +336,33 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
                 </Modal.Header>
                 <Modal.Body>
                     <p>Are you sure you want to submit this request?</p>
-                    <p><strong>User Emails:</strong>{users.map(user => (<div key={user}>{user}</div>))}</p>
-                    <p><strong>Cluster:</strong> {selectedCluster ? selectedCluster.label : 'Not selected'}</p>
-                    <p><strong>Namespaces:</strong>{namespaces.map(namespace => (<div key={namespace}>{namespace}</div>))}</p>
-                    <p><strong>Approving Team:</strong> {selectedGroup ? selectedGroup.label : 'Not selected'}</p>
-                    <p><strong>Role:</strong> {selectedRole ? selectedRole.label : 'Not selected'}</p>
+                    <div>
+                        <strong>User Emails:</strong>
+                        {users.map((user) => (
+                            <div key={user}>{user}</div>
+                        ))}
+                    </div>
+                    <div>
+                        <strong>Cluster:</strong> {selectedCluster ? selectedCluster.label : 'Not selected'}
+                    </div>
+                    <div>
+                        <strong>Namespaces:</strong>
+                        {namespaces.map((namespace) => (
+                            <div key={namespace}>{namespace}</div>
+                        ))}
+                    </div>
+                    <div>
+                        <strong>Approving Team:</strong> {selectedGroup ? selectedGroup.label : 'Not selected'}
+                    </div>
+                    <div>
+                        <strong>Role:</strong> {selectedRole ? selectedRole.label : 'Not selected'}
+                    </div>
+                    <div>
+                        <strong>Start Date:</strong> {startDate ? startDate.toLocaleString() : 'Not selected'}
+                    </div>
+                    <div>
+                        <strong>End Date:</strong> {endDate ? endDate.toLocaleString() : 'Not selected'}
+                    </div>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => setShowModal(false)}>
