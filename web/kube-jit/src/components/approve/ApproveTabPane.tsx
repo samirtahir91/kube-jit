@@ -9,9 +9,10 @@ import { Request } from '../../types';
 type ApproveTabPaneProps = {
     userId: string;
     username: string;
+    setLoadingInCard: (loading: boolean) => void;
 };
 
-const ApproveTabPane = ({ userId, username }: ApproveTabPaneProps) => {
+const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPaneProps) => {
     const [pendingRequests, setPendingRequests] = useState<Request[]>([]);
     const [selectedRequests, setSelectedRequests] = useState<number[]>([]);
     const [variant, setVariant] = useState<'light' | 'dark'>('light');
@@ -19,6 +20,7 @@ const ApproveTabPane = ({ userId, username }: ApproveTabPaneProps) => {
     const [errorMessage, setErrorMessage] = useState('');
 
     const fetchPendingRequests = async () => {
+        setLoadingInCard(true); // Start loading
         try {
             const response = await axios.get('/kube-jit-api/approvals', {
                 withCredentials: true
@@ -28,12 +30,10 @@ const ApproveTabPane = ({ userId, username }: ApproveTabPaneProps) => {
         } catch (error) {
             console.error('Error fetching pending requests:', error);
             setErrorMessage('Error fetching pending requests. Please try again.');
+        } finally {
+            setLoadingInCard(false); // Stop loading
         }
     };
-
-    useEffect(() => {
-        fetchPendingRequests();
-    }, []);
 
     const handleSelectRequest = (id: number) => {
         setSelectedRequests(prevSelected =>
@@ -44,6 +44,7 @@ const ApproveTabPane = ({ userId, username }: ApproveTabPaneProps) => {
     };
 
     const handleSelected = async (status: string) => {
+        setLoadingInCard(true); // Start loading
         try {
             const selectedRequestData = pendingRequests.filter(request => selectedRequests.includes(request.ID));
             await axios.post('/kube-jit-api/approve-reject', {
@@ -62,6 +63,8 @@ const ApproveTabPane = ({ userId, username }: ApproveTabPaneProps) => {
         } catch (error) {
             console.error('Error approving/rejecting requests:', error);
             setErrorMessage('Error approving/rejecting requests. Please try again.');
+        } finally {
+            setLoadingInCard(false); // Stop loading
         }
     };
 
@@ -69,6 +72,10 @@ const ApproveTabPane = ({ userId, username }: ApproveTabPaneProps) => {
         setVariant(prevVariant => (prevVariant === 'light' ? 'dark' : 'light'));
         setToggleVariant(prevVariant => (prevVariant === 'secondary' ? 'dark' : 'secondary'));
     };
+
+    useEffect(() => {
+        fetchPendingRequests();
+    }, []);
 
     return (
         <Tab.Pane eventKey="approve" className='text-start py-4'>

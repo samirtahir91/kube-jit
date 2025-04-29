@@ -166,12 +166,14 @@ function App() {
                                     <ApproveTabPane
                                         username={data.userData.name}
                                         userId={data.userData.id}
+                                        setLoadingInCard={setLoadingInCard}
                                     />
                                 )}
                                 <HistoryTabPane
                                     activeTab={activeTab}
                                     originTab={originTab}
                                     userId={data.userData.id}
+                                    setLoadingInCard={setLoadingInCard}
                                 />
                             </Tab.Content>
                         </Tab.Container>

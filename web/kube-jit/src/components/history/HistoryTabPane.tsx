@@ -7,10 +7,17 @@ import './HistoryTabPane.css';
 import RequestTable from '../requestTable/RequestTable';
 import { Request } from '../../types'; // Import the shared Request type
 
-const HistoryTabPane = ({ activeTab, originTab, userId }: { activeTab: string, originTab: string, userId: string }) => {
+type HistoryTabPaneProps = {
+    activeTab: string;
+    originTab: string;
+    userId: string;
+    setLoadingInCard: (loading: boolean) => void; // Add setLoadingInCard prop
+};
+
+const HistoryTabPane = ({ activeTab, originTab, userId, setLoadingInCard }: HistoryTabPaneProps) => {
     const [requests, setRequests] = useState<Request[]>([]);
     const [errorMessage, setErrorMessage] = useState('');
-    const [limit, setLimit] = useState(1); // Default limit to 1
+    const [limit, setLimit] = useState(1);
     const [startDate, setStartDate] = useState<Date | null>(null);
     const [endDate, setEndDate] = useState<Date | null>(null);
     const [hasSearched, setHasSearched] = useState(false);
@@ -18,6 +25,7 @@ const HistoryTabPane = ({ activeTab, originTab, userId }: { activeTab: string, o
     const [toggleVariantColour, setToggleVariant] = useState<'secondary' | 'dark'>('secondary');
 
     const fetchRequests = useCallback(async (limit: number, startDate: Date | null, endDate: Date | null) => {
+        setLoadingInCard(true); // Start loading
         try {
             const response = await axios.get(`/kube-jit-api/history`, {
                 params: {
@@ -28,20 +36,15 @@ const HistoryTabPane = ({ activeTab, originTab, userId }: { activeTab: string, o
                 },
                 withCredentials: true
             });
-            if (Array.isArray(response.data)) {
-                setRequests(response.data);
-                setErrorMessage(''); // Clear error message on success
-            } else if (response.data && typeof response.data === 'object') {
-                setRequests([response.data]);
-                setErrorMessage(''); // Clear error message on success
-            } else {
-                setErrorMessage('Unexpected response format');
-            }
+            setRequests(response.data);
+            setErrorMessage(''); // Clear error message on success
         } catch (error) {
             console.error('Error fetching requests:', error);
             setErrorMessage('Error fetching requests. Please try again.');
+        } finally {
+            setLoadingInCard(false); // Stop loading
         }
-    }, [userId]);
+    }, [userId, setLoadingInCard]);
 
     useEffect(() => {
         if (activeTab === 'history' && originTab === 'request') {
