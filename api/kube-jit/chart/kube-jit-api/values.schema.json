@@ -26,7 +26,7 @@
               "description": "The secret key reference for the OAuth provider's client secret."
             }
           },
-          "required": ["provider", "clientID", "redirectUrl", "clientSecretKeyRef"]
+          "required": ["provider", "clientID", "redirectUri", "clientSecretKeyRef"]
         }
       }
     }

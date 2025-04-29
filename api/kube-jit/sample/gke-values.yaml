@@ -29,7 +29,7 @@ config:
   oauth:
     provider: "google"
     clientID: "630940189304-8uggsmkv6to2vu5sogsjrhge1m57t8cr.apps.googleusercontent.com"
-    redirectUri: "http://localhost:5173/kube-jit-api/oauth/google/callback"
+    redirectUri: "http://localhost:5173/"
     clientSecretKeyRef: googleClientSecret
 
 serviceAccount:
@@ -62,5 +62,5 @@ db:
 
 image:
   repository: samirtahir91076/kube-jit-api
-  tag: v1.1.7
+  tag: v1.1.8
   imagePullPolicy: Always

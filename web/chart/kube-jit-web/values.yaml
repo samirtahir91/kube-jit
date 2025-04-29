@@ -2,8 +2,23 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+
+# Nginx configuration
+# apiUrl: Configurable API URL for the backend service. Defaults to "kube-jit-api.default.svc.cluster.local".
+# resolver: Configurable DNS resolver. Defaults to the Kubernetes DNS service (kube-dns.kube-system.svc.cluster.local).
+# resolverValid: Configurable DNS cache validity period. Defaults to 30s.
+# clientMaxBodySize: Configurable maximum body size for requests. Defaults to 20m.
+# proxyConnectTimeout: Configurable timeout for establishing a connection to the upstream server. Defaults to 10s.
+# proxySendTimeout: Configurable timeout for sending requests to the upstream server. Defaults to 15s.
+# proxyReadTimeout: Configurable timeout for reading responses from the upstream server. Defaults to 20s.
 nginx:
-  apiUrl: http://kube-jit-api.example.com
+  apiUrl: "kube-jit-api.kube-jit-api.svc.cluster.local" # Default Kubernetes service name
+  resolver: "kube-dns.kube-system.svc.cluster.local" # Default Kubernetes DNS resolver
+  resolverValid: "10s" # DNS resolution refresh interval
+  clientMaxBodySize: "20m" # Default max body size
+  proxyConnectTimeout: "10s" # Default proxy connect timeout
+  proxySendTimeout: "15s" # Default proxy send timeout
+  proxyReadTimeout: "20s" # Default proxy read timeout
 
 replicaCount: 1
 

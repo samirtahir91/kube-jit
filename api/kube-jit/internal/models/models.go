@@ -27,7 +27,7 @@ type RequestData struct {
 	gorm.Model
 	ApprovingTeamID   string    `json:"approvingTeamID"`
 	ApprovingTeamName string    `json:"approvingTeamName"`
-	ApproverID        int       `json:"approverID"`
+	ApproverID        string    `json:"approverID"`
 	ApproverName      string    `json:"approverName"`
 	ClusterName       string    `json:"clusterName"`
 	RoleName          string    `json:"roleName"`

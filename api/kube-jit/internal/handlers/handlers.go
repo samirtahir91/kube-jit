@@ -244,7 +244,7 @@ func ApproveOrRejectRequests(c *gin.Context) {
 
 	type ApproveRequest struct {
 		Requests     []models.RequestData `json:"requests"`
-		ApproverID   int                  `json:"approverID"`
+		ApproverID   string               `json:"approverID"`
 		ApproverName string               `json:"approverName"`
 		Status       string               `json:"status"`
 	}
