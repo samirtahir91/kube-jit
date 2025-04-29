@@ -2,4 +2,4 @@ nginx:
   apiUrl: http://kube-jit-api.kube-jit-api:8589
 image:
   repository: samirtahir91076/kube-jit-web
-  tag: v1.0.6
+  tag: v1.0.7

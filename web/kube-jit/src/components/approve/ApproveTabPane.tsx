@@ -5,6 +5,7 @@ import RequestTable from '../requestTable/RequestTable';
 import refreshLogo from '../../assets/refresh.svg';
 import './ApproveTabPane.css';
 import { Request } from '../../types';
+import config from '../../config/config';
 
 type ApproveTabPaneProps = {
     userId: string;
@@ -22,7 +23,7 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
     const fetchPendingRequests = async () => {
         setLoadingInCard(true); // Start loading
         try {
-            const response = await axios.get('http://localhost:8589/kube-jit-api/approvals', {
+            const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/approvals`, {
                 withCredentials: true
             });
             setPendingRequests(response.data.pendingRequests);
@@ -47,7 +48,7 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
         setLoadingInCard(true); // Start loading
         try {
             const selectedRequestData = pendingRequests.filter(request => selectedRequests.includes(request.ID));
-            await axios.post('http://localhost:8589/kube-jit-api/approve-reject', {
+            await axios.post(`${config.apiBaseUrl}/kube-jit-api/approve-reject`, {
                 requests: selectedRequestData,
                 approverID: userId,
                 approverName: username,

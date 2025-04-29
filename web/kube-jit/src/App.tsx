@@ -10,7 +10,7 @@ import HistoryTabPane from "./components/history/HistoryTabPane";
 import axios from "axios";
 import { SyncLoader } from "react-spinners";
 import { UserData } from "./types";
-
+import config from "./config/config";
 type ApiResponse = {
     userData: UserData;
     expiresIn: number;
@@ -37,7 +37,7 @@ function App() {
 
         const fetchGroups = async () => {
             try {
-                const response = await axios.get("http://localhost:8589/kube-jit-api/approving-groups", {
+                const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/approving-groups`, {
                     withCredentials: true,
                 });
                 setApproverGroups(response.data);
@@ -48,7 +48,7 @@ function App() {
 
         const checkIsApprover = async (provider: string | null) => {
             try {
-                const response = await axios.get(`http://localhost:8589/kube-jit-api/${provider}/is-approver`, {
+                const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/${provider}/is-approver`, {
                     withCredentials: true,
                 });
                 setIsApprover(response.data.isApprover);
@@ -61,7 +61,7 @@ function App() {
             setLoading(true);
             const provider = localStorage.getItem("loginMethod");
             try {
-                const res = await fetch(`http://localhost:8589/kube-jit-api/${provider}/profile`, {
+                const res = await fetch(`${config.apiBaseUrl}/kube-jit-api/${provider}/profile`, {
                     credentials: "include",
                 });
                 if (!res.ok) {
@@ -101,7 +101,7 @@ function App() {
             if (provider) {
                 const checkIsApprover = async (provider: string | null) => {
                     try {
-                        const response = await axios.get(`http://localhost:8589/kube-jit-api/${provider}/is-approver`, {
+                        const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/${provider}/is-approver`, {
                             withCredentials: true,
                         });
                         setIsApprover(response.data.isApprover);

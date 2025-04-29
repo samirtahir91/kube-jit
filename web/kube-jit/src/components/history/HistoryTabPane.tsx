@@ -6,6 +6,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import './HistoryTabPane.css';
 import RequestTable from '../requestTable/RequestTable';
 import { Request } from '../../types'; // Import the shared Request type
+import config from '../../config/config';
 
 type HistoryTabPaneProps = {
     activeTab: string;
@@ -27,7 +28,7 @@ const HistoryTabPane = ({ activeTab, originTab, userId, setLoadingInCard }: Hist
     const fetchRequests = useCallback(async (limit: number, startDate: Date | null, endDate: Date | null) => {
         setLoadingInCard(true); // Start loading
         try {
-            const response = await axios.get(`http://localhost:8589/kube-jit-api/history`, {
+            const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/history`, {
                 params: {
                     userID: userId,
                     limit: limit,

@@ -4,6 +4,7 @@ import githubLogo from "../../assets/github.svg";
 import loginLogo from "../../assets/login-logo.png";
 import NavBrand from "../navBrand/NavBrand";
 import axios from "axios";
+import config from "../../config/config";
 
 type LoginProps = {
   onLoginSuccess: (data: any) => void; // Define the onLoginSuccess prop
@@ -18,7 +19,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   // Fetch the client ID and set provider
   useEffect(() => {
     axios
-      .get("http://localhost:8589/kube-jit-api/client_id")
+      .get(`${config.apiBaseUrl}/kube-jit-api/client_id`)
       .then((response) => {
         setClientID(response.data.client_id);
         setRedirectUrl(response.data.redirect_uri)
@@ -39,7 +40,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     if (code && method) {
       setLoading(true);
       axios
-        .get(`http://localhost:8589/kube-jit-api/oauth/${method}/callback`, {
+        .get(`${config.apiBaseUrl}/kube-jit-api/oauth/${method}/callback`, {
           params: { code },
           withCredentials: true,
         })

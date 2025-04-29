@@ -5,6 +5,7 @@ import { Form, Button, Tab, Row, Col, Alert, Modal } from 'react-bootstrap';
 import InputTag from "../inputTag/InputTag";
 import { Tag as ReactTag } from 'react-tag-input';
 import DatePicker from 'react-datepicker';
+import config from '../../config/config';
 
 type Group = {
     id: number;
@@ -51,7 +52,7 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
     useEffect(() => {
         const fetchRoles = async () => {
             try {
-                const response = await axios.get('http://localhost:8589/kube-jit-api/roles-and-clusters', {
+                const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/roles-and-clusters`, {
                     withCredentials: true
                 });
                 setRoles(response.data.roles);
@@ -104,7 +105,7 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
             endDate
         };
 
-        axios.post('http://localhost:8589/kube-jit-api/submit-request', payload, {
+        axios.post(`${config.apiBaseUrl}/kube-jit-api/submit-request`, payload, {
             withCredentials: true,
         })
         .then(response => {
