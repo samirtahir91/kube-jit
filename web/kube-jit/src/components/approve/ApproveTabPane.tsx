@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
-import { Tab, Button, Col, ToggleButton } from 'react-bootstrap';
+import { Tab, Button, Col, ToggleButton, Alert } from 'react-bootstrap'; // Import Alert
 import RequestTable from '../requestTable/RequestTable';
 import refreshLogo from '../../assets/refresh.svg';
 import './ApproveTabPane.css';
@@ -16,6 +16,7 @@ const ApproveTabPane = ({ userId, username }: ApproveTabPaneProps) => {
     const [selectedRequests, setSelectedRequests] = useState<number[]>([]);
     const [variant, setVariant] = useState<'light' | 'dark'>('light');
     const [toggleVariantColour, setToggleVariant] = useState<'secondary' | 'dark'>('secondary');
+    const [errorMessage, setErrorMessage] = useState('');
 
     const fetchPendingRequests = async () => {
         try {
@@ -23,8 +24,10 @@ const ApproveTabPane = ({ userId, username }: ApproveTabPaneProps) => {
                 withCredentials: true
             });
             setPendingRequests(response.data.pendingRequests);
+            setErrorMessage(''); // Clear error message on success
         } catch (error) {
             console.error('Error fetching pending requests:', error);
+            setErrorMessage('Error fetching pending requests. Please try again.');
         }
     };
 
@@ -51,13 +54,14 @@ const ApproveTabPane = ({ userId, username }: ApproveTabPaneProps) => {
             }, {
                 withCredentials: true
             });
-            // Optionally, refresh the pending requests list
             setPendingRequests(prevRequests =>
                 prevRequests.filter(request => !selectedRequests.includes(request.ID))
             );
             setSelectedRequests([]);
+            setErrorMessage(''); // Clear error message on success
         } catch (error) {
-            console.error('Error approving requests:', error);
+            console.error('Error approving/rejecting requests:', error);
+            setErrorMessage('Error approving/rejecting requests. Please try again.');
         }
     };
 
@@ -68,6 +72,11 @@ const ApproveTabPane = ({ userId, username }: ApproveTabPaneProps) => {
 
     return (
         <Tab.Pane eventKey="approve" className='text-start py-4'>
+            {errorMessage && (
+                <Alert variant="danger" className="mt-3">
+                    {errorMessage}
+                </Alert>
+            )}
             <p>Approve or reject one or many access requests.
                 <button className="refresh-button" onClick={fetchPendingRequests}>
                     <img

@@ -30,14 +30,16 @@ const HistoryTabPane = ({ activeTab, originTab, userId }: { activeTab: string, o
             });
             if (Array.isArray(response.data)) {
                 setRequests(response.data);
+                setErrorMessage(''); // Clear error message on success
             } else if (response.data && typeof response.data === 'object') {
                 setRequests([response.data]);
+                setErrorMessage(''); // Clear error message on success
             } else {
                 setErrorMessage('Unexpected response format');
             }
         } catch (error) {
             console.error('Error fetching requests:', error);
-            setErrorMessage('Error fetching requests');
+            setErrorMessage('Error fetching requests. Please try again.');
         }
     }, [userId]);
 
