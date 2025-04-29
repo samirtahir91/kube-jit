@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Navbar, Container, Card } from "react-bootstrap";
 import githubLogo from "../../assets/github.svg";
-import loginLogo from "../../assets/login-logo-newnew.png";
+import loginLogo from "../../assets/login-logo.png";
 import NavBrand from "../navBrand/NavBrand";
 import axios from "axios";
 

@@ -51,6 +51,9 @@ var (
 	gsaEmailOnce sync.Once
 )
 
+// getGSAEmail retrieves the Google Service Account (GSA) email from the metadata server
+// It caches the email to avoid multiple requests
+// It uses a sync.Once to ensure that the email is only fetched once
 func getGSAEmail() (string, error) {
 	gsaEmailOnce.Do(func() {
 		req, err := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email", nil)
@@ -79,6 +82,10 @@ func getGSAEmail() (string, error) {
 	return gsaEmail, gsaEmailErr
 }
 
+// GetGoogleGroupsWithWorkloadIdentity retrieves the Google Groups for a user using Workload Identity
+// It uses the Google Service Account (GSA) to impersonate the user and fetch their groups
+// It returns a list of teams (groups) associated with the user
+// It uses the Google Admin SDK to list the groups
 func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error) {
 	ctx := context.Background()
 
@@ -98,7 +105,7 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error
 	now := time.Now()
 	claims := map[string]interface{}{
 		"iss":   serviceAccountEmail,
-		"sub":   userEmail, // <<<<<< IMPERSONATE USER HERE
+		"sub":   userEmail, // IMPERSONATE USER HERE
 		"aud":   "https://oauth2.googleapis.com/token",
 		"scope": "https://www.googleapis.com/auth/admin.directory.group.readonly",
 		"iat":   now.Unix(),
@@ -169,7 +176,7 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error
 	// Print the groups
 	var teams []models.Team
 	for _, group := range groupsResponse.Groups {
-		log.Printf("Group: %s (%s)", group.Name, group.Email)
+		//log.Printf("Group: %s (%s)", group.Name, group.Email)
 		teams = append(teams, models.Team{
 			Name: group.Name,
 			ID:   group.Email,
@@ -178,37 +185,6 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error
 
 	return teams, nil
 }
-
-// // GetGoogleGroupsWithWorkloadIdentity fetches Google groups for a user using Workload Identity
-// func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error) {
-// 	// Use the default credentials provided by Workload Identity
-// 	ctx := context.Background()
-// 	service, err := admin.NewService(ctx, option.WithScopes(admin.AdminDirectoryGroupReadonlyScope, admin.AdminDirectoryGroupScope, admin.AdminDirectoryGroupMemberReadonlyScope, admin.AdminDirectoryDomainScope))
-// 	if err != nil {
-// 		log.Printf("Error creating Admin SDK service: %v", err)
-// 		return nil, fmt.Errorf("failed to create admin service: %v", err)
-// 	}
-
-// 	// Impersonate the user and list their groups
-// 	groupsCall := service.Groups.List().UserKey(userEmail).Domain("samirtahir.dev")
-// 	groupsResponse, err := groupsCall.Do()
-// 	if err != nil {
-// 		log.Printf("Error fetching groups for user %s: %v", userEmail, err)
-// 		return nil, fmt.Errorf("failed to list groups: %v", err)
-// 	}
-
-// 	// Map the response to your models.Team struct
-// 	var groups []models.Team
-// 	for _, group := range groupsResponse.Groups {
-// 		log.Printf("Google Group - Name: %s, ID: %s", group.Name, group.Email)
-// 		groups = append(groups, models.Team{
-// 			Name: group.Name,
-// 			ID:   group.Email,
-// 		})
-// 	}
-
-// 	return groups, nil
-// }
 
 // K8sCallback is used by downstream controller to callback for status update
 // It validates the signed URL and updates the request status in the database
@@ -256,8 +232,15 @@ func K8sCallback(c *gin.Context) {
 // or rejects them - status = Rejected
 // It creates the k8s object for each request if status is Approved
 // It updates the status of the requests in the database
-// It is called by the K8s controller when the request is completed
 func ApproveOrRejectRequests(c *gin.Context) {
+	// Retrieve the token from the session
+	session := sessions.Default(c)
+	token := session.Get("token")
+	if token == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in request cookie"})
+		return
+	}
+
 	type ApproveRequest struct {
 		Requests     []models.RequestData `json:"requests"`
 		ApproverID   int                  `json:"approverID"`
@@ -306,6 +289,14 @@ func ApproveOrRejectRequests(c *gin.Context) {
 // GetRecords returns the latest jit requests for a user with optional limit and date range
 // It fetches the records from the database and returns them as JSON
 func GetRecords(c *gin.Context) {
+	// Retrieve the token from the session
+	session := sessions.Default(c)
+	token := session.Get("token")
+	if token == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in request cookie"})
+		return
+	}
+
 	userID := c.Query("userID")       // Get userID from query parameters
 	limit := c.Query("limit")         // Get limit from query parameters
 	startDate := c.Query("startDate") // Get startDate from query parameters
@@ -331,7 +322,7 @@ func GetRecords(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, requests) // Return the list of requests
+	c.JSON(http.StatusOK, requests)
 }
 
 // GetOauthClientId checks the oauthProvider and returns the appropriate client_id
@@ -354,8 +345,16 @@ func GetOauthClientId(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// GetClustersAndRoles gets clusters and roles
+// GetClustersAndRoles returns the list of clusters and roles available
 func GetClustersAndRoles(c *gin.Context) {
+	// Retrieve the token from the session
+	session := sessions.Default(c)
+	token := session.Get("token")
+	if token == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in request cookie"})
+		return
+	}
+
 	response := map[string]interface{}{
 		"clusters": k8s.ClusterNames,
 		"roles":    k8s.AllowedRoles,
@@ -374,15 +373,29 @@ func GetApprovingGroups(c *gin.Context) {
 	c.JSON(http.StatusOK, k8s.ApproverTeams)
 }
 
-// IsGithubApprover checks is user belongs to an approver team and return bool
+// IsGithubApprover uses the GitHub API to fetch the user's teams and checks if they belong to any approver teams
+// It returns true if the user is an approver, false otherwise
 func IsGithubApprover(c *gin.Context) {
 	session := sessions.Default(c)
-	token := session.Get("token")
-	if token == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized no token in request cookie"})
+
+	// Check if isApprover and approverGroups are already in the session cookie
+	isApprover, ok := session.Get("isApprover").(bool)
+	_, groupsOk := session.Get("approverGroups").([]string)
+
+	if ok && groupsOk {
+		// Return cached values
+		c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
 		return
 	}
 
+	// Retrieve token from session
+	token := session.Get("token")
+	if token == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in request cookie"})
+		return
+	}
+
+	// Fetch user's teams from GitHub
 	req, err := http.NewRequest("GET", "https://api.github.com/user/teams", nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -408,22 +421,45 @@ func IsGithubApprover(c *gin.Context) {
 		return
 	}
 
+	// Determine if the user is an approver
+	var matchedGroups []string
 	for _, userTeam := range userTeams {
 		for _, approverTeam := range k8s.ApproverTeams {
 			if userTeam.ID == approverTeam.ID && userTeam.Name == approverTeam.Name {
-				c.JSON(http.StatusOK, gin.H{"isApprover": true})
-				return
+				matchedGroups = append(matchedGroups, userTeam.ID)
 			}
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"isApprover": false})
+	isApprover = len(matchedGroups) > 0
+
+	// Cache the result in the session
+	session.Set("isApprover", isApprover)
+	session.Set("approverGroups", matchedGroups)
+	if err := session.Save(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
 }
 
-// IsGoogleApprover checks if user belongs to an approver group and returns bool
+// IsGoogleApprover uses the Google Admin SDK to fetch the user's groups
+// It returns true if the user is an approver, false otherwise
 func IsGoogleApprover(c *gin.Context) {
-	// Retrieve the user's email from the session
 	session := sessions.Default(c)
+
+	// Check if isApprover and approverGroups are already in the session
+	isApprover, ok := session.Get("isApprover").(bool)
+	_, groupsOk := session.Get("approverGroups").([]string)
+
+	if ok && groupsOk {
+		// Return cached values
+		c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
+		return
+	}
+
+	// Retrieve the user's email from the session
 	userEmail := session.Get("email")
 	if userEmail == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no email in session"})
@@ -438,63 +474,44 @@ func IsGoogleApprover(c *gin.Context) {
 	}
 
 	// Check if the user belongs to any approver groups
+	var matchedGroups []string
 	for _, userGroup := range userGroups {
 		for _, approverGroup := range k8s.ApproverTeams {
 			if userGroup.ID == approverGroup.ID && userGroup.Name == approverGroup.Name {
-				c.JSON(http.StatusOK, gin.H{"isApprover": true})
-				return
+				matchedGroups = append(matchedGroups, userGroup.ID)
 			}
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"isApprover": false})
+	isApprover = len(matchedGroups) > 0
+
+	// Cache the result in the session
+	session.Set("isApprover", isApprover)
+	session.Set("approverGroups", matchedGroups)
+	if err := session.Save(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
 }
 
-// GetPendingApprovals checks matched teams for a user compared to approver teams and gets pending requests
+// GetPendingApprovals returns the pending requests for the user based on their approver groups
+// It uses the session to retrieve the user's approver groups
+// It queries the database for requests with status "Requested" and matching approver groups
 func GetPendingApprovals(c *gin.Context) {
 	session := sessions.Default(c)
-	token := session.Get("token")
-	if token == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized no token in request cookie"})
+
+	// Retrieve approverGroups from the session
+	approverGroups, ok := session.Get("approverGroups").([]string)
+	if !ok || len(approverGroups) == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
 		return
 	}
 
-	req, err := http.NewRequest("GET", "https://api.github.com/user/teams", nil)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	req.Header.Set("Authorization", token.(string))
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Error fetching teams from GitHub"})
-		return
-	}
-
-	var userTeams []models.Team
-	if err := json.NewDecoder(resp.Body).Decode(&userTeams); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	var matchedTeams []string
-	for _, userTeam := range userTeams {
-		for _, approverTeam := range k8s.ApproverTeams {
-			if userTeam.ID == approverTeam.ID && userTeam.Name == approverTeam.Name {
-				matchedTeams = append(matchedTeams, userTeam.ID)
-			}
-		}
-	}
-
+	// Query the database for pending requests
 	var pendingRequests []models.RequestData
-	if err := db.DB.Where("approving_team_id IN (?) AND status = ?", matchedTeams, "Requested").Find(&pendingRequests).Error; err != nil {
+	if err := db.DB.Where("approving_team_id IN (?) AND status = ?", approverGroups, "Requested").Find(&pendingRequests).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -701,7 +718,7 @@ func GetGithubProfile(c *gin.Context) {
 
 // GetGoogleProfile gets the logged in user's profile info from Google
 func GetGoogleProfile(c *gin.Context) {
-	// Retrieve the Google token from the session
+	// Retrieve the token from the session
 	session := sessions.Default(c)
 	token := session.Get("token")
 	if token == nil {
@@ -753,6 +770,14 @@ func GetGoogleProfile(c *gin.Context) {
 
 // SubmitRequest creates the new jit record in postgress
 func SubmitRequest(c *gin.Context) {
+
+	// Retrieve the token from the session
+	session := sessions.Default(c)
+	token := session.Get("token")
+	if token == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in request cookie"})
+		return
+	}
 
 	var requestData struct {
 		ApprovingTeam models.Team    `json:"approvingTeam"`

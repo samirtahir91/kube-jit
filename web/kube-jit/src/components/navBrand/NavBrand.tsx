@@ -1,5 +1,5 @@
 import { Navbar } from 'react-bootstrap';
-import loginLogo from '../../assets/login-logo-newnew.png';
+import loginLogo from '../../assets/login-logo.png';
 
 const NavBrand = () => {
     return (

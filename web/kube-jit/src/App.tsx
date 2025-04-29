@@ -11,7 +11,6 @@ import axios from "axios";
 import { SyncLoader } from "react-spinners";
 import { UserData } from "./types";
 
-
 type ApiResponse = {
     userData: UserData;
     expiresIn: number;
@@ -58,42 +57,62 @@ function App() {
             }
         };
 
-        if (tokenExpiry && new Date(tokenExpiry) > new Date()) {
+        const fetchProfileAndData = async () => {
             setLoading(true);
             const provider = localStorage.getItem("loginMethod");
-            fetch(`http://localhost:8589/kube-jit-api/${provider}/profile`, {
-                credentials: "include",
-            })
-                .then((res) => {
-                    if (res.ok) {
-                        return res.json();
-                    } else {
-                        throw new Error("Not logged in");
-                    }
-                })
-                .then((profileData) => {
-                    if (profileData && profileData.name) {
-                        setData({
-                            userData: profileData,
-                            expiresIn: 0, // unused in profile fetch
-                        });
-                        navigate(window.location.pathname); // Clear the URL parameters
-                    } else {
-                        console.error("Invalid profile data structure:", profileData);
-                    }
-                    setLoading(false);
-                })
-                .catch((error) => {
-                    console.error("Error fetching profile data:", error);
-                    setLoading(false);
-                    setLogin(true);
+            try {
+                const res = await fetch(`http://localhost:8589/kube-jit-api/${provider}/profile`, {
+                    credentials: "include",
                 });
-            fetchGroups();
-            checkIsApprover(provider);
+                if (!res.ok) {
+                    throw new Error("Not logged in");
+                }
+                const profileData = await res.json();
+                if (profileData && profileData.name) {
+                    setData({
+                        userData: profileData,
+                        expiresIn: 0, // unused in profile fetch
+                    });
+                    navigate(window.location.pathname); // Clear the URL parameters
+                    fetchGroups();
+                    checkIsApprover(provider);
+                } else {
+                    console.error("Invalid profile data structure:", profileData);
+                }
+            } catch (error) {
+                console.error("Error fetching profile data:", error);
+                setLogin(true);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (tokenExpiry && new Date(tokenExpiry) > new Date()) {
+            fetchProfileAndData();
         } else {
             setLogin(true);
         }
     }, [navigate]);
+
+    // New useEffect to check approver status dynamically after login
+    useEffect(() => {
+        if (data && data.userData) {
+            const provider = localStorage.getItem("loginMethod");
+            if (provider) {
+                const checkIsApprover = async (provider: string | null) => {
+                    try {
+                        const response = await axios.get(`http://localhost:8589/kube-jit-api/${provider}/is-approver`, {
+                            withCredentials: true,
+                        });
+                        setIsApprover(response.data.isApprover);
+                    } catch (error) {
+                        console.error("Error checking approver status:", error);
+                    }
+                };
+                checkIsApprover(provider);
+            }
+        }
+    }, [data]);
 
     if (loading) {
         return (

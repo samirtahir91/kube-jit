@@ -26,11 +26,12 @@ const HistoryTabPane = ({ activeTab, originTab, userId }: { activeTab: string, o
                     startDate: startDate ? startDate.toISOString() : undefined,
                     endDate: endDate ? endDate.toISOString() : undefined,
                 },
+                withCredentials: true
             });
             if (Array.isArray(response.data)) {
                 setRequests(response.data);
             } else if (response.data && typeof response.data === 'object') {
-                setRequests([response.data]); // Wrap the single object in an array
+                setRequests([response.data]);
             } else {
                 setErrorMessage('Unexpected response format');
             }
