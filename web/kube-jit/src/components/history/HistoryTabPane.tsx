@@ -11,7 +11,7 @@ type HistoryTabPaneProps = {
     activeTab: string;
     originTab: string;
     userId: string;
-    setLoadingInCard: (loading: boolean) => void; // Add setLoadingInCard prop
+    setLoadingInCard: (loading: boolean) => void;
 };
 
 const HistoryTabPane = ({ activeTab, originTab, userId, setLoadingInCard }: HistoryTabPaneProps) => {
@@ -27,7 +27,7 @@ const HistoryTabPane = ({ activeTab, originTab, userId, setLoadingInCard }: Hist
     const fetchRequests = useCallback(async (limit: number, startDate: Date | null, endDate: Date | null) => {
         setLoadingInCard(true); // Start loading
         try {
-            const response = await axios.get(`/kube-jit-api/history`, {
+            const response = await axios.get(`http://localhost:8589/kube-jit-api/history`, {
                 params: {
                     userID: userId,
                     limit: limit,

@@ -70,7 +70,18 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  
+}
+
+.card-loader-container {
+  position: absolute; /* Position it absolutely */
+  top: 50%; /* Center vertically */
+  left: 50%; /* Center horizontally */
+  transform: translate(-50%, -50%); /* Adjust for centering */
+  z-index: 10; /* Ensure it appears in front of the card */
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 

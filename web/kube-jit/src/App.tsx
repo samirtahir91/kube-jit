@@ -37,7 +37,7 @@ function App() {
 
         const fetchGroups = async () => {
             try {
-                const response = await axios.get("/kube-jit-api/approving-groups", {
+                const response = await axios.get("http://localhost:8589/kube-jit-api/approving-groups", {
                     withCredentials: true,
                 });
                 setApproverGroups(response.data);
@@ -48,7 +48,7 @@ function App() {
 
         const checkIsApprover = async (provider: string | null) => {
             try {
-                const response = await axios.get(`/kube-jit-api/${provider}/is-approver`, {
+                const response = await axios.get(`http://localhost:8589/kube-jit-api/${provider}/is-approver`, {
                     withCredentials: true,
                 });
                 setIsApprover(response.data.isApprover);
@@ -61,7 +61,7 @@ function App() {
             setLoading(true);
             const provider = localStorage.getItem("loginMethod");
             try {
-                const res = await fetch(`/kube-jit-api/${provider}/profile`, {
+                const res = await fetch(`http://localhost:8589/kube-jit-api/${provider}/profile`, {
                     credentials: "include",
                 });
                 if (!res.ok) {
@@ -101,7 +101,7 @@ function App() {
             if (provider) {
                 const checkIsApprover = async (provider: string | null) => {
                     try {
-                        const response = await axios.get(`/kube-jit-api/${provider}/is-approver`, {
+                        const response = await axios.get(`http://localhost:8589/kube-jit-api/${provider}/is-approver`, {
                             withCredentials: true,
                         });
                         setIsApprover(response.data.isApprover);
@@ -125,8 +125,8 @@ function App() {
     if (data && data.userData) {
         return (
             <div>
+                <SyncLoader  className="card-loader-container" color="#0494ba" size={20} loading={loadingInCard} />
                 <Profile user={data.userData} />
-                <SyncLoader color="#0494ba" size={20} loading={loadingInCard} />
                 <Card className="d-flex justify-content-center align-items-start">
                     <Card.Body className="container">
                         <Tab.Container

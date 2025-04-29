@@ -22,7 +22,7 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
     const fetchPendingRequests = async () => {
         setLoadingInCard(true); // Start loading
         try {
-            const response = await axios.get('/kube-jit-api/approvals', {
+            const response = await axios.get('http://localhost:8589/kube-jit-api/approvals', {
                 withCredentials: true
             });
             setPendingRequests(response.data.pendingRequests);
@@ -47,7 +47,7 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
         setLoadingInCard(true); // Start loading
         try {
             const selectedRequestData = pendingRequests.filter(request => selectedRequests.includes(request.ID));
-            await axios.post('/kube-jit-api/approve-reject', {
+            await axios.post('http://localhost:8589/kube-jit-api/approve-reject', {
                 requests: selectedRequestData,
                 approverID: userId,
                 approverName: username,

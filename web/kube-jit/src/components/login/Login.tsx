@@ -18,7 +18,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   // Fetch the client ID and set provider
   useEffect(() => {
     axios
-      .get("/kube-jit-api/client_id")
+      .get("http://localhost:8589/kube-jit-api/client_id")
       .then((response) => {
         setClientID(response.data.client_id);
         setRedirectUrl(response.data.redirect_uri)
@@ -39,7 +39,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     if (code && method) {
       setLoading(true);
       axios
-        .get(`/kube-jit-api/oauth/${method}/callback`, {
+        .get(`http://localhost:8589/kube-jit-api/oauth/${method}/callback`, {
           params: { code },
           withCredentials: true,
         })
