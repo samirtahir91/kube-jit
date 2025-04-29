@@ -5,24 +5,24 @@ import loginLogo from "../../assets/login-logo.png";
 import NavBrand from "../navBrand/NavBrand";
 import axios from "axios";
 import config from "../../config/config";
-import { useNavigate } from "react-router-dom";
 
 type LoginProps = {
-  onLoginSuccess: (data: any) => void; // Define the onLoginSuccess prop
+  onLoginSuccess: (data: any) => void;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>; // Add setLoading as a prop
 };
 
-const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess, setLoading }) => {
   const [loginMethod, setLoginMethod] = useState<"github" | "google" | "">("");
   const [clientID, setClientID] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [redirectUri, setRedirectUrl] = useState<string | null>(null);
+
   // Fetch the client ID and set provider
   useEffect(() => {
     axios
       .get(`${config.apiBaseUrl}/kube-jit-api/client_id`)
       .then((response) => {
         setClientID(response.data.client_id);
-        setRedirectUrl(response.data.redirect_uri)
+        setRedirectUrl(response.data.redirect_uri);
         localStorage.setItem("loginMethod", response.data.provider);
         setLoginMethod(response.data.provider);
       })
@@ -35,10 +35,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
-    const method = urlParams.get("state"); // Retrieve loginMethod from the state parameter
+    const method = urlParams.get("state");
 
     if (code && method) {
-      setLoading(true);
+      setLoading(true); // Use setLoading from App.tsx
       axios
         .get(`${config.apiBaseUrl}/kube-jit-api/oauth/${method}/callback`, {
           params: { code },
@@ -48,29 +48,30 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           const data = res.data;
           if (data && data.userData) {
             localStorage.setItem(
-                "tokenExpiry",
-                new Date(new Date().getTime() + data.expiresIn * 1000).toString()
+              "tokenExpiry",
+              new Date(new Date().getTime() + data.expiresIn * 1000).toString()
             );
             onLoginSuccess(data); // Notify App.tsx about the successful login
-            // Clear the URL parameters
-            window.history.replaceState({}, document.title, window.location.pathname);
+            window.history.replaceState({}, document.title, window.location.pathname); // Clear the URL parameters
           } else {
             console.error("Invalid data structure:", data);
           }
-          setLoading(false);
+          setLoading(false); // Stop loading
         })
         .catch((error) => {
           console.error("Error during OAuth callback:", error);
-          setLoading(false);
+          setLoading(false); // Stop loading
         });
     }
-  }, [onLoginSuccess]);
+  }, [onLoginSuccess, setLoading]);
 
   // Redirect to GitHub OAuth
   const redirectToGitHub = () => {
     if (clientID && redirectUri) {
       const scope = "read:user";
-      const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=github`;
+      const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientID}&redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}&scope=${scope}&state=github`;
       window.location.href = authUrl;
     } else {
       console.error("Client ID or Redirect URI is missing.");
@@ -80,20 +81,14 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   // Redirect to Google OAuth
   const redirectToGoogle = () => {
     if (clientID && redirectUri) {
-      const authUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email%20profile&state=google`;
+      const authUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${clientID}&redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}&response_type=code&scope=openid%20email%20profile&state=google`;
       window.location.href = authUrl;
     } else {
       console.error("Client ID or Redirect URI is missing.");
     }
   };
-
-  if (loading) {
-    return (
-      <div className="loader-container">
-        <p>Loading...</p>
-      </div>
-    );
-  }
 
   return (
     <div>

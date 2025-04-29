@@ -183,6 +183,7 @@ function App() {
                     setData(data)
                     setLogin(false)
                 }}
+                setLoading={setLoading}
             />
         );
     }
