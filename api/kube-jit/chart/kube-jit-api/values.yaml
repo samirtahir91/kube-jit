@@ -72,7 +72,7 @@ config:
   
   # Oauth either configure for github or google
   oauth:
-    # TYour Oauth provider, "github" for GithubApp or "google" for Google Oauth
+    # TYour Oauth provider, "github" for GithubApp, "azure" for AAD, "google" for Google Oauth
     provider:
     # Your Client ID
     clientID: "your-client-id"
@@ -81,6 +81,11 @@ config:
     # This is the secret key in the kube-jit-api-secrets secret
     # This secret key value will contain the client secret for the Oauth
     clientSecretKeyRef: "oauthClientSecret"
+    # Azure specific config
+    # This is the Azure auth URL
+    #azureAuthUrl: "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize"
+    # This is the Azure token URL
+    #azureTokenUrl: "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
 
 # Postgres database connection details
 db:

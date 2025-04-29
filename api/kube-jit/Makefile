@@ -116,10 +116,16 @@ deploy:
 		helm install -n kube-jit-api kube-jit-api chart/kube-jit-api --create-namespace -f ./sample/helm-values.yaml
 
 template-gke:
-		helm template -n kube-jit-api kube-jit-api chart/kube-jit-api --create-namespace -f ./sample/gke-values.yaml --set image.repository=$(HELM_IMG) --set image.tag=$(TAG)
+		helm template -n kube-jit-api kube-jit-api chart/kube-jit-api --create-namespace -f ./sample/google/gke-values.yaml --set image.repository=$(HELM_IMG) --set image.tag=$(TAG)
 
 deploy-gke:
-		helm install -n kube-jit-api kube-jit-api chart/kube-jit-api --create-namespace -f ./sample/gke-values.yaml --set image.repository=$(HELM_IMG) --set image.tag=$(TAG)
+		helm install -n kube-jit-api kube-jit-api chart/kube-jit-api --create-namespace -f ./sample/google/gke-values.yaml --set image.repository=$(HELM_IMG) --set image.tag=$(TAG)
+
+template-aks:
+		helm template -n kube-jit-api kube-jit-api chart/kube-jit-api --create-namespace -f ./sample/azure/aks-values.yaml --set image.repository=$(HELM_IMG) --set image.tag=$(TAG)
+
+deploy-aks:
+		helm install -n kube-jit-api kube-jit-api chart/kube-jit-api --create-namespace -f ./sample/azure/aks-values.yaml --set image.repository=$(HELM_IMG) --set image.tag=$(TAG)
 
 delete:
 		helm delete -n kube-jit-api kube-jit-api || true
@@ -134,6 +140,7 @@ e2e: delete build deploy
 
 e2e-gke: docker-build docker-push delete deploy-gke
 
+e2e-aks: docker-build docker-push delete deploy-aks
 ##@ Dependencies
 
 ## Location to install dependencies to

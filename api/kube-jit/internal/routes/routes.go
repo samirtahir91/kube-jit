@@ -11,6 +11,7 @@ func SetupRoutes(r *gin.Engine) {
 	r.GET("/kube-jit-api/roles-and-clusters", handlers.GetClustersAndRoles)
 	r.GET("/kube-jit-api/oauth/github/callback", handlers.HandleGitHubLogin)
 	r.GET("/kube-jit-api/oauth/google/callback", handlers.HandleGoogleLogin)
+	r.GET("/kube-jit-api/oauth/azure/callback", handlers.HandleAzureLogin)
 	r.GET("/kube-jit-api/github/profile", handlers.GetGithubProfile)
 	r.GET("/kube-jit-api/google/profile", handlers.GetGoogleProfile)
 	r.POST("/kube-jit-api/submit-request", handlers.SubmitRequest)

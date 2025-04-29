@@ -47,6 +47,17 @@ var (
 			TokenURL: "https://oauth2.googleapis.com/token",
 		},
 	}
+	azureOAuthConfig = &oauth2.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		RedirectURL:  redirectUri,
+		// Scopes:       []string{"openid", "email", "profile", "User.Read", "Directory.Read.All"},
+		Scopes: []string{"openid", "email", "profile", "User.Read"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  os.Getenv("AZURE_AUTH_URL"),  // Use the configurable authorization endpoint
+			TokenURL: os.Getenv("AZURE_TOKEN_URL"), // Use the configurable token endpoint
+		},
+	}
 	gsaEmail     string
 	gsaEmailErr  error
 	gsaEmailOnce sync.Once
@@ -332,6 +343,7 @@ func GetOauthClientId(c *gin.Context) {
 		"client_id":    clientID,
 		"provider":     oauthProvider,
 		"redirect_uri": redirectUri,
+		"auth_url":     azureOAuthConfig.Endpoint.AuthURL,
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -658,6 +670,93 @@ func HandleGoogleLogin(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
 		return
 	}
+
+	// Respond with the normalized user data
+	c.JSON(http.StatusOK, gin.H{
+		"userData":  normalizedUserData,
+		"expiresIn": int(time.Until(token.Expiry).Seconds()),
+	})
+}
+
+// HandleAzureLogin handles the Azure AD OAuth callback
+func HandleAzureLogin(c *gin.Context) {
+	code := c.Query("code")
+	if code == "" {
+		log.Println("Missing 'code' query parameter")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Code query parameter is required"})
+		return
+	}
+
+	log.Println("Received authorization code:", code)
+
+	// Exchange the authorization code for a token
+	token, err := azureOAuthConfig.Exchange(context.Background(), code)
+	if err != nil {
+		log.Printf("Failed to exchange token: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to exchange token"})
+		return
+	}
+
+	log.Printf("Token received: %+v", token)
+
+	// Use the token to fetch user info
+	client := azureOAuthConfig.Client(context.Background(), token)
+	resp, err := client.Get("https://graph.microsoft.com/v1.0/me")
+	if err != nil {
+		log.Printf("Failed to fetch user info: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user info"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Error fetching user profile from Azure AD: %s", string(body))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user profile from Azure AD"})
+		return
+	}
+
+	// Decode the user info
+	var azureUser struct {
+		ID                string `json:"id"`
+		DisplayName       string `json:"displayName"`
+		Mail              string `json:"mail"`
+		UserPrincipalName string `json:"userPrincipalName"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&azureUser); err != nil {
+		log.Printf("Failed to decode user info: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user info"})
+		return
+	}
+
+	log.Printf("Azure user info: %+v", azureUser)
+
+	// Normalize the user data
+	normalizedUserData := map[string]interface{}{
+		"id":         azureUser.ID,
+		"name":       azureUser.DisplayName,
+		"email":      azureUser.Mail,
+		"avatar_url": "", // Azure AD doesn't provide an avatar URL by default
+		"provider":   "azure",
+	}
+
+	// Save the email and token in the session
+	session := sessions.Default(c)
+	session.Options(sessions.Options{
+		MaxAge:   int(time.Until(token.Expiry).Seconds()),
+		HttpOnly: true,
+		Secure:   true,
+		Path:     "/",
+	})
+	session.Set("email", azureUser.Mail) // Store the email in the session
+	session.Set("token", token.AccessToken)
+	if err := session.Save(); err != nil {
+		log.Printf("Failed to save session: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
+		return
+	}
+
+	log.Println("Session saved successfully")
 
 	// Respond with the normalized user data
 	c.JSON(http.StatusOK, gin.H{

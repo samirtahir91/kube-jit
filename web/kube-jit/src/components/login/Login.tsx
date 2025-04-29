@@ -12,9 +12,10 @@ type LoginProps = {
 };
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess, setLoading }) => {
-  const [loginMethod, setLoginMethod] = useState<"github" | "google" | "">("");
+  const [loginMethod, setLoginMethod] = useState<"github" | "google" | "azure" | "">("");
   const [clientID, setClientID] = useState<string | null>(null);
   const [redirectUri, setRedirectUrl] = useState<string | null>(null);
+  const [auth_url, setAuthUrl] = useState<string | null>(null);
 
   // Fetch the client ID and set provider
   useEffect(() => {
@@ -23,6 +24,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, setLoading }) => {
       .then((response) => {
         setClientID(response.data.client_id);
         setRedirectUrl(response.data.redirect_uri);
+        setAuthUrl(response.data.auth_url);
         localStorage.setItem("loginMethod", response.data.provider);
         setLoginMethod(response.data.provider);
       })
@@ -55,11 +57,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, setLoading }) => {
             window.history.replaceState({}, document.title, window.location.pathname); // Clear the URL parameters
           } else {
             console.error("Invalid data structure:", data);
+            window.history.replaceState({}, document.title, window.location.pathname); // Clear the URL parameters
           }
           setLoading(false); // Stop loading
         })
         .catch((error) => {
           console.error("Error during OAuth callback:", error);
+          window.history.replaceState({}, document.title, window.location.pathname); // Clear the URL parameters
           setLoading(false); // Stop loading
         });
     }
@@ -84,6 +88,18 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, setLoading }) => {
       const authUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${clientID}&redirect_uri=${encodeURIComponent(
         redirectUri
       )}&response_type=code&scope=openid%20email%20profile&state=google`;
+      window.location.href = authUrl;
+    } else {
+      console.error("Client ID or Redirect URI is missing.");
+    }
+  };
+
+  // Redirect to Azure OAuth
+  const redirectToAzure = () => {
+    if (clientID && redirectUri && auth_url) {
+      const authUrl = `${auth_url}?client_id=${clientID}&redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}&response_type=code&scope=openid%20email%20profile&state=azure`;
       window.location.href = authUrl;
     } else {
       console.error("Client ID or Redirect URI is missing.");
@@ -174,6 +190,21 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, setLoading }) => {
                       Sign in with Google
                     </span>
                   </div>
+                </button>
+              )}
+              {loginMethod === "azure" && clientID && redirectUri && auth_url && (
+                <button
+                  className="azure-login-button w-100 mt-auto"
+                  onClick={redirectToAzure}
+                >
+                  <img
+                    alt="Azure Logo"
+                    src="https://upload.wikimedia.org/wikipedia/commons/a/a8/Microsoft_Azure_Logo.svg"
+                    width="20"
+                    height="20"
+                    className="me-2"
+                  />
+                  Log in with Azure AD
                 </button>
               )}
             </Card.Body>

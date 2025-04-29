@@ -76,6 +76,12 @@ spec:
               secretKeyRef:
                 name: kube-jit-api-secrets
                 key: {{ .Values.config.oauth.clientSecretKeyRef }}
+          {{- if eq .Values.config.oauth.provider "azure" }}
+          - name: AZURE_AUTH_URL
+            value: {{ .Values.config.oauth.azureAuthUrl }}
+          - name: AZURE_TOKEN_URL
+            value: {{ .Values.config.oauth.azureTokenUrl }}
+          {{- end }}
           # Database environment variables
           - name: DB_HOST
             value: {{ if .Values.db.cloudSqlProxy.enabled }}"127.0.0.1"{{ else }}{{ quote .Values.db.host }}{{ end }}

@@ -1,0 +1,52 @@
+config:
+  allowedRoles:
+    - name: edit
+    - name: admin
+  
+  allowedApproverTeams:
+    - name: "jit approvers"
+      id: 12769788
+    - name: "jit approvers google"
+      id: jit-approvers-google@samirtahir.dev
+    - name: "Team B"
+      id: 12345
+    - name: "Team C"
+      id: 123456
+  
+  cors:
+    allowOrigins:
+      - "http://host.docker.internal:5173"
+      - "http://localhost:5173"
+  
+  clusters:
+    - name: autopilot-cluster-2
+      type: gke
+      projectID: sacred-entry-304212
+      region: europe-west2
+
+  callbackHostOverride: http://localhost:8589
+
+  oauth:
+    provider: "azure"
+    clientID: 4752dbc4-0195-4ec9-973e-c68bdc6696c5
+    redirectUri: "http://localhost:5173/"
+    clientSecretKeyRef: azureClientSecret
+    azureAuthUrl: "https://login.microsoftonline.com/b2d528a4-58f5-4aef-b021-041d1b5378f1/oauth2/v2.0/authorize"
+    azureTokenUrl: "https://login.microsoftonline.com/b2d528a4-58f5-4aef-b021-041d1b5378f1/oauth2/v2.0/token"
+
+db:
+  host: my-postgres-postgresql.default.svc.cluster.local
+  connTimeout: "10"
+  name: postgres
+  port: "5432"
+  sslMode: "prefer"
+  timezone: "Europe/London"
+  maxOpenConns: "50"
+  maxIdleConns: "20"
+  connMaxLifetime: "10m"
+  connMaxIdleTime: "15m"
+
+image:
+  repository: samirtahir91076/kube-jit-api
+  tag: v1.1.8
+  imagePullPolicy: Always

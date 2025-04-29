@@ -10,23 +10,39 @@
           "properties": {
             "provider": {
               "type": "string",
-              "enum": ["google", "github"],
-              "description": "The OAuth provider to use. Must be either 'google' or 'github'."
+              "enum": ["google", "github", "azure"],
+              "description": "The OAuth provider to use. Must be either 'google', 'github' or 'azure."
             },
             "clientID": {
               "type": "string",
               "description": "The client ID for the OAuth provider."
             },
-            "redirectUrl": {
+            "redirectUri": {
               "type": "string",
               "description": "The redirect URL for the OAuth provider."
             },
             "clientSecretKeyRef": {
               "type": "string",
               "description": "The secret key reference for the OAuth provider's client secret."
+            },
+            "azureAuthUrl": {
+              "type": "string",
+              "description": "The Azure OAuth authorization endpoint."
+            },
+            "azureTokenUrl": {
+              "type": "string",
+              "description": "The Azure OAuth token endpoint."
             }
           },
-          "required": ["provider", "clientID", "redirectUri", "clientSecretKeyRef"]
+          "required": ["provider", "clientID", "redirectUri", "clientSecretKeyRef"],
+          "if": {
+            "properties": {
+              "provider": { "const": "azure" }
+            }
+          },
+          "then": {
+            "required": ["azureAuthUrl", "azureTokenUrl"]
+          }
         }
       }
     }
