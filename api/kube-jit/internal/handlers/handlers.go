@@ -27,16 +27,17 @@ import (
 )
 
 var (
-	oauthProvider     = os.Getenv("OAUTH_PROVIDER")
-	ghAppClientID     = os.Getenv("GH_APP_CLIENT_ID")
-	ghAppClientSecret = os.Getenv("GH_APP_CLIENT_SECRET")
-	httpClient        = &http.Client{
+	oauthProvider = os.Getenv("OAUTH_PROVIDER")
+	clientID      = os.Getenv("OAUTH_CLIENT_ID")
+	clientSecret  = os.Getenv("OAUTH_CLIENT_SECRET")
+	redirectUri   = os.Getenv("OAUTH_REDIRECT_URI")
+	httpClient    = &http.Client{
 		Timeout: 60 * time.Second, // Set a global timeout for all requests
 	}
 	googleOAuthConfig = &oauth2.Config{
-		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
-		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-		RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		RedirectURL:  redirectUri,
 		Scopes: []string{
 			"https://www.googleapis.com/auth/userinfo.profile",
 			"https://www.googleapis.com/auth/userinfo.email",
@@ -325,21 +326,12 @@ func GetRecords(c *gin.Context) {
 	c.JSON(http.StatusOK, requests)
 }
 
-// GetOauthClientId checks the oauthProvider and returns the appropriate client_id
+// GetOauthClientId checks the oauthProvider and returns the appropriate client_id, provider and redirect url
 func GetOauthClientId(c *gin.Context) {
-	var clientId string
-	var provider string
-	if oauthProvider == "google" {
-		clientId = googleOAuthConfig.ClientID
-		provider = "google"
-	} else if oauthProvider == "github" {
-		clientId = ghAppClientID
-		provider = "github"
-	}
-
 	response := map[string]interface{}{
-		"client_id": clientId,
-		"provider":  provider,
+		"client_id":    clientID,
+		"provider":     oauthProvider,
+		"redirect_uri": redirectUri,
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -529,8 +521,8 @@ func HandleGitHubLogin(c *gin.Context) {
 
 	ctx := context.Background()
 	data := url.Values{
-		"client_id":     {ghAppClientID},
-		"client_secret": {ghAppClientSecret},
+		"client_id":     {clientID},
+		"client_secret": {clientSecret},
 		"code":          {code},
 	}
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://github.com/login/oauth/access_token", strings.NewReader(data.Encode()))

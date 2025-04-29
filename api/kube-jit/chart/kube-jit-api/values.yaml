@@ -70,29 +70,17 @@ config:
   # configMountPath sets the mountPath of the api configMap in the pod, defaults to /etc/config/
   #configMountPath: ""
   
-  # Oauth either configure gh for github or googleOauth for google
-  # Github App Oauth config
-  # Uncomment the following lines to enable Github App Oauth
-  gh:
-    # Enable Github App Oauth
-    enabled: false
-  #   # Your Github App Client ID
-  #   clientID: "your-github-app-client-id"
-  #   # This is the secret key in the kube-jit-api-secrets secret
-  #   # This secret key value will contain the client secret for the Github App
-  #   ghAppClientSecretKey: ghAppClientSecret
-  # Google Oauth config
-  # Uncomment the following lines to enable Google Oauth
-  googleOauth:
-    # Enable Google Oauth
-    enabled: false
-  #   # Your Google Client ID
-  #   clientID: "your-google-client-id"
-  #   # Your Google Redirect URL
-  #   redirectUrl: "http://localhost:8589/auth/google/callback"
-  #   # This is the secret key in the kube-jit-api-secrets secret
-  #   # This secret key value will contain the client secret for the Google Oauth
-  #   clientSecretKey: googleClientSecret
+  # Oauth either configure for github or google
+  oauth:
+    # TYour Oauth provider, "github" for GithubApp or "google" for Google Oauth
+    provider:
+    # Your Client ID
+    clientID: "your-client-id"
+    # Your Google Redirect URL
+    redirectUri: "http://localhost:8589/auth/callback"
+    # This is the secret key in the kube-jit-api-secrets secret
+    # This secret key value will contain the client secret for the Oauth
+    clientSecretKeyRef: "oauthClientSecret"
 
 # Postgres database connection details
 db:

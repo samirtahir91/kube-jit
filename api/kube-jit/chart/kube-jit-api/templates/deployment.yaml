@@ -1,9 +1,3 @@
-{{- if and .Values.config.gh.enabled .Values.config.googleOauth.enabled }}
-{{- fail "Only one of GitHub OAuth or Google OAuth can be enabled at a time. Please disable one of them in your values.yaml." }}
-{{- end }}
-{{- if not (or .Values.config.gh.enabled .Values.config.googleOauth.enabled) }}
-{{- fail "At least one of GitHub OAuth or Google OAuth must be enabled. Please enable one of them in your values.yaml." }}
-{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -71,30 +65,17 @@ spec:
             {{- end }}
           - name: LISTEN_PORT
             value: {{ quote .Values.service.port }}
-          {{- if .Values.config.gh.enabled }}
           - name: OAUTH_PROVIDER
-            value: github
-          - name: GH_APP_CLIENT_ID
-            value: {{ quote .Values.config.gh.clientID }}
-          - name: GH_APP_CLIENT_SECRET
+            value: {{ .Values.config.oauth.provider }}
+          - name: OAUTH_CLIENT_ID
+            value: {{ .Values.config.oauth.clientID }}
+          - name: OAUTH_REDIRECT_URI
+            value: {{ .Values.config.oauth.redirectUri }}
+          - name: OAUTH_CLIENT_SECRET
             valueFrom:
               secretKeyRef:
                 name: kube-jit-api-secrets
-                key: {{ .Values.config.gh.ghAppClientSecretKey }}
-          {{- end }}
-          {{- if .Values.config.googleOauth.enabled }}
-          - name: OAUTH_PROVIDER
-            value: google
-          - name: GOOGLE_CLIENT_ID
-            value: {{ quote .Values.config.googleOauth.clientID }}
-          - name: GOOGLE_REDIRECT_URL
-            value: {{ quote .Values.config.googleOauth.redirectUrl }}
-          - name: GOOGLE_CLIENT_SECRET
-            valueFrom:
-              secretKeyRef:
-                name: kube-jit-api-secrets
-                key: {{ .Values.config.googleOauth.clientSecretKey }}
-          {{- end }}
+                key: {{ .Values.config.oauth.clientSecretKeyRef }}
           # Database environment variables
           - name: DB_HOST
             value: {{ if .Values.db.cloudSqlProxy.enabled }}"127.0.0.1"{{ else }}{{ quote .Values.db.host }}{{ end }}

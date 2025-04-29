@@ -19,7 +19,7 @@ const HistoryTabPane = ({ activeTab, originTab, userId }: { activeTab: string, o
 
     const fetchRequests = useCallback(async (limit: number, startDate: Date | null, endDate: Date | null) => {
         try {
-            const response = await axios.get(`http://localhost:8589/kube-jit-api/history`, {
+            const response = await axios.get(`/kube-jit-api/history`, {
                 params: {
                     userID: userId,
                     limit: limit,

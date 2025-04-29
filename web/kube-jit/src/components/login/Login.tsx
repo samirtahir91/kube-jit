@@ -12,14 +12,16 @@ type LoginProps = {
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [loginMethod, setLoginMethod] = useState<"github" | "google" | "">("");
   const [clientID, setClientID] = useState<string | null>(null);
+  const [redirectUri, setRedirectUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Fetch the client ID and set provider
   useEffect(() => {
     axios
-      .get("http://localhost:8589/kube-jit-api/client_id")
+      .get("/kube-jit-api/client_id")
       .then((response) => {
         setClientID(response.data.client_id);
+        setRedirectUrl(response.data.redirect_uri)
         localStorage.setItem("loginMethod", response.data.provider);
         setLoginMethod(response.data.provider);
       })
@@ -37,7 +39,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     if (code && method) {
       setLoading(true);
       axios
-        .get(`http://localhost:8589/kube-jit-api/oauth/${method}/callback`, {
+        .get(`/kube-jit-api/oauth/${method}/callback`, {
           params: { code },
           withCredentials: true,
         })
@@ -65,17 +67,23 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   // Redirect to GitHub OAuth
   const redirectToGitHub = () => {
-    const scope = "read:user";
-    const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientID}&scope=${scope}&state=github`;
-    window.location.href = authUrl;
+    if (clientID && redirectUri) {
+      const scope = "read:user";
+      const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=github`;
+      window.location.href = authUrl;
+    } else {
+      console.error("Client ID or Redirect URI is missing.");
+    }
   };
 
   // Redirect to Google OAuth
   const redirectToGoogle = () => {
-    const authUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${clientID}&redirect_uri=${encodeURIComponent(
-      "http://localhost:5173/kube-jit-api/oauth/google/callback"
-    )}&response_type=code&scope=openid%20email%20profile&state=google`;
-    window.location.href = authUrl;
+    if (clientID && redirectUri) {
+      const authUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email%20profile&state=google`;
+      window.location.href = authUrl;
+    } else {
+      console.error("Client ID or Redirect URI is missing.");
+    }
   };
 
   if (loading) {
@@ -117,7 +125,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               </Card.Subtitle>
 
               {/* Login buttons */}
-              {loginMethod === "github" && (
+              {loginMethod === "github" && clientID && redirectUri && (
                 <button
                   className="text-light login-button w-100 mt-auto"
                   onClick={redirectToGitHub}
@@ -132,7 +140,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                   Log in with GitHub
                 </button>
               )}
-              {loginMethod === "google" && clientID && (
+              {loginMethod === "google" && clientID && redirectUri && (
                 <button
                   className="gsi-material-button w-100 mt-auto"
                   onClick={redirectToGoogle}

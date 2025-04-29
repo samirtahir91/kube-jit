@@ -26,14 +26,11 @@ config:
 
   callbackHostOverride: http://localhost:8589
 
-  # gh:
-  #   clientID: Iv23likSg0AQoOUi18q7
-
-  googleOauth:
-    enabled: true
+  oauth:
+    provider: "google"
     clientID: "630940189304-8uggsmkv6to2vu5sogsjrhge1m57t8cr.apps.googleusercontent.com"
-    redirectUrl: "http://localhost:5173/kube-jit-api/oauth/google/callback"
-    clientSecretKey: googleClientSecret
+    redirectUri: "http://localhost:5173/kube-jit-api/oauth/google/callback"
+    clientSecretKeyRef: googleClientSecret
 
 serviceAccount:
   annotations:
