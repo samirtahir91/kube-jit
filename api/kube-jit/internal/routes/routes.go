@@ -2,27 +2,35 @@ package routes
 
 import (
 	"kube-jit/internal/handlers"
+	"kube-jit/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
 func SetupRoutes(r *gin.Engine) {
-	r.GET("/kube-jit-api/approving-groups", handlers.GetApprovingGroups)
-	r.GET("/kube-jit-api/roles-and-clusters", handlers.GetClustersAndRoles)
+	// Routes that require session handling
+	apiWithSession := r.Group("/kube-jit-api")
+	apiWithSession.Use(middleware.SplitAndCombineSessionMiddleware())
+	{
+		apiWithSession.GET("/approving-groups", handlers.GetApprovingGroups)
+		apiWithSession.GET("/roles-and-clusters", handlers.GetClustersAndRoles)
+		apiWithSession.GET("/github/profile", handlers.GetGithubProfile)
+		apiWithSession.GET("/google/profile", handlers.GetGoogleProfile)
+		apiWithSession.GET("/azure/profile", handlers.GetAzureProfile)
+		apiWithSession.POST("/submit-request", handlers.SubmitRequest)
+		apiWithSession.GET("/history", handlers.GetRecords)
+		apiWithSession.GET("/approvals", handlers.GetPendingApprovals)
+		apiWithSession.POST("/approve-reject", handlers.ApproveOrRejectRequests)
+		apiWithSession.GET("/github/is-approver", handlers.IsGithubApprover)
+		apiWithSession.GET("/google/is-approver", handlers.IsGoogleApprover)
+		// apiWithSession.GET("/azure/is-approver", handlers.IsAzureApprover)
+		apiWithSession.POST("/k8s-callback", handlers.K8sCallback)
+	}
+
+	// Routes that do NOT require session handling
 	r.GET("/kube-jit-api/oauth/github/callback", handlers.HandleGitHubLogin)
 	r.GET("/kube-jit-api/oauth/google/callback", handlers.HandleGoogleLogin)
 	r.GET("/kube-jit-api/oauth/azure/callback", handlers.HandleAzureLogin)
-	r.GET("/kube-jit-api/github/profile", handlers.GetGithubProfile)
-	r.GET("/kube-jit-api/google/profile", handlers.GetGoogleProfile)
-	r.GET("/kube-jit-api/azure/profile", handlers.GetAzureProfile)
-	r.POST("/kube-jit-api/submit-request", handlers.SubmitRequest)
-	r.GET("/kube-jit-api/history", handlers.GetRecords)
-	r.GET("/kube-jit-api/approvals", handlers.GetPendingApprovals)
-	r.POST("/kube-jit-api/approve-reject", handlers.ApproveOrRejectRequests)
-	r.GET("/kube-jit-api/github/is-approver", handlers.IsGithubApprover)
-	r.GET("/kube-jit-api/google/is-approver", handlers.IsGoogleApprover)
-	// r.GET("/kube-jit-api/azure/is-approver", handlers.IsAzureApprover)
-	r.POST("/kube-jit-api/k8s-callback", handlers.K8sCallback)
 	r.GET("/kube-jit-api/healthz", handlers.HealthCheck)
 	r.GET("/kube-jit-api/client_id", handlers.GetOauthClientId)
 }

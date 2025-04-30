@@ -745,11 +745,6 @@ func HandleAzureLogin(c *gin.Context) {
 	// Save the session data in the session
 	session := sessions.Default(c)
 	session.Set("data", sessionData) // Store as a map, not a JSON string
-	// if err := session.Save(); err != nil {
-	// 	log.Printf("Failed to save session: %v", err)
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
-	// 	return
-	// }
 
 	// Split the session data into cookies
 	middleware.SplitSessionData(c)
@@ -765,7 +760,7 @@ func HandleAzureLogin(c *gin.Context) {
 
 // GetAzureProfile retrieves the logged-in user's profile info from Azure
 func GetAzureProfile(c *gin.Context) {
-	// Combine session data from split cookies using middleware.combineSessionData
+	// Combine session data from split cookies using middleware.CombineSessionData
 	middleware.CombineSessionData(c)
 
 	// Retrieve the combined session data from the session
@@ -776,10 +771,10 @@ func GetAzureProfile(c *gin.Context) {
 		return
 	}
 
-	// Parse the session data
-	var sessionData map[string]interface{}
-	if err := json.Unmarshal([]byte(combinedData.(string)), &sessionData); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse session data"})
+	// Ensure the session data is a map[string]interface{}
+	sessionData, ok := combinedData.(map[string]interface{})
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid session data format"})
 		return
 	}
 

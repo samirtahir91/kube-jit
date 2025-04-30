@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -53,7 +52,6 @@ func SetupMiddleware(r *gin.Engine) {
 	// Session middleware with custom logic
 	store := cookie.NewStore([]byte(cookieSecret))
 	r.Use(sessions.Sessions("mysession", store))
-	r.Use(SplitAndCombineSessionMiddleware())
 }
 
 // SplitAndCombineSessionMiddleware handles splitting and combining session cookies
@@ -85,8 +83,6 @@ func CombineSessionData(c *gin.Context) {
 		combinedData.WriteString(chunk)
 	}
 
-	log.Printf("COMBINED ENCRYPTED STRING: %+v", combinedData.String())
-
 	// Decode the combined session data
 	if combinedData.Len() > 0 {
 		var decodedData string
@@ -95,8 +91,6 @@ func CombineSessionData(c *gin.Context) {
 			c.Error(fmt.Errorf("failed to decode session data: %v", err))
 			return
 		}
-
-		log.Printf("DECODED DATA: %+v", decodedData)
 
 		// Check if the decoded data is valid JSON
 		if !json.Valid([]byte(decodedData)) {
@@ -111,8 +105,6 @@ func CombineSessionData(c *gin.Context) {
 			c.Error(fmt.Errorf("failed to deserialize session data: %v", err))
 			return
 		}
-
-		log.Printf("DESERIALIZED SESSION DATA: %+v", sessionData)
 
 		// Set the combined session data in the session
 		session := sessions.Default(c)
@@ -143,11 +135,10 @@ func SplitSessionData(c *gin.Context) {
 	}
 
 	// Split the encoded data into smaller chunks
-	chunks := splitIntoChunks(encodedData, maxCookieSize-100) // Reserve space for metadata
+	chunks := splitIntoChunks(encodedData, maxCookieSize)
 
 	// Set the cookies for each chunk
 	for i, chunk := range chunks {
-		log.Printf("Chunk %d size: %d bytes", i, len(chunk))
 		cookieName := fmt.Sprintf("%s%d", sessionPrefix, i)
 
 		http.SetCookie(c.Writer, &http.Cookie{
