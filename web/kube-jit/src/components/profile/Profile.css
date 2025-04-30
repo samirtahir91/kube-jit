@@ -1,0 +1,29 @@
+/* Ensure the collapse section is visible when toggled */
+.custom-navbar-collapse {
+    background-color: #0031d400; /* Azure blue background */
+    padding: 1rem; /* Add padding */
+    border-radius: 0.25rem; /* Optional: Add rounded corners */
+    display: flex !important; /* Ensure it displays correctly */
+    flex-direction: column; /* Align items vertically */
+}
+
+/* Adjust dropdown text color */
+.custom-navbar-collapse .dropdown-item {
+    color: #0c0c0c; /* White text */
+}
+
+.custom-navbar-collapse .dropdown-item:hover {
+    background-color: #005a9e; /* Darker blue on hover */
+    color: #ffffff; /* Keep text white */
+}
+
+/* Change the color of the dropdown toggle (login name) */
+.custom-navbar-collapse .dropdown-toggle {
+    color: #ffffff !important; /* Set the text color to white */
+}
+
+/* Change the hover color of the dropdown toggle */
+.custom-navbar-collapse .dropdown-toggle:hover {
+    color: #d1e8ff !important; /* Light blue on hover */
+    text-decoration: none; /* Remove underline on hover */
+}

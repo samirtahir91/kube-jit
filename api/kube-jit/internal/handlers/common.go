@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"fmt"
 	"kube-jit/internal/db"
+	"kube-jit/internal/middleware"
 	"kube-jit/internal/models"
 	"kube-jit/pkg/k8s"
 	"kube-jit/pkg/utils"
@@ -24,6 +26,24 @@ var (
 		Timeout: 60 * time.Second, // Set a global timeout for all requests
 	}
 )
+
+// Logout clears all session cookies with the sessionPrefix
+func Logout(c *gin.Context) {
+	// Iterate through cookies with the session prefix
+	for i := 0; ; i++ {
+		cookieName := fmt.Sprintf("%s%d", middleware.SessionPrefix, i)
+		_, err := c.Cookie(cookieName)
+		if err != nil {
+			break // Stop when no more cookies are found
+		}
+
+		// Clear the cookie by setting its MaxAge to -1
+		c.SetCookie(cookieName, "", -1, "/", "", true, true)
+	}
+
+	// Respond with a success message
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+}
 
 // checkLoggedIn verifies if the user is logged in by checking session data.
 // Returns the session data if valid, or sends an unauthorized response and aborts the request.

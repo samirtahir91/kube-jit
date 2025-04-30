@@ -2,9 +2,11 @@ import React, { useEffect, useState } from "react";
 import { Navbar, Container, Card } from "react-bootstrap";
 import githubLogo from "../../assets/github.svg";
 import loginLogo from "../../assets/login-logo.png";
+import microsoftLoginLogo from "../../assets/azure-icon.svg";
 import NavBrand from "../navBrand/NavBrand";
 import axios from "axios";
 import config from "../../config/config";
+import "./Login.css";
 
 type LoginProps = {
   onLoginSuccess: (data: any) => void;
@@ -194,17 +196,17 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, setLoading }) => {
               )}
               {loginMethod === "azure" && clientID && redirectUri && auth_url && (
                 <button
-                  className="azure-login-button w-100 mt-auto"
+                  className="text-light azure-login-button w-100 mt-auto"
                   onClick={redirectToAzure}
                 >
                   <img
                     alt="Azure Logo"
-                    src="https://upload.wikimedia.org/wikipedia/commons/a/a8/Microsoft_Azure_Logo.svg"
+                    src={microsoftLoginLogo}
                     width="20"
                     height="20"
                     className="me-2"
                   />
-                  Log in with Azure AD
+                  Log in with Microsoft
                 </button>
               )}
             </Card.Body>

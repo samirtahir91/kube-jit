@@ -33,4 +33,5 @@ func SetupRoutes(r *gin.Engine) {
 	r.GET("/kube-jit-api/healthz", handlers.HealthCheck)
 	r.GET("/kube-jit-api/client_id", handlers.GetOauthClientId)
 	r.POST("/k8s-callback", handlers.K8sCallback)
+	r.POST("/kube-jit-api/logout", handlers.Logout)
 }

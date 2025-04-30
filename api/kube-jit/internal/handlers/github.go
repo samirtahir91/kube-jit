@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"kube-jit/internal/middleware"
 	"kube-jit/internal/models"
 	"kube-jit/pkg/k8s"
@@ -49,7 +50,7 @@ func IsGithubApprover(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	req.Header.Set("Authorization", token)
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -59,14 +60,29 @@ func IsGithubApprover(c *gin.Context) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response Body: %s", string(body))
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Error fetching teams from GitHub"})
 		return
 	}
 
-	var userTeams []models.Team
-	if err := json.NewDecoder(resp.Body).Decode(&userTeams); err != nil {
+	// Decode the response and convert IDs to strings
+	var githubTeams []struct {
+		ID   int    `json:"id"`   // GitHub returns numeric IDs
+		Name string `json:"name"` // Team name
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&githubTeams); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Convert GitHub teams to the Team struct
+	var userTeams []models.Team
+	for _, githubTeam := range githubTeams {
+		userTeams = append(userTeams, models.Team{
+			ID:   strconv.Itoa(githubTeam.ID), // Convert numeric ID to string
+			Name: githubTeam.Name,
+		})
 	}
 
 	// Determine if the user is an approver
@@ -90,7 +106,7 @@ func IsGithubApprover(c *gin.Context) {
 	middleware.SplitSessionData(c)
 
 	// Respond with the result
-	c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
+	c.JSON(http.StatusOK, gin.H{"isApprover": isApprover, "approverGroups": matchedGroups})
 }
 
 // HandleGitHubLogin handles the GitHub OAuth callback
@@ -208,7 +224,7 @@ func GetGithubProfile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	req.Header.Set("Authorization", token)
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {

@@ -11,7 +11,7 @@ import (
 )
 
 const maxCookieSize = 4000 // Max size for a single cookie
-const sessionPrefix = "kube_jit_session_"
+const SessionPrefix = "kube_jit_session_"
 
 // SplitAndCombineSessionMiddleware handles splitting and combining session cookies
 func SplitAndCombineSessionMiddleware() gin.HandlerFunc {
@@ -33,7 +33,7 @@ func CombineSessionData(c *gin.Context) {
 
 	// Iterate through cookies with the session prefix
 	for i := 0; ; i++ {
-		cookieName := fmt.Sprintf("%s%d", sessionPrefix, i)
+		cookieName := fmt.Sprintf("%s%d", SessionPrefix, i)
 		chunk, err := c.Cookie(cookieName)
 		if err != nil {
 			break // Stop when no more cookies are found
@@ -98,7 +98,7 @@ func SplitSessionData(c *gin.Context) {
 
 	// Set the cookies for each chunk
 	for i, chunk := range chunks {
-		cookieName := fmt.Sprintf("%s%d", sessionPrefix, i)
+		cookieName := fmt.Sprintf("%s%d", SessionPrefix, i)
 
 		http.SetCookie(c.Writer, &http.Cookie{
 			Name:     cookieName,
@@ -112,7 +112,7 @@ func SplitSessionData(c *gin.Context) {
 
 	// Delete any leftover cookies from previous sessions
 	for i := len(chunks); ; i++ {
-		cookieName := fmt.Sprintf("%s%d", sessionPrefix, i)
+		cookieName := fmt.Sprintf("%s%d", SessionPrefix, i)
 		_, err := c.Cookie(cookieName)
 		if err != nil {
 			break

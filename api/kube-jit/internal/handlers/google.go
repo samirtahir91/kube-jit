@@ -333,6 +333,8 @@ func GetGoogleProfile(c *gin.Context) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response Body: %s", string(body))
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user profile from Google"})
 		return
 	}

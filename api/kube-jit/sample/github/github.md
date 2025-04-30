@@ -1,0 +1,1 @@
+grant org read only on Members when installing the Github App.

@@ -11,6 +11,7 @@ import axios from "axios";
 import { SyncLoader } from "react-spinners";
 import { UserData } from "./types";
 import config from "./config/config";
+
 type ApiResponse = {
     userData: UserData;
     expiresIn: number;
@@ -31,6 +32,25 @@ function App() {
     const [approverGroups, setApproverGroups] = useState<Group[]>([]);
     const [isApprover, setIsApprover] = useState<boolean>(false);
     const navigate = useNavigate();
+
+    // Handle sign out
+    const handleSignOut = async () => {
+        // Clear local storage
+        localStorage.removeItem("tokenExpiry");
+        localStorage.removeItem("loginMethod");
+    
+        try {
+            // Send a request to the server to clear HTTP-only cookies
+            await axios.post(`${config.apiBaseUrl}/kube-jit-api/logout`, {}, { withCredentials: true });
+        } catch (error) {
+            console.error("Error during logout:", error);
+        }
+    
+        // Reset state and navigate to login
+        setData(null);
+        setLogin(true);
+        navigate("/"); // Redirect to the login page
+    };
 
     // Define fetchGroups outside useEffect
     const fetchGroups = async () => {
@@ -121,7 +141,7 @@ function App() {
         return (
             <div>
                 <SyncLoader className="card-loader-container" color="#0494ba" size={20} loading={loadingInCard} />
-                <Profile user={data.userData} />
+                <Profile user={data.userData} onSignOut={handleSignOut} />
                 <Card className="d-flex justify-content-center align-items-start">
                     <Card.Body className="container">
                         <Tab.Container
