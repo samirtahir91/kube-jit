@@ -15,13 +15,17 @@ const Profile = ({ user }: { user: UserData }) => {
 				<Nav.Link href="/" className="text-light">Home</Nav.Link>
 				<Navbar.Collapse className="justify-content-end">
 				<Navbar.Text className="text-light fw-bold">
-					<img
-						alt=""
-						src={user.avatar_url}
-						width="30"
-						height="30"
-						className="d-inline-block align-top"
-					/>{" " + user.name}
+					{user.avatar_url ? (
+					<>
+						<img
+							alt=""
+							src={user.avatar_url}
+							width="30"
+							height="30"
+							className="d-inline-block align-top"
+						/>
+					</>
+					) : null} {" " + user.name}
 				</Navbar.Text>
 				</Navbar.Collapse>
 			</Container>

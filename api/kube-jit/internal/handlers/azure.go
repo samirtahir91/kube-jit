@@ -243,5 +243,5 @@ func IsAzureApprover(c *gin.Context) {
 	middleware.SplitSessionData(c)
 
 	// Respond with the result
-	c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
+	c.JSON(http.StatusOK, gin.H{"isApprover": isApprover, "approverGroups": matchedGroups})
 }
