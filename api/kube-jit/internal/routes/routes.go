@@ -23,8 +23,7 @@ func SetupRoutes(r *gin.Engine) {
 		apiWithSession.POST("/approve-reject", handlers.ApproveOrRejectRequests)
 		apiWithSession.GET("/github/is-approver", handlers.IsGithubApprover)
 		apiWithSession.GET("/google/is-approver", handlers.IsGoogleApprover)
-		// apiWithSession.GET("/azure/is-approver", handlers.IsAzureApprover)
-		apiWithSession.POST("/k8s-callback", handlers.K8sCallback)
+		apiWithSession.GET("/azure/is-approver", handlers.IsAzureApprover)
 	}
 
 	// Routes that do NOT require session handling
@@ -33,4 +32,5 @@ func SetupRoutes(r *gin.Engine) {
 	r.GET("/kube-jit-api/oauth/azure/callback", handlers.HandleAzureLogin)
 	r.GET("/kube-jit-api/healthz", handlers.HealthCheck)
 	r.GET("/kube-jit-api/client_id", handlers.GetOauthClientId)
+	r.POST("/k8s-callback", handlers.K8sCallback)
 }

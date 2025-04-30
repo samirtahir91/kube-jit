@@ -8,8 +8,8 @@ config:
       id: 12769788
     - name: "jit approvers google"
       id: jit-approvers-google@samirtahir.dev
-    - name: "Team B"
-      id: 12345
+    - name: "jit approvers azure"
+      id: 3252cdf5-2db4-413c-b34f-459ea439397e
     - name: "Team C"
       id: 123456
   

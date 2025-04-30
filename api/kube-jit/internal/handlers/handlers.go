@@ -64,6 +64,28 @@ var (
 	gsaEmailOnce sync.Once
 )
 
+// checkLoggedIn verifies if the user is logged in by checking session data.
+// Returns the session data if valid, or sends an unauthorized response and aborts the request.
+func checkLoggedIn(c *gin.Context) (map[string]interface{}, bool) {
+	session := sessions.Default(c)
+	combinedData := session.Get("data")
+	if combinedData == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no session data in cookies"})
+		c.Abort() // Stop further processing of the request
+		return nil, false
+	}
+
+	// Ensure the session data is a map[string]interface{}
+	sessionData, ok := combinedData.(map[string]interface{})
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid session data format"})
+		c.Abort() // Stop further processing of the request
+		return nil, false
+	}
+
+	return sessionData, true
+}
+
 // getGSAEmail retrieves the Google Service Account (GSA) email from the metadata server
 // It caches the email to avoid multiple requests
 // It uses a sync.Once to ensure that the email is only fetched once
@@ -246,12 +268,11 @@ func K8sCallback(c *gin.Context) {
 // It creates the k8s object for each request if status is Approved
 // It updates the status of the requests in the database
 func ApproveOrRejectRequests(c *gin.Context) {
-	// Retrieve the token from the session
-	session := sessions.Default(c)
-	token := session.Get("token")
-	if token == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in request cookie"})
-		return
+
+	// Check if the user is logged in
+	_, ok := checkLoggedIn(c)
+	if !ok {
+		return // The response has already been sent by CheckLoggedIn
 	}
 
 	type ApproveRequest struct {
@@ -302,12 +323,11 @@ func ApproveOrRejectRequests(c *gin.Context) {
 // GetRecords returns the latest jit requests for a user with optional limit and date range
 // It fetches the records from the database and returns them as JSON
 func GetRecords(c *gin.Context) {
-	// Retrieve the token from the session
-	session := sessions.Default(c)
-	token := session.Get("token")
-	if token == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in request cookie"})
-		return
+
+	// Check if the user is logged in
+	_, ok := checkLoggedIn(c)
+	if !ok {
+		return // The response has already been sent by CheckLoggedIn
 	}
 
 	userID := c.Query("userID")       // Get userID from query parameters
@@ -352,14 +372,14 @@ func GetOauthClientId(c *gin.Context) {
 
 // GetClustersAndRoles returns the list of clusters and roles available
 func GetClustersAndRoles(c *gin.Context) {
-	// Retrieve the token from the session
-	session := sessions.Default(c)
-	token := session.Get("token")
-	if token == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in request cookie"})
-		return
+
+	// Check if the user is logged in
+	_, ok := checkLoggedIn(c)
+	if !ok {
+		return // The response has already been sent by CheckLoggedIn
 	}
 
+	// Return the clusters and roles
 	response := map[string]interface{}{
 		"clusters": k8s.ClusterNames,
 		"roles":    k8s.AllowedRoles,
@@ -369,12 +389,20 @@ func GetClustersAndRoles(c *gin.Context) {
 
 // GetApprovingGroups returns the list of approving groups
 func GetApprovingGroups(c *gin.Context) {
-	session := sessions.Default(c)
-	token := session.Get("token")
-	if token == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in request cookie"})
+	// Check if the user is logged in
+	sessionData, ok := checkLoggedIn(c)
+	if !ok {
+		return // The response has already been sent by CheckLoggedIn
+	}
+
+	// Retrieve the token from the session data
+	token, ok := sessionData["token"].(string)
+	if !ok || token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
 		return
 	}
+
+	// Return the approving groups (mocked here as k8s.ApproverTeams)
 	c.JSON(http.StatusOK, k8s.ApproverTeams)
 }
 
@@ -383,20 +411,25 @@ func GetApprovingGroups(c *gin.Context) {
 func IsGithubApprover(c *gin.Context) {
 	session := sessions.Default(c)
 
-	// Check if isApprover and approverGroups are already in the session cookie
-	isApprover, ok := session.Get("isApprover").(bool)
-	_, groupsOk := session.Get("approverGroups").([]string)
+	// Check if the user is logged in
+	sessionData, ok := checkLoggedIn(c)
+	if !ok {
+		return // The response has already been sent by CheckLoggedIn
+	}
 
-	if ok && groupsOk {
+	// Check if isApprover and approverGroups are already in the session cookie
+	isApprover, isApproverOk := sessionData["isApprover"].(bool)
+	_, groupsOk := sessionData["approverGroups"].([]string)
+	if isApproverOk && groupsOk {
 		// Return cached values
 		c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
 		return
 	}
 
-	// Retrieve token from session
-	token := session.Get("token")
-	if token == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in request cookie"})
+	// Retrieve the token from the session data
+	token, ok := sessionData["token"].(string)
+	if !ok || token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
 		return
 	}
 
@@ -406,7 +439,7 @@ func IsGithubApprover(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	req.Header.Set("Authorization", token.(string))
+	req.Header.Set("Authorization", token)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -438,14 +471,15 @@ func IsGithubApprover(c *gin.Context) {
 
 	isApprover = len(matchedGroups) > 0
 
-	// Cache the result in the session
-	session.Set("isApprover", isApprover)
-	session.Set("approverGroups", matchedGroups)
-	if err := session.Save(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
-		return
-	}
+	// Update the session data with isApprover and approverGroups
+	sessionData["isApprover"] = isApprover
+	sessionData["approverGroups"] = matchedGroups
+	session.Set("data", sessionData)
 
+	// Split the session data into cookies
+	middleware.SplitSessionData(c)
+
+	// Respond with the result
 	c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
 }
 
@@ -454,18 +488,30 @@ func IsGithubApprover(c *gin.Context) {
 func IsGoogleApprover(c *gin.Context) {
 	session := sessions.Default(c)
 
-	// Check if isApprover and approverGroups are already in the session
-	isApprover, ok := session.Get("isApprover").(bool)
-	_, groupsOk := session.Get("approverGroups").([]string)
+	// Check if the user is logged in
+	sessionData, ok := checkLoggedIn(c)
+	if !ok {
+		return // The response has already been sent by CheckLoggedIn
+	}
 
-	if ok && groupsOk {
+	// Check if isApprover and approverGroups are already in the session cookie
+	isApprover, isApproverOk := sessionData["isApprover"].(bool)
+	_, groupsOk := sessionData["approverGroups"].([]string)
+	if isApproverOk && groupsOk {
 		// Return cached values
 		c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
 		return
 	}
 
+	// Retrieve the token from the session data
+	token, ok := sessionData["token"].(string)
+	if !ok || token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
+		return
+	}
+
 	// Retrieve the user's email from the session
-	userEmail := session.Get("email")
+	userEmail := sessionData["email"]
 	if userEmail == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no email in session"})
 		return
@@ -501,14 +547,98 @@ func IsGoogleApprover(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
 }
 
+// IsAzureApprover checks if the logged-in user is an approver based on their Azure AD groups
+func IsAzureApprover(c *gin.Context) {
+	session := sessions.Default(c)
+
+	// Check if the user is logged in
+	sessionData, ok := checkLoggedIn(c)
+	if !ok {
+		return // The response has already been sent by CheckLoggedIn
+	}
+
+	// Check if isApprover and approverGroups are already in the session cookie
+	isApprover, isApproverOk := sessionData["isApprover"].(bool)
+	_, groupsOk := sessionData["approverGroups"].([]string)
+	if isApproverOk && groupsOk {
+		// Return cached values
+		c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
+		return
+	}
+
+	// Retrieve the token from the session data
+	token, ok := sessionData["token"].(string)
+	if !ok || token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
+		return
+	}
+
+	// Fetch the user's groups from Azure AD
+	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{
+		AccessToken: token,
+	}))
+	resp, err := client.Get("https://graph.microsoft.com/v1.0/me/memberOf")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch groups from Azure AD"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Error fetching groups from Azure AD: %s", string(body))})
+		return
+	}
+
+	// Decode the response into a struct
+	var groupsResponse struct {
+		Value []struct {
+			ID          string `json:"id"`
+			DisplayName string `json:"displayName"`
+		} `json:"value"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&groupsResponse); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode groups response"})
+		return
+	}
+
+	// Check if the user belongs to any approver groups
+	var matchedGroups []string
+	for _, group := range groupsResponse.Value {
+		for _, approverGroup := range k8s.ApproverTeams {
+			if group.ID == approverGroup.ID && group.DisplayName == approverGroup.Name {
+				matchedGroups = append(matchedGroups, group.ID)
+			}
+		}
+	}
+
+	isApprover = len(matchedGroups) > 0
+
+	// Update the session data with isApprover and approverGroups
+	sessionData["isApprover"] = isApprover
+	sessionData["approverGroups"] = matchedGroups
+	session.Set("data", sessionData)
+
+	// Split the session data into cookies
+	middleware.SplitSessionData(c)
+
+	// Respond with the result
+	c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
+}
+
 // GetPendingApprovals returns the pending requests for the user based on their approver groups
 // It uses the session to retrieve the user's approver groups
 // It queries the database for requests with status "Requested" and matching approver groups
 func GetPendingApprovals(c *gin.Context) {
-	session := sessions.Default(c)
+
+	// Check if the user is logged in
+	sessionData, ok := checkLoggedIn(c)
+	if !ok {
+		return // The response has already been sent by CheckLoggedIn
+	}
 
 	// Retrieve approverGroups from the session
-	approverGroups, ok := session.Get("approverGroups").([]string)
+	approverGroups, ok := sessionData["approverGroups"].([]string)
 	if !ok || len(approverGroups) == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
 		return
@@ -597,15 +727,19 @@ func HandleGitHubLogin(c *gin.Context) {
 		Provider:  "github",
 	}
 
+	// Prepare session data
+	sessionData := map[string]interface{}{
+		"token": tokenData.AccessToken,
+	}
+
+	// Save the session data in the session
 	session := sessions.Default(c)
-	session.Options(sessions.Options{
-		MaxAge:   tokenData.ExpiresIn,
-		HttpOnly: true,
-		Secure:   true,
-		Path:     "/",
-	})
-	session.Set("token", tokenData.TokenType+" "+tokenData.AccessToken)
-	session.Save()
+	session.Set("data", sessionData) // Store as a map, not a JSON string
+
+	// Split the session data into cookies
+	middleware.SplitSessionData(c)
+
+	log.Println("Session cookies set successfully")
 
 	c.JSON(http.StatusOK, gin.H{
 		"userData":  normalizedUserData,
@@ -657,20 +791,20 @@ func HandleGoogleLogin(c *gin.Context) {
 		Provider:  "google",
 	}
 
-	// Save the email and token in the session
-	session := sessions.Default(c)
-	session.Options(sessions.Options{
-		MaxAge:   int(time.Until(token.Expiry).Seconds()),
-		HttpOnly: true,
-		Secure:   true,
-		Path:     "/",
-	})
-	session.Set("email", googleUser.Email) // Store the email in the session
-	session.Set("token", token.AccessToken)
-	if err := session.Save(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
-		return
+	// Prepare session data
+	sessionData := map[string]interface{}{
+		"email": googleUser.Email,
+		"token": token.AccessToken,
 	}
+
+	// Save the session data in the session
+	session := sessions.Default(c)
+	session.Set("data", sessionData) // Store as a map, not a JSON string
+
+	// Split the session data into cookies
+	middleware.SplitSessionData(c)
+
+	log.Println("Session cookies set successfully")
 
 	// Respond with the normalized user data
 	c.JSON(http.StatusOK, gin.H{
@@ -760,22 +894,11 @@ func HandleAzureLogin(c *gin.Context) {
 
 // GetAzureProfile retrieves the logged-in user's profile info from Azure
 func GetAzureProfile(c *gin.Context) {
-	// Combine session data from split cookies using middleware.CombineSessionData
-	middleware.CombineSessionData(c)
 
-	// Retrieve the combined session data from the session
-	session := sessions.Default(c)
-	combinedData := session.Get("data")
-	if combinedData == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no session data in cookies"})
-		return
-	}
-
-	// Ensure the session data is a map[string]interface{}
-	sessionData, ok := combinedData.(map[string]interface{})
+	// Check if the user is logged in
+	sessionData, ok := checkLoggedIn(c)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid session data format"})
-		return
+		return // The response has already been sent by CheckLoggedIn
 	}
 
 	// Retrieve the token from the session data
@@ -833,19 +956,27 @@ func HealthCheck(c *gin.Context) {
 
 // GetGithubProfile gets the logged in users profile info
 func GetGithubProfile(c *gin.Context) {
-	session := sessions.Default(c)
-	token := session.Get("token")
-	if token == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized no token in request cookie"})
+
+	// Check if the user is logged in
+	sessionData, ok := checkLoggedIn(c)
+	if !ok {
+		return // The response has already been sent by CheckLoggedIn
+	}
+
+	// Retrieve the token from the session data
+	token, ok := sessionData["token"].(string)
+	if !ok || token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
 		return
 	}
 
+	// Fetch the user's profile from GitHub
 	req, err := http.NewRequest("GET", "https://api.github.com/user", nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	req.Header.Set("Authorization", token.(string))
+	req.Header.Set("Authorization", token)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -870,17 +1001,22 @@ func GetGithubProfile(c *gin.Context) {
 
 // GetGoogleProfile gets the logged in user's profile info from Google
 func GetGoogleProfile(c *gin.Context) {
-	// Retrieve the token from the session
-	session := sessions.Default(c)
-	token := session.Get("token")
-	if token == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in request cookie"})
+	// Check if the user is logged in
+	sessionData, ok := checkLoggedIn(c)
+	if !ok {
+		return // The response has already been sent by CheckLoggedIn
+	}
+
+	// Retrieve the token from the session data
+	token, ok := sessionData["token"].(string)
+	if !ok || token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
 		return
 	}
 
-	// Use the token to fetch the user's profile from Google's API
+	// Fetch the user's profile from Google's API
 	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{
-		AccessToken: token.(string),
+		AccessToken: token,
 	}))
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
@@ -922,15 +1058,13 @@ func GetGoogleProfile(c *gin.Context) {
 
 // SubmitRequest creates the new jit record in postgress
 func SubmitRequest(c *gin.Context) {
-
-	// Retrieve the token from the session
-	session := sessions.Default(c)
-	token := session.Get("token")
-	if token == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in request cookie"})
-		return
+	// Check if the user is logged in
+	_, ok := checkLoggedIn(c)
+	if !ok {
+		return // The response has already been sent by CheckLoggedIn
 	}
 
+	// Process the request as before
 	var requestData struct {
 		ApprovingTeam models.Team    `json:"approvingTeam"`
 		Role          models.Roles   `json:"role"`
