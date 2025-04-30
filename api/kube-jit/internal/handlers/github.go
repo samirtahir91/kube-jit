@@ -1,0 +1,232 @@
+package handlers
+
+import (
+	"context"
+	"encoding/json"
+	"kube-jit/internal/middleware"
+	"kube-jit/internal/models"
+	"kube-jit/pkg/k8s"
+	"log"
+	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
+
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-gonic/gin"
+)
+
+// IsGithubApprover uses the GitHub API to fetch the user's teams and checks if they belong to any approver teams
+// It returns true if the user is an approver, false otherwise
+func IsGithubApprover(c *gin.Context) {
+	session := sessions.Default(c)
+
+	// Check if the user is logged in
+	sessionData, ok := checkLoggedIn(c)
+	if !ok {
+		return // The response has already been sent by CheckLoggedIn
+	}
+
+	// Check if isApprover and approverGroups are already in the session cookie
+	isApprover, isApproverOk := sessionData["isApprover"].(bool)
+	_, groupsOk := sessionData["approverGroups"].([]string)
+	if isApproverOk && groupsOk {
+		// Return cached values
+		c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
+		return
+	}
+
+	// Retrieve the token from the session data
+	token, ok := sessionData["token"].(string)
+	if !ok || token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
+		return
+	}
+
+	// Fetch user's teams from GitHub
+	req, err := http.NewRequest("GET", "https://api.github.com/user/teams", nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	req.Header.Set("Authorization", token)
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Error fetching teams from GitHub"})
+		return
+	}
+
+	var userTeams []models.Team
+	if err := json.NewDecoder(resp.Body).Decode(&userTeams); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Determine if the user is an approver
+	var matchedGroups []string
+	for _, userTeam := range userTeams {
+		for _, approverTeam := range k8s.ApproverTeams {
+			if userTeam.ID == approverTeam.ID && userTeam.Name == approverTeam.Name {
+				matchedGroups = append(matchedGroups, userTeam.ID)
+			}
+		}
+	}
+
+	isApprover = len(matchedGroups) > 0
+
+	// Update the session data with isApprover and approverGroups
+	sessionData["isApprover"] = isApprover
+	sessionData["approverGroups"] = matchedGroups
+	session.Set("data", sessionData)
+
+	// Split the session data into cookies
+	middleware.SplitSessionData(c)
+
+	// Respond with the result
+	c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
+}
+
+// HandleGitHubLogin handles the GitHub OAuth callback
+func HandleGitHubLogin(c *gin.Context) {
+	code := c.Query("code")
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Code query parameter is required"})
+		return
+	}
+
+	ctx := context.Background()
+	data := url.Values{
+		"client_id":     {clientID},
+		"client_secret": {clientSecret},
+		"code":          {code},
+	}
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://github.com/login/oauth/access_token", strings.NewReader(data.Encode()))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching access token from GitHub"})
+		return
+	}
+
+	var tokenData models.GitHubTokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tokenData); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	req, err = http.NewRequest("GET", "https://api.github.com/user", nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	req.Header.Set("Authorization", tokenData.TokenType+" "+tokenData.AccessToken)
+
+	userResp, err := httpClient.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer userResp.Body.Close()
+
+	if userResp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user data from GitHub"})
+		return
+	}
+
+	var githubUser models.GitHubUser
+	if err := json.NewDecoder(userResp.Body).Decode(&githubUser); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	normalizedUserData := models.NormalizedUserData{
+		ID:        strconv.Itoa(githubUser.ID),
+		Name:      githubUser.Login,
+		Email:     "", // GitHub API may not return email by default
+		AvatarURL: githubUser.AvatarURL,
+		Provider:  "github",
+	}
+
+	// Prepare session data
+	sessionData := map[string]interface{}{
+		"token": tokenData.AccessToken,
+	}
+
+	// Save the session data in the session
+	session := sessions.Default(c)
+	session.Set("data", sessionData) // Store as a map, not a JSON string
+
+	// Split the session data into cookies
+	middleware.SplitSessionData(c)
+
+	log.Println("Session cookies set successfully")
+
+	c.JSON(http.StatusOK, gin.H{
+		"userData":  normalizedUserData,
+		"expiresIn": tokenData.ExpiresIn,
+	})
+}
+
+// GetGithubProfile gets the logged in users profile info
+func GetGithubProfile(c *gin.Context) {
+
+	// Check if the user is logged in
+	sessionData, ok := checkLoggedIn(c)
+	if !ok {
+		return // The response has already been sent by CheckLoggedIn
+	}
+
+	// Retrieve the token from the session data
+	token, ok := sessionData["token"].(string)
+	if !ok || token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
+		return
+	}
+
+	// Fetch the user's profile from GitHub
+	req, err := http.NewRequest("GET", "https://api.github.com/user", nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	req.Header.Set("Authorization", token)
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user data from GitHub"})
+		return
+	}
+
+	var userData interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&userData); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, userData)
+}
