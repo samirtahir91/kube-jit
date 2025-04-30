@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"kube-jit/internal/db"
+	"kube-jit/internal/middleware"
 	"kube-jit/internal/models"
 	"kube-jit/pkg/k8s"
 	"kube-jit/pkg/utils"
@@ -716,13 +717,8 @@ func HandleAzureLogin(c *gin.Context) {
 		return
 	}
 
-	// Decode the user info
-	var azureUser struct {
-		ID                string `json:"id"`
-		DisplayName       string `json:"displayName"`
-		Mail              string `json:"mail"`
-		UserPrincipalName string `json:"userPrincipalName"`
-	}
+	// Decode the user info into the AzureUser struct
+	var azureUser models.AzureUser
 	if err := json.NewDecoder(resp.Body).Decode(&azureUser); err != nil {
 		log.Printf("Failed to decode user info: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user info"})
@@ -732,6 +728,97 @@ func HandleAzureLogin(c *gin.Context) {
 	log.Printf("Azure user info: %+v", azureUser)
 
 	// Normalize the user data
+	normalizedUserData := models.NormalizedUserData{
+		ID:        azureUser.ID,
+		Name:      azureUser.DisplayName,
+		Email:     azureUser.Mail,
+		AvatarURL: "", // Azure AD doesn't provide an avatar URL by default
+		Provider:  "azure",
+	}
+
+	// Prepare session data
+	sessionData := map[string]interface{}{
+		"email": azureUser.Mail,
+		"token": token.AccessToken,
+	}
+
+	// Save the session data in the session
+	session := sessions.Default(c)
+	session.Set("data", sessionData) // Store as a map, not a JSON string
+	// if err := session.Save(); err != nil {
+	// 	log.Printf("Failed to save session: %v", err)
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
+	// 	return
+	// }
+
+	// Split the session data into cookies
+	middleware.SplitSessionData(c)
+
+	log.Println("Session cookies set successfully")
+
+	// Respond with the normalized user data
+	c.JSON(http.StatusOK, gin.H{
+		"userData":  normalizedUserData,
+		"expiresIn": int(time.Until(token.Expiry).Seconds()),
+	})
+}
+
+// GetAzureProfile retrieves the logged-in user's profile info from Azure
+func GetAzureProfile(c *gin.Context) {
+	// Combine session data from split cookies using middleware.combineSessionData
+	middleware.CombineSessionData(c)
+
+	// Retrieve the combined session data from the session
+	session := sessions.Default(c)
+	combinedData := session.Get("data")
+	if combinedData == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no session data in cookies"})
+		return
+	}
+
+	// Parse the session data
+	var sessionData map[string]interface{}
+	if err := json.Unmarshal([]byte(combinedData.(string)), &sessionData); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse session data"})
+		return
+	}
+
+	// Retrieve the token from the session data
+	token, ok := sessionData["token"].(string)
+	if !ok || token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
+		return
+	}
+
+	// Use the token to fetch the user's profile from Azure's API
+	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{
+		AccessToken: token,
+	}))
+	resp, err := client.Get("https://graph.microsoft.com/v1.0/me")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user profile"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user profile from Azure"})
+		return
+	}
+
+	// Decode the response into a struct
+	var azureUser struct {
+		ID                string `json:"id"`
+		DisplayName       string `json:"displayName"`
+		Mail              string `json:"mail"`
+		UserPrincipalName string `json:"userPrincipalName"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&azureUser); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user profile"})
+		return
+	}
+
+	// Normalize the response to match the structure of other providers
 	normalizedUserData := map[string]interface{}{
 		"id":         azureUser.ID,
 		"name":       azureUser.DisplayName,
@@ -740,29 +827,8 @@ func HandleAzureLogin(c *gin.Context) {
 		"provider":   "azure",
 	}
 
-	// Save the email and token in the session
-	session := sessions.Default(c)
-	session.Options(sessions.Options{
-		MaxAge:   int(time.Until(token.Expiry).Seconds()),
-		HttpOnly: true,
-		Secure:   true,
-		Path:     "/",
-	})
-	session.Set("email", azureUser.Mail) // Store the email in the session
-	session.Set("token", token.AccessToken)
-	if err := session.Save(); err != nil {
-		log.Printf("Failed to save session: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
-		return
-	}
-
-	log.Println("Session saved successfully")
-
-	// Respond with the normalized user data
-	c.JSON(http.StatusOK, gin.H{
-		"userData":  normalizedUserData,
-		"expiresIn": int(time.Until(token.Expiry).Seconds()),
-	})
+	// Return the normalized user data
+	c.JSON(http.StatusOK, normalizedUserData)
 }
 
 // HealthCheck used for status checking the api

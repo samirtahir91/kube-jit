@@ -68,6 +68,14 @@ type GoogleUser struct {
 	VerifiedEmail bool   `json:"verified_email"`
 }
 
+// AzureTokenResponse represents the response from Azure's OAuth token endpoint
+type AzureUser struct {
+	ID                string `json:"id"`
+	DisplayName       string `json:"displayName"`
+	Mail              string `json:"mail"`
+	UserPrincipalName string `json:"userPrincipalName"`
+}
+
 // NormalizedUserData represents a normalized user profile structure
 type NormalizedUserData struct {
 	ID        string `json:"id"`
