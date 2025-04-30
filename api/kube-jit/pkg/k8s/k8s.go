@@ -39,7 +39,7 @@ type ClusterConfig struct {
 	Insecure    bool   `yaml:"insecure"`
 	TokenSecret string `yaml:"tokenSecret"`
 	Token       string `yaml:"token"`
-	Type        string `yaml:"type"`      // e.g., "gke" or "generic"
+	Type        string `yaml:"type"`      // e.g., "gke" or "generic" or "aks"
 	ProjectID   string `yaml:"projectID"` // GCP project ID for GKE clusters
 	Region      string `yaml:"region"`    // Region for GKE clusters
 }
@@ -108,7 +108,7 @@ func init() {
 	fmt.Println("\nSuccessfully loaded config for clusters:")
 	for _, cluster := range ApiConfig.Clusters {
 		fmt.Printf("- %s (Type: %s)\n", cluster.Name, cluster.Type)
-		if cluster.Type != "gke" {
+		if cluster.Type == "generic" {
 			cluster.Token = getTokenFromSecret(cluster.TokenSecret)
 		}
 		ClusterConfigs[cluster.Name] = cluster
