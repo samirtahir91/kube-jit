@@ -29,10 +29,10 @@ func IsGithubApprover(c *gin.Context) {
 
 	// Check if isApprover and approverGroups are already in the session cookie
 	isApprover, isApproverOk := sessionData["isApprover"].(bool)
-	_, groupsOk := sessionData["approverGroups"].([]string)
+	approverGroups, groupsOk := sessionData["approverGroups"]
 	if isApproverOk && groupsOk {
 		// Return cached values
-		c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
+		c.JSON(http.StatusOK, gin.H{"isApprover": isApprover, "approverGroups": approverGroups})
 		return
 	}
 

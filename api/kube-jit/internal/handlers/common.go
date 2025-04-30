@@ -244,8 +244,25 @@ func GetPendingApprovals(c *gin.Context) {
 	}
 
 	// Retrieve approverGroups from the session
-	approverGroups, ok := sessionData["approverGroups"].([]string)
-	if !ok || len(approverGroups) == 0 {
+	rawApproverGroups, ok := sessionData["approverGroups"]
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
+		return
+	}
+
+	// Convert to []string if necessary
+	approverGroups := []string{}
+	if rawGroups, ok := rawApproverGroups.([]interface{}); ok {
+		for _, group := range rawGroups {
+			if groupStr, ok := group.(string); ok {
+				approverGroups = append(approverGroups, groupStr)
+			}
+		}
+	} else if rawGroups, ok := rawApproverGroups.([]string); ok {
+		approverGroups = rawGroups
+	}
+
+	if len(approverGroups) == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
 		return
 	}

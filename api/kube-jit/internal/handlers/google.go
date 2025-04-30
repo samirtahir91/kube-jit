@@ -189,10 +189,10 @@ func IsGoogleApprover(c *gin.Context) {
 
 	// Check if isApprover and approverGroups are already in the session cookie
 	isApprover, isApproverOk := sessionData["isApprover"].(bool)
-	_, groupsOk := sessionData["approverGroups"].([]string)
+	approverGroups, groupsOk := sessionData["approverGroups"]
 	if isApproverOk && groupsOk {
 		// Return cached values
-		c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
+		c.JSON(http.StatusOK, gin.H{"isApprover": isApprover, "approverGroups": approverGroups})
 		return
 	}
 
@@ -229,13 +229,13 @@ func IsGoogleApprover(c *gin.Context) {
 
 	isApprover = len(matchedGroups) > 0
 
-	// Cache the result in the session
-	session.Set("isApprover", isApprover)
-	session.Set("approverGroups", matchedGroups)
-	if err := session.Save(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
-		return
-	}
+	// Update the session data with isApprover and approverGroups
+	sessionData["isApprover"] = isApprover
+	sessionData["approverGroups"] = matchedGroups
+	session.Set("data", sessionData)
+
+	// Split the session data into cookies
+	middleware.SplitSessionData(c)
 
 	c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
 }

@@ -179,10 +179,10 @@ func IsAzureApprover(c *gin.Context) {
 
 	// Check if isApprover and approverGroups are already in the session cookie
 	isApprover, isApproverOk := sessionData["isApprover"].(bool)
-	_, groupsOk := sessionData["approverGroups"].([]string)
+	approverGroups, groupsOk := sessionData["approverGroups"]
 	if isApproverOk && groupsOk {
 		// Return cached values
-		c.JSON(http.StatusOK, gin.H{"isApprover": isApprover})
+		c.JSON(http.StatusOK, gin.H{"isApprover": isApprover, "approverGroups": approverGroups})
 		return
 	}
 
@@ -237,6 +237,8 @@ func IsAzureApprover(c *gin.Context) {
 	// Update the session data with isApprover and approverGroups
 	sessionData["isApprover"] = isApprover
 	sessionData["approverGroups"] = matchedGroups
+
+	// Save the updated session data
 	session.Set("data", sessionData)
 
 	// Split the session data into cookies

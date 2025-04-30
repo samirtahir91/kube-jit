@@ -50,3 +50,7 @@ image:
   repository: samirtahir91076/kube-jit-api
   tag: v1.1.8
   imagePullPolicy: Always
+
+serviceAccount:
+  annotations:
+    iam.gke.io/gcp-service-account: kube-jit-api@sacred-entry-304212.iam.gserviceaccount.com
