@@ -13,7 +13,9 @@ import (
 
 	containerapiv1 "cloud.google.com/go/container/apiv1"
 	"cloud.google.com/go/container/apiv1/containerpb"
-	"golang.org/x/oauth2"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/container/v1"
 	"gopkg.in/yaml.v2"
@@ -63,12 +65,10 @@ var (
 		Resource: "jitrequests",
 	}
 	dynamicClientCache sync.Map
-	tokenSource        oauth2.TokenSource
 )
 
 // init loads clusters, roles and approver teams from configMap into global vars
 func init() {
-
 	var config *rest.Config
 	var err error
 
@@ -129,14 +129,6 @@ func init() {
 	for _, team := range ApproverTeams {
 		fmt.Printf("- %s (ID: %s)\n", team.Name, team.ID)
 	}
-
-	// Initialize token source for GKE clusters
-	ctx := context.Background()
-	credentials, err := google.FindDefaultCredentials(ctx, container.CloudPlatformScope)
-	if err != nil {
-		log.Fatalf("Failed to get default credentials: %v", err)
-	}
-	tokenSource = credentials.TokenSource
 }
 
 // getTokenFromSecret gets and returns the sa token from a k8s secret during init of kube configs
@@ -172,11 +164,20 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 	var err error
 	var tokenExpires int64
 
-	if selectedCluster.Type == "gke" {
-		// Use Google Cloud SDK to fetch cluster details
+	// Use a switch statement to handle different cluster types
+	switch selectedCluster.Type {
+	case "gke":
+		// GKE-specific logic
 		log.Printf("Using Google Cloud SDK to access GKE cluster: %s", req.ClusterName)
 
+		// Initialize Google credentials
 		ctx := context.Background()
+		credentials, err := google.FindDefaultCredentials(ctx, container.CloudPlatformScope)
+		if err != nil {
+			log.Fatalf("Failed to get default credentials: %v", err)
+		}
+		tokenSource := credentials.TokenSource
+
 		client, err := containerapiv1.NewClusterManagerClient(ctx)
 		if err != nil {
 			log.Fatalf("Failed to create GKE client: %v", err)
@@ -214,7 +215,65 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 
 		// Set token expiration time (e.g., 5 minutes before actual expiration)
 		tokenExpires = token.Expiry.Unix() - 300
-	} else {
+
+	case "aks":
+		// AKS-specific logic
+		log.Printf("Using Azure SDK to access AKS cluster: %s", req.ClusterName)
+
+		// Create Azure credentials
+		cred, err := azidentity.NewDefaultAzureCredential(nil)
+		if err != nil {
+			log.Fatalf("Failed to create Azure credential: %v", err)
+		}
+
+		// Create an AKS AdminCredentialsClient
+		adminClient, err := armcontainerservice.NewManagedClustersClient(selectedCluster.ProjectID, cred, nil)
+		if err != nil {
+			log.Fatalf("Failed to create AKS AdminCredentialsClient: %v", err)
+		}
+
+		// Fetch the kubeconfig for the AKS cluster
+		kubeconfigResp, err := adminClient.ListClusterUserCredentials(context.Background(), selectedCluster.Region, selectedCluster.Name, nil)
+		if err != nil {
+			log.Fatalf("Failed to get AKS cluster user credentials: %v", err)
+		}
+
+		// Parse the kubeconfig
+		kubeconfigData := kubeconfigResp.Kubeconfigs[0].Value
+		config, err := clientcmd.Load(kubeconfigData)
+		if err != nil {
+			log.Fatalf("Failed to parse kubeconfig: %v", err)
+		}
+
+		// Extract the API server URL and CA certificate
+		cluster := config.Clusters[config.Contexts[config.CurrentContext].Cluster]
+		clusterEndpoint := cluster.Server
+		caCertificate := cluster.CertificateAuthorityData
+
+		// Get an AAD token for the AKS API server
+		token, err := cred.GetToken(context.Background(), policy.TokenRequestOptions{
+			Scopes: []string{"6dae42f8-4368-4678-94ff-3960e28e3630/"}, // AKS API scope
+		})
+		if err != nil {
+			log.Fatalf("Failed to get AAD token: %v", err)
+		}
+
+		// Configure the Kubernetes client
+		restConfig = &rest.Config{
+			Host:        clusterEndpoint,
+			BearerToken: token.Token,
+			TLSClientConfig: rest.TLSClientConfig{
+				CAData: caCertificate,
+			},
+		}
+
+		// Set token expiration time (e.g., 1 hour)
+		tokenExpires = time.Now().Add(1 * time.Hour).Unix()
+
+	default:
+		// Generic cluster logic
+		log.Printf("Using generic configuration for cluster: %s", req.ClusterName)
+
 		apiServerURL := selectedCluster.Host
 		saToken := selectedCluster.Token
 		caData, err := base64.StdEncoding.DecodeString(selectedCluster.CA)

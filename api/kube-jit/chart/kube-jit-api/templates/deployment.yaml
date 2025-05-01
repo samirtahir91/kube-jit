@@ -19,6 +19,9 @@ spec:
       {{- end }}
       labels:
         {{- include "kube-jit-api.selectorLabels" . | nindent 8 }}
+        {{- if hasKey .Values.serviceAccount.annotations "azure.workload.identity/client-id" }}
+        azure.workload.identity/use: "true"
+        {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

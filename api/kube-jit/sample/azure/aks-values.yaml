@@ -19,10 +19,14 @@ config:
       - "http://localhost:5173"
   
   clusters:
-    - name: autopilot-cluster-2
-      type: gke
-      projectID: sacred-entry-304212
-      region: europe-west2
+    # - name: autopilot-cluster-2
+    #   type: gke
+    #   projectID: sacred-entry-304212
+    #   region: europe-west2
+    - name: "controller"
+      type: "aks"
+      projectID: f55741e9-1730-4d6e-8624-bf7b932a6145
+      region: "test"
 
   callbackHostOverride: http://localhost:8589
 
@@ -35,6 +39,7 @@ config:
     azureTokenUrl: "https://login.microsoftonline.com/b2d528a4-58f5-4aef-b021-041d1b5378f1/oauth2/v2.0/token"
 
 db:
+  passwordSecretKey: azDbPass
   host: my-postgres-postgresql.default.svc.cluster.local
   connTimeout: "10"
   name: postgres
@@ -53,4 +58,5 @@ image:
 
 serviceAccount:
   annotations:
-    iam.gke.io/gcp-service-account: kube-jit-api@sacred-entry-304212.iam.gserviceaccount.com
+    #iam.gke.io/gcp-service-account: kube-jit-api@sacred-entry-304212.iam.gserviceaccount.com
+    azure.workload.identity/client-id: c762c439-f269-47ba-ba1a-e958249f3633
