@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table } from 'react-bootstrap';
+import { Table, Button } from 'react-bootstrap';
 import './RequestTable.css';
 
 type Request = {
@@ -61,8 +61,60 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selec
         );
     });
 
+    const exportToCSV = () => {
+        const headers = [
+            'ID',
+            'Username',
+            'Approving Team',
+            'Approver',
+            'Users',
+            'Cluster',
+            'Namespaces',
+            'Role',
+            'Status',
+            'Start Date',
+            'End Date',
+            'Justification',
+            'Notes',
+        ];
+
+        const rows = filteredRequests.map(request => [
+            request.ID,
+            request.username,
+            request.approvingTeamName,
+            request.approverName,
+            request.users.join(', '),
+            request.clusterName,
+            request.namespaces.join(', '),
+            request.roleName,
+            request.status,
+            new Date(request.startDate).toLocaleString(),
+            new Date(request.endDate).toLocaleString(),
+            request.justification,
+            request.notes,
+        ]);
+
+        const csvContent = [headers, ...rows]
+            .map(row => row.map(cell => `"${cell}"`).join(',')) // Escape cells with quotes
+            .join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'requests.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="table-container">
+            <div className="d-flex justify-content-end align-items-center mb-3">
+                <Button variant="primary" size="sm" onClick={exportToCSV}>
+                    Export to CSV
+                </Button>
+            </div>
             <Table variant={variant} size="sm" striped bordered hover responsive className="mt-3">
                 <thead>
                     <tr>
