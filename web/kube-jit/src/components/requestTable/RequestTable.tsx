@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Table } from 'react-bootstrap';
 import './RequestTable.css';
 
@@ -33,6 +33,34 @@ type RequestTableProps = {
 };
 
 const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selectedRequests, handleSelectRequest, variant }) => {
+    const [filters, setFilters] = useState({
+        username: '',
+        approvingTeamName: '',
+        status: '',
+        approverName: '',
+        users: '',
+        clusterName: '',
+        namespaces: '',
+        roleName: '',
+    });
+
+    const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>, column: string) => {
+        setFilters({ ...filters, [column]: e.target.value });
+    };
+
+    const filteredRequests = requests.filter(request => {
+        return (
+            (filters.username === '' || request.username.toLowerCase().includes(filters.username.toLowerCase())) &&
+            (filters.approvingTeamName === '' || request.approvingTeamName.toLowerCase().includes(filters.approvingTeamName.toLowerCase())) &&
+            (filters.status === '' || request.status.toLowerCase().includes(filters.status.toLowerCase())) &&
+            (filters.approverName === '' || request.approverName.toLowerCase().includes(filters.approverName.toLowerCase())) &&
+            (filters.users === '' || request.users.some(user => user.toLowerCase().includes(filters.users.toLowerCase()))) &&
+            (filters.clusterName === '' || request.clusterName.toLowerCase().includes(filters.clusterName.toLowerCase())) &&
+            (filters.namespaces === '' || request.namespaces.some(namespace => namespace.toLowerCase().includes(filters.namespaces.toLowerCase()))) &&
+            (filters.roleName === '' || request.roleName.toLowerCase().includes(filters.roleName.toLowerCase()))
+        );
+    });
+
     return (
         <div className="table-container">
             <Table variant={variant} size="sm" striped bordered hover responsive className="mt-3">
@@ -41,21 +69,97 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selec
                         {selectable && <th className="table-colour">Select</th>}
                         <th className="table-colour">ID</th>
                         <th className="table-colour">Period requested</th>
-                        <th className="table-colour">Requestee</th>
-                        <th className="table-colour">Approving Team</th>
-                        <th className="table-colour">Approver</th>
-                        <th className="table-colour">Users</th>
-                        <th className="table-colour">Cluster</th>
-                        <th className="table-colour">Namespaces</th>
+                        <th className="table-colour">
+                            Requestee
+                            <input
+                                type="text"
+                                placeholder="Filter"
+                                className="form-control form-control-sm mt-1"
+                                value={filters.username}
+                                onChange={(e) => handleFilterChange(e, 'username')}
+                            />
+                        </th>
+                        <th className="table-colour">
+                            Approving Team
+                            <input
+                                type="text"
+                                placeholder="Filter"
+                                className="form-control form-control-sm mt-1"
+                                value={filters.approvingTeamName}
+                                onChange={(e) => handleFilterChange(e, 'approvingTeamName')}
+                            />
+                        </th>
+                        <th className="table-colour">
+                            Approver
+                            <input
+                                type="text"
+                                placeholder="Filter"
+                                className="form-control form-control-sm mt-1"
+                                value={filters.approverName}
+                                onChange={(e) => handleFilterChange(e, 'approverName')}
+                            />
+                        </th>
+                        <th className="table-colour">
+                            Users
+                            <input
+                                type="text"
+                                placeholder="Filter"
+                                className="form-control form-control-sm mt-1"
+                                value={filters.users}
+                                onChange={(e) => handleFilterChange(e, 'users')}
+                            />
+                        </th>
+                        <th className="table-colour">
+                            Cluster
+                            <input
+                                type="text"
+                                placeholder="Filter"
+                                className="form-control form-control-sm mt-1"
+                                value={filters.clusterName}
+                                onChange={(e) => handleFilterChange(e, 'clusterName')}
+                            />
+                        </th>
+                        <th className="table-colour">
+                            Namespaces
+                            <input
+                                type="text"
+                                placeholder="Filter"
+                                className="form-control form-control-sm mt-1"
+                                value={filters.namespaces}
+                                onChange={(e) => handleFilterChange(e, 'namespaces')}
+                            />
+                        </th>
                         <th className="table-colour">Justification</th>
-                        <th className="table-colour">Role</th>
+                        <th className="table-colour">
+                            Role
+                            <input
+                                type="text"
+                                placeholder="Filter"
+                                className="form-control form-control-sm mt-1"
+                                value={filters.roleName}
+                                onChange={(e) => handleFilterChange(e, 'roleName')}
+                            />
+                        </th>
                         <th className="table-colour">Created At</th>
-                        <th className="table-colour">Status</th>
+                        <th className="table-colour">
+                            Status
+                            <select
+                                className="form-select form-select-sm mt-1"
+                                value={filters.status}
+                                onChange={(e) => handleFilterChange(e, 'status')}
+                            >
+                                <option value="">All</option>
+                                <option value="Requested">Requested</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Rejected">Rejected</option>
+                                <option value="Pending">Pending</option>
+                            </select>
+                        </th>
                         <th className="table-colour">Notes</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {requests.map(request => (
+                    {filteredRequests.map(request => (
                         <tr key={request.ID}>
                             {selectable && (
                                 <td>
