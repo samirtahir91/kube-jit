@@ -25,6 +25,30 @@
     padding: 0.5rem; /* Adjust padding */
 
 }
+
+/* Ensure the dropdown menu is positioned directly below the toggle */
+#user-dropdown {
+    position: relative; /* Ensure the dropdown toggle and menu are positioned relative to each other */
+}
+
+#user-dropdown .dropdown-menu {
+    margin-top: 0; /* Remove any default margin */
+    transform: translateY(0); /* Ensure it starts directly below the toggle */
+    position: absolute; /* Ensure the menu is positioned relative to the toggle */
+    top: 100%; /* Position the menu directly below the toggle */
+    left: 0; /* Align the menu with the toggle */
+    z-index: 1050; /* Ensure the menu appears above other elements */
+    pointer-events: auto; /* Ensure the menu is immediately interactive */
+    opacity: 1; /* Ensure the menu is fully visible */
+    transition: none; /* Remove the delay caused by the transition */
+}
+
+/* Keep the dropdown open when hovering over the toggle or menu */
+#user-dropdown:hover .dropdown-menu {
+    display: block; /* Ensure the menu remains visible */
+    pointer-events: auto; /* Ensure the menu remains interactive */
+}
+
 .navbar {
     height: 56px; /* Default Bootstrap navbar height */
     padding: 0; /* Remove extra padding */
