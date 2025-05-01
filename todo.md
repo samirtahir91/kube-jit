@@ -1,18 +1,20 @@
 todo
 
-- azure postgres
 - add self approve toggle env var
 - clean expired non approved requests from db
-
 - add env var option for cookie samesite attribute - for strict or lax
 - json logging?
-- error logs
-- remove debug stuff
+- log important errors
+- remove and debut logging 
 - add log for new jit, approved, rejected - context of requestData
 - set types to either gke or aks in helm for downstream clusters
 - azure scope minimise
 
-- poc option to toggle annotation ns approval.
+- Admin priveleges
+    - able to search any user naame or id
+    - able to search 
+
+Poc option to toggle annotation ns approval.
 - Approver.kube-jit.io/group_id = GROUP ID
 - on request api Iterate through namespaces and get approvers.
 - get groups
@@ -22,6 +24,4 @@ todo
 - think about logic in record here
 - requires cluster role on downstream clusters to get ns
 
-- Admin priveleges
-    - able to search any user naame or id
-    - able to search 
+

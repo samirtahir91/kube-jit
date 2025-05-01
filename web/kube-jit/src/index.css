@@ -5,4 +5,12 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, #eaf4fc, #576f82), url('https://www.transparenttextures.com/patterns/white-diamond.png');
+  background-size: cover; /* Ensure the pattern covers the screen */
+  flex-direction: column;
+  min-height: 100vh; /* Ensure it covers the full height */
+}
+
+#root {
+  flex: 1;
 }
