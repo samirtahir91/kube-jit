@@ -164,6 +164,8 @@ func HandleGitHubLogin(c *gin.Context) {
 	defer userResp.Body.Close()
 
 	if userResp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response Body: %s", string(body))
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user data from GitHub"})
 		return
 	}
@@ -234,15 +236,25 @@ func GetGithubProfile(c *gin.Context) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response Body: %s", string(body))
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user data from GitHub"})
 		return
 	}
 
-	var userData interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&userData); err != nil {
+	var githubUser models.GitHubUser
+	if err := json.NewDecoder(resp.Body).Decode(&githubUser); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, userData)
+	normalizedUserData := models.NormalizedUserData{
+		ID:        strconv.Itoa(githubUser.ID),
+		Name:      githubUser.Login,
+		Email:     "", // GitHub API may not return email by default
+		AvatarURL: githubUser.AvatarURL,
+		Provider:  "github",
+	}
+
+	c.JSON(http.StatusOK, normalizedUserData)
 }
