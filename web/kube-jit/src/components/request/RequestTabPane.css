@@ -1,3 +1,36 @@
+.help-button {
+    position: fixed; /* Fix the button to the viewport */
+    bottom: 20px; /* Distance from the bottom of the viewport */
+    right: 20px; /* Distance from the right of the viewport */
+    background: linear-gradient(135deg, #0a74da, #084c8d); /* Gradient blue background */
+    color: #ffffff; /* White text */
+    border: none;
+    border-radius: 50px; /* Fully rounded corners */
+    padding: 0.75rem 1.5rem; /* Larger padding for a prominent look */
+    font-size: 1.1rem; /* Slightly larger font size */
+    font-weight: 600; /* Bold text */
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    z-index: 1000; /* Ensure it stays above other elements */
+}
+
+.help-button:hover {
+    background: linear-gradient(135deg, #084c8d, #062f5a); /* Darker gradient on hover */
+    transform: scale(1.1); /* Slightly enlarge on hover */
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15); /* Enhance shadow on hover */
+}
+
+.help-button:active {
+    transform: scale(0.95); /* Slightly shrink on click */
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1); /* Reduce shadow on click */
+}
+
+.help-button:focus {
+    outline: none; /* Remove default focus outline */
+    box-shadow: 0 0 0 3px rgba(10, 116, 218, 0.5); /* Add a focus ring */
+}
+
 .info-box {
     background: linear-gradient(135deg, #eaf4fc, #d4e9fa); /* Light blue gradient */
     border: 2px solid #2e73b4;

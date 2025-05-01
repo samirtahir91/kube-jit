@@ -49,7 +49,7 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
     const [userTagError, setUserTagError] = useState('');
     const nsInputTagRef = useRef<{ resetTags: () => void }>(null);
     const userInputTagRef = useRef<{ resetTags: () => void }>(null);
-    const [showInfoBox, setShowInfoBox] = useState(true); // State to control the info box visibility
+    const [showInfoBox, setShowInfoBox] = useState(false);
     
     useEffect(() => {
         const fetchRoles = async () => {
@@ -319,7 +319,11 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
                     </Form>
                 </Col>
                 <Col md={6}>
-                    {showInfoBox && ( // Conditional rendering for the info-box
+                    {!showInfoBox ? (
+                        <button className="help-button" onClick={() => setShowInfoBox(true)}>
+                            Help
+                        </button>
+                    ) : (
                         <div className="info-box">
                             <button className="info-box-close" onClick={() => setShowInfoBox(false)}>
                                 &times; {/* Close icon */}
