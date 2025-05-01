@@ -5,6 +5,13 @@
     padding: 1.5rem; /* Add padding inside the box */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
     color: #0a1e39; /* Dark blue text color */
+    animation: fadeIn 0.8s ease-in-out; /* Fade-in animation */
+    transition: transform 0.3s ease, box-shadow 0.3s ease; /* Smooth hover effect */
+}
+
+.info-box:hover {
+    transform: scale(1.02); /* Slightly scale up on hover */
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15); /* Enhance shadow on hover */
 }
 
 .info-box-title {
@@ -28,4 +35,16 @@
 
 .info-box-list li strong {
     color: #0a74da; /* Darker blue for emphasis */
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px); /* Slightly slide up */
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0); /* Final position */
+    }
 }
