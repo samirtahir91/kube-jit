@@ -4,12 +4,43 @@
 
 .refresh-button {
     background-color: #ffffff00;
-    height: 2.3rem;
-    width: 2rem;
-    border-radius: 0.25rem;
-    border: none
+    height: 2.5rem;
+    width: 2.5rem;
+    border-radius: 50%;
+    border: 2px solid #336f7d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+    cursor: pointer;
+    margin-left: 1rem; /* Add spacing between text and button */
 }
 
 .refresh-button:hover {
     background-color: #336f7d;
+    transform: rotate(20deg);
+}
+
+.refresh-button:active {
+    transform: scale(0.9);
+}
+
+.refresh-icon {
+    animation: none; /* No animation by default */
+    display: block;
+    width: 20px;
+    height: 20px;
+}
+
+.refresh-button.loading .refresh-icon {
+    animation: spin 1s linear infinite; /* Add spinning animation when loading */
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }

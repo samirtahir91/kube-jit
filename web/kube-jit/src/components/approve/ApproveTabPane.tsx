@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
-import { Tab, Button, Col, ToggleButton, Alert } from 'react-bootstrap'; // Import Alert
+import { Tab, Button, Col, ToggleButton, Alert } from 'react-bootstrap';
 import RequestTable from '../requestTable/RequestTable';
 import refreshLogo from '../../assets/refresh.svg';
 import './ApproveTabPane.css';
@@ -19,20 +19,23 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
     const [variant, setVariant] = useState<'light' | 'dark'>('light');
     const [toggleVariantColour, setToggleVariant] = useState<'secondary' | 'dark'>('secondary');
     const [errorMessage, setErrorMessage] = useState('');
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const fetchPendingRequests = async () => {
-        setLoadingInCard(true); // Start loading
+        setLoadingInCard(true);
+        setIsRefreshing(true);
         try {
             const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/approvals`, {
                 withCredentials: true
             });
             setPendingRequests(response.data.pendingRequests);
-            setErrorMessage(''); // Clear error message on success
+            setErrorMessage('');
         } catch (error) {
             console.error('Error fetching pending requests:', error);
             setErrorMessage('Error fetching pending requests. Please try again.');
         } finally {
-            setLoadingInCard(false); // Stop loading
+            setLoadingInCard(false);
+            setIsRefreshing(false);
         }
     };
 
@@ -45,7 +48,7 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
     };
 
     const handleSelected = async (status: string) => {
-        setLoadingInCard(true); // Start loading
+        setLoadingInCard(true);
         try {
             const selectedRequestData = pendingRequests.filter(request => selectedRequests.includes(request.ID));
             await axios.post(`${config.apiBaseUrl}/kube-jit-api/approve-reject`, {
@@ -60,12 +63,12 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
                 prevRequests.filter(request => !selectedRequests.includes(request.ID))
             );
             setSelectedRequests([]);
-            setErrorMessage(''); // Clear error message on success
+            setErrorMessage('');
         } catch (error) {
             console.error('Error approving/rejecting requests:', error);
             setErrorMessage('Error approving/rejecting requests. Please try again.');
         } finally {
-            setLoadingInCard(false); // Stop loading
+            setLoadingInCard(false);
         }
     };
 
@@ -79,42 +82,40 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
     }, []);
 
     return (
-        <Tab.Pane eventKey="approve" className='text-start py-4'>
+        <Tab.Pane eventKey="approve" className="text-start py-4">
             {errorMessage && (
                 <Alert variant="danger" className="mt-3">
                     {errorMessage}
                 </Alert>
             )}
-            <p>Approve or reject one or many access requests.
-                <button className="refresh-button" onClick={fetchPendingRequests}>
+            <div className="d-flex align-items-center">
+                <p className="mb-0 me-1">Approve or reject one or many access requests.</p>
+                <button
+                    className={`refresh-button ${isRefreshing ? 'loading' : ''}`}
+                    onClick={fetchPendingRequests}
+                    disabled={isRefreshing}
+                >
                     <img
-                    alt="Refresh"
-                    src={refreshLogo}
-                    width="20"
-                    height="20"
-                    className="me-2"
+                        alt="Refresh"
+                        src={refreshLogo}
+                        className="refresh-icon"
                     />
                 </button>
-            </p>
+            </div>
             {pendingRequests.length === 0 && (
                 <p>No pending requests (hit refresh to check again).</p>
             )}
-            {pendingRequests.length > 0 ? (
-            <Col className="d-flex align-items-center mt-5">
-            <ToggleButton
-                variant={toggleVariantColour}
-                onClick={toggleVariant}
-                id={'light-dark'}
-                value={variant}
-            >
-                {/* Remove the text from inside the button */}
-            </ToggleButton>
-            <span className="ms-2">Light/Dark</span> {/* Add the text next to the button */}
-        </Col>
-            ): ''
-            }
             {pendingRequests.length > 0 && (
                 <>
+                    <Col className="d-flex align-items-center mt-5">
+                        <ToggleButton
+                            variant={toggleVariantColour}
+                            onClick={toggleVariant}
+                            id={'light-dark'}
+                            value={variant}
+                        />
+                        <span className="ms-2">Light/Dark</span>
+                    </Col>
                     <RequestTable
                         variant={variant}
                         requests={pendingRequests}
@@ -122,10 +123,19 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
                         selectedRequests={selectedRequests}
                         handleSelectRequest={handleSelectRequest}
                     />
-                    <Button variant="success" onClick={() => handleSelected("Approved")} disabled={selectedRequests.length === 0}>
+                    <Button
+                        variant="success"
+                        onClick={() => handleSelected('Approved')}
+                        disabled={selectedRequests.length === 0}
+                    >
                         Approve Selected
                     </Button>
-                    <Button className="mx-2" variant="danger" onClick={() => handleSelected("Rejected")} disabled={selectedRequests.length === 0}>
+                    <Button
+                        className="mx-2"
+                        variant="danger"
+                        onClick={() => handleSelected('Rejected')}
+                        disabled={selectedRequests.length === 0}
+                    >
                         Reject Selected
                     </Button>
                 </>
