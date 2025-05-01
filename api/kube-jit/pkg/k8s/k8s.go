@@ -252,7 +252,7 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 
 		// Get an AAD token for the AKS API server
 		token, err := cred.GetToken(context.Background(), policy.TokenRequestOptions{
-			Scopes: []string{"6dae42f8-4368-4678-94ff-3960e28e3630/"}, // AKS API scope
+			Scopes: []string{"6dae42f8-4368-4678-94ff-3960e28e3630/.default"}, // AKS API scope
 		})
 		if err != nil {
 			log.Fatalf("Failed to get AAD token: %v", err)
