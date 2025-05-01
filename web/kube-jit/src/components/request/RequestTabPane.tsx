@@ -49,7 +49,8 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
     const [userTagError, setUserTagError] = useState('');
     const nsInputTagRef = useRef<{ resetTags: () => void }>(null);
     const userInputTagRef = useRef<{ resetTags: () => void }>(null);
-        
+    const [showInfoBox, setShowInfoBox] = useState(true); // State to control the info box visibility
+    
     useEffect(() => {
         const fetchRoles = async () => {
             try {
@@ -318,19 +319,27 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
                     </Form>
                 </Col>
                 <Col md={6}>
-                    <div className="info-box">
-                        <h5 className="info-box-title">How to Submit a Request</h5>
-                        <ul className="info-box-list">
-                            <li><strong>User Emails:</strong> Enter the email addresses you are requesting access for (use comma/enter/space for a new email).</li>
-                            <li><strong>Cluster:</strong> Select the cluster you are requesting access for.</li>
-                            <li><strong>Namespaces:</strong> Enter the Namespaces you are requesting access for (use comma/enter/space for a new namespace).</li>
-                            <li><strong>Justification:</strong> Enter the reason/ticket reference for the access request.</li>
-                            <li><strong>Approving Team:</strong> Select the team responsible for approving your request.</li>
-                            <li><strong>Role:</strong> Select the role you are requesting access for.</li>
-                            <li><strong>Start Date:</strong> Select the date/time you want the access to begin.</li>
-                            <li><strong>End Date:</strong> Select the date/time you want the access to end.</li>
-                        </ul>
-                    </div>
+                    {showInfoBox && ( // Conditional rendering for the info-box
+                        <div className="info-box">
+                            <button className="info-box-close" onClick={() => setShowInfoBox(false)}>
+                                &times; {/* Close icon */}
+                            </button>
+                            <h5 className="info-box-title">
+                                <i className="bi bi-info-circle me-2"></i> {/* Bootstrap icon */}
+                                How to Submit a Request
+                            </h5>
+                            <ul className="info-box-list">
+                                <li><strong>User Emails:</strong> Enter the email addresses you are requesting access for (use comma/enter/space for a new email).</li>
+                                <li><strong>Cluster:</strong> Select the cluster you are requesting access for.</li>
+                                <li><strong>Namespaces:</strong> Enter the Namespaces you are requesting access for (use comma/enter/space for a new namespace).</li>
+                                <li><strong>Justification:</strong> Enter the reason/ticket reference for the access request.</li>
+                                <li><strong>Approving Team:</strong> Select the team responsible for approving your request.</li>
+                                <li><strong>Role:</strong> Select the role you are requesting access for.</li>
+                                <li><strong>Start Date:</strong> Select the date/time you want the access to begin.</li>
+                                <li><strong>End Date:</strong> Select the date/time you want the access to end.</li>
+                            </ul>
+                        </div>
+                    )}
                 </Col>
             </Row>
             <Modal show={showModal} onHide={() => setShowModal(false)}>

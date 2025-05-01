@@ -1,40 +1,62 @@
 .info-box {
-    background-color: #eaf4fc; /* Light blue background */
-    border: 2px solid #0a74da; /* Darker blue border */
-    border-radius: 8px; /* Rounded corners */
-    padding: 1.5rem; /* Add padding inside the box */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
-    color: #0a1e39; /* Dark blue text color */
-    animation: fadeIn 0.8s ease-in-out; /* Fade-in animation */
-    transition: transform 0.3s ease, box-shadow 0.3s ease; /* Smooth hover effect */
+    background: linear-gradient(135deg, #eaf4fc, #d4e9fa); /* Light blue gradient */
+    border: 2px solid #0a74da;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    color: #0a1e39;
+    animation: fadeIn 0.8s ease-in-out;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.info-box-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #0a74da;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.info-box-close:hover {
+    color: #ff4d4d; /* Change color on hover */
 }
 
 .info-box:hover {
-    transform: scale(1.02); /* Slightly scale up on hover */
-    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15); /* Enhance shadow on hover */
+    transform: scale(1.01);
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15), 0 0 7px #0a74da; /* Add blue glow */
 }
 
 .info-box-title {
-    font-size: 1.25rem; /* Slightly larger font for the title */
-    font-weight: 600; /* Bold title */
-    margin-bottom: 1rem; /* Space below the title */
-    color: #0a74da; /* Darker blue for the title */
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #0a74da;
 }
 
 .info-box-list {
-    list-style-type: none; /* Remove default list styling */
-    padding: 0; /* Remove padding */
-    margin: 0; /* Remove margin */
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
 }
 
 .info-box-list li {
-    margin-bottom: 0.75rem; /* Space between list items */
-    font-size: 0.95rem; /* Slightly smaller font size */
-    color: #0a1e39; /* Dark blue text color */
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+    color: #0a1e39;
+    opacity: 0;
+    animation: fadeInList 0.5s ease-in-out forwards;
+    animation-delay: calc(var(--i) * 0.1s); /* Delay based on index */
 }
 
 .info-box-list li strong {
-    color: #0a74da; /* Darker blue for emphasis */
+    color: #0a74da;
 }
 
 /* Fade-in animation */
@@ -46,5 +68,30 @@
     to {
         opacity: 1;
         transform: translateY(0); /* Final position */
+    }
+}
+
+@keyframes fadeInList {
+    from {
+        opacity: 0;
+        transform: translateX(-10px); /* Slide in from the left */
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .info-box {
+        padding: 1rem; /* Reduce padding on smaller screens */
+    }
+
+    .info-box-title {
+        font-size: 1rem; /* Reduce title size */
+    }
+
+    .info-box-list li {
+        font-size: 0.85rem; /* Reduce list item size */
     }
 }
