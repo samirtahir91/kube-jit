@@ -1,6 +1,8 @@
 todo
 
 - aks type
+- azure postgres
+  
 - set types to either gke or aks in helm for downstream clusters
 - azure scope minimise
 - snazzier table?
