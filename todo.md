@@ -1,8 +1,11 @@
 todo
 
-- seperate cookie for groups and is approvers
-- cookie split logicif cookie is bigger than 4k
-
+- aks type
+- set types to either gke or aks in helm for downstream clusters
+- azure scope minimise
+- snazzier table?
+- snazzier light dark buttons
+- snazzier approve reject button 
 - add self approve toggle env var
 
 - poc option to toggle annotation ns approval.
