@@ -100,11 +100,17 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
                 <p>No pending requests (hit refresh to check again).</p>
             )}
             {pendingRequests.length > 0 ? (
-            <Col className="d-flex mt-5">
-            <ToggleButton variant={toggleVariantColour} onClick={toggleVariant} id={'light-dark'} value={variant}>
-                light/dark
+            <Col className="d-flex align-items-center mt-5">
+            <ToggleButton
+                variant={toggleVariantColour}
+                onClick={toggleVariant}
+                id={'light-dark'}
+                value={variant}
+            >
+                {/* Remove the text from inside the button */}
             </ToggleButton>
-            </Col>
+            <span className="ms-2">Light/Dark</span> {/* Add the text next to the button */}
+        </Col>
             ): ''
             }
             {pendingRequests.length > 0 && (
