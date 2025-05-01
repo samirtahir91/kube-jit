@@ -114,13 +114,13 @@ db:
   # Your Postgres database user secret key
   # This is the secret key in the kube-jit-api-secrets secret
   userSecretKey: dbUser
-  # Your Postgres database password secret key
+  # Your Postgres database password/token secret key
   # This is the secret key in the kube-jit-api-secrets secret
   passwordSecretKey: dbPassword
   # Your Postgres database port, ignored if using Cloud SQL Proxy - sets to 5432
   port: "5432"
   # Your Postgres database ssl mode, disabled if using Cloud SQL Proxy
-  sslMode: "prefer"
+  sslMode: "prefer" # Likely need to use "require" for azure hosted postgres
   # Your Postgres database time zone
   timezone: "Europe/London"
   # Connection pool settings

@@ -12,9 +12,6 @@ todo
 - add log for new jit, approved, rejected - context of requestData
 - set types to either gke or aks in helm for downstream clusters
 - azure scope minimise
-- snazzier table?
-- snazzier light dark buttons
-- snazzier approve reject button 
 
 - poc option to toggle annotation ns approval.
 - Approver.kube-jit.io/group_id = GROUP ID
