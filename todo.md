@@ -2,6 +2,7 @@ todo
 
 - aks type
 - azure postgres
+- json logging?
 - error logs
 - remove debug logs
 - set types to either gke or aks in helm for downstream clusters
