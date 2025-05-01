@@ -1,3 +1,4 @@
+import "./RequestTabPane.css"
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Select, { SingleValue } from 'react-select';
@@ -317,17 +318,19 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
                     </Form>
                 </Col>
                 <Col md={6}>
-                    <Alert variant="info">
-                        <p><strong>User Emails:</strong> Enter the email addresses you are requesting access for (use comma/enter/space for a new email).</p>
-                        <p><strong>Cluster:</strong> Select the cluster you are requesting access for.</p>
-                        <p><strong>Namespaces:</strong> Enter the Namespaces you are requesting access for (use comma/enter/space for a new namespace).</p>
-                        <p><strong>Justification:</strong> Enter the reason/ticket reference for the access request.</p>
-                        <p><strong>Approving Team:</strong> Select the team responsible for approving your request.</p>
-                        <p><strong>Role:</strong> Select the role you are requesting access for.</p>
-                        <p><strong>Start Date:</strong> Select the date/time you want the access to begin.</p>
-                        <p><strong>End Date:</strong> Select the date/time you want the access to end.</p>
-
-                    </Alert>
+                    <div className="info-box">
+                        <h5 className="info-box-title">How to Submit a Request</h5>
+                        <ul className="info-box-list">
+                            <li><strong>User Emails:</strong> Enter the email addresses you are requesting access for (use comma/enter/space for a new email).</li>
+                            <li><strong>Cluster:</strong> Select the cluster you are requesting access for.</li>
+                            <li><strong>Namespaces:</strong> Enter the Namespaces you are requesting access for (use comma/enter/space for a new namespace).</li>
+                            <li><strong>Justification:</strong> Enter the reason/ticket reference for the access request.</li>
+                            <li><strong>Approving Team:</strong> Select the team responsible for approving your request.</li>
+                            <li><strong>Role:</strong> Select the role you are requesting access for.</li>
+                            <li><strong>Start Date:</strong> Select the date/time you want the access to begin.</li>
+                            <li><strong>End Date:</strong> Select the date/time you want the access to end.</li>
+                        </ul>
+                    </div>
                 </Col>
             </Row>
             <Modal show={showModal} onHide={() => setShowModal(false)}>

@@ -1,6 +1,5 @@
 todo
 
-- aks type
 - azure postgres
 - add self approve toggle env var
 - clean expired non approved requests from db

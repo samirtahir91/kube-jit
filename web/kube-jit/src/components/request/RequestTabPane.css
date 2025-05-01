@@ -1,0 +1,31 @@
+.info-box {
+    background-color: #eaf4fc; /* Light blue background */
+    border: 2px solid #0a74da; /* Darker blue border */
+    border-radius: 8px; /* Rounded corners */
+    padding: 1.5rem; /* Add padding inside the box */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    color: #0a1e39; /* Dark blue text color */
+}
+
+.info-box-title {
+    font-size: 1.25rem; /* Slightly larger font for the title */
+    font-weight: 600; /* Bold title */
+    margin-bottom: 1rem; /* Space below the title */
+    color: #0a74da; /* Darker blue for the title */
+}
+
+.info-box-list {
+    list-style-type: none; /* Remove default list styling */
+    padding: 0; /* Remove padding */
+    margin: 0; /* Remove margin */
+}
+
+.info-box-list li {
+    margin-bottom: 0.75rem; /* Space between list items */
+    font-size: 0.95rem; /* Slightly smaller font size */
+    color: #0a1e39; /* Dark blue text color */
+}
+
+.info-box-list li strong {
+    color: #0a74da; /* Darker blue for emphasis */
+}
