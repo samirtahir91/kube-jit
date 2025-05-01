@@ -2,7 +2,8 @@ todo
 
 - aks type
 - azure postgres
-  
+- error logs
+- remove debug logs
 - set types to either gke or aks in helm for downstream clusters
 - azure scope minimise
 - snazzier table?
