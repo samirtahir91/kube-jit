@@ -14,10 +14,10 @@ const Profile = ({ user, onSignOut }: { user: UserData; onSignOut: () => void })
             {/* Nav bar with sign in info and links */}
             <Navbar className="navbar" fixed="top" expand="lg">
                 <Container>
-                    <Nav className="me-auto"> {/* Align brand and Home link to the left */}
+                    <Navbar.Brand className="d-flex align-items-center">
                         <NavBrand /> {/* Main nav brand/logo */}
-                        <Nav.Link href="/" className="text-light">Home</Nav.Link>
-                    </Nav>
+                        <Nav.Link href="/" className="text-light ms-3">Home</Nav.Link> {/* Add margin to separate from brand */}
+                    </Navbar.Brand>
                     <Navbar.Toggle aria-controls="custom-navbar-collapse" />
                     <Navbar.Collapse id="custom-navbar-collapse" bsPrefix="custom-navbar-collapse" className="justify-content-end">
                         <NavDropdown

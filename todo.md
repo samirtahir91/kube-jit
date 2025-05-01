@@ -2,15 +2,18 @@ todo
 
 - aks type
 - azure postgres
+- add self approve toggle env var
+
+- add env var option for cookie samesite attribute - for strict or lax
 - json logging?
 - error logs
-- remove debug logs
+- remove debug stuff
+- add log for new jit, approved, rejected - context of requestData
 - set types to either gke or aks in helm for downstream clusters
 - azure scope minimise
 - snazzier table?
 - snazzier light dark buttons
 - snazzier approve reject button 
-- add self approve toggle env var
 
 - poc option to toggle annotation ns approval.
 - Approver.kube-jit.io/group_id = GROUP ID
@@ -21,3 +24,7 @@ todo
 - each group will need to approve
 - think about logic in record here
 - requires cluster role on downstream clusters to get ns
+
+- Admin priveleges
+    - able to search any user naame or id
+    - able to search 

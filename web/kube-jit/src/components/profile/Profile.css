@@ -1,15 +1,16 @@
 /* Ensure the collapse section is visible when toggled */
 .custom-navbar-collapse {
     background-color: #0031d400; /* Azure blue background */
-    padding: 1rem; /* Add padding */
+    padding: 0.5rem; /* Add padding */
     border-radius: 0.25rem; /* Optional: Add rounded corners */
     display: flex !important; /* Ensure it displays correctly */
-    flex-direction: column; /* Align items vertically */
+    flex-direction: row; /* Align items horizontally */
+    align-items: center; /* Vertically center the content */
 }
 
 /* Adjust dropdown text color */
 .custom-navbar-collapse .dropdown-item {
-    color: #0c0c0c; /* White text */
+    color: #0c0c0c;
 }
 
 .custom-navbar-collapse .dropdown-item:hover {
@@ -20,10 +21,64 @@
 /* Change the color of the dropdown toggle (login name) */
 .custom-navbar-collapse .dropdown-toggle {
     color: #ffffff !important; /* Set the text color to white */
+    line-height: 1.5; /* Adjust line height for better alignment */
+    padding: 0.5rem; /* Adjust padding */
+
+}
+.navbar {
+    height: 56px; /* Default Bootstrap navbar height */
+    padding: 0; /* Remove extra padding */
+    background-color: #0a1e39; /* Navbar background color */
 }
 
-/* Change the hover color of the dropdown toggle */
-.custom-navbar-collapse .dropdown-toggle:hover {
-    color: #d1e8ff !important; /* Light blue on hover */
-    text-decoration: none; /* Remove underline on hover */
+/* Ensure the toggle button has proper size and alignment */
+.navbar-toggler {
+    padding: 0.25rem 0.75rem; /* Adjust padding */
+    font-size: 1.25rem; /* Adjust font size for the icon */
+    line-height: 1; /* Ensure proper alignment */
+    background-color: transparent; /* Remove background color */
+    border: 1px solid rgba(255, 255, 255, 0); /* Add a border */
+    border-radius: 0.25rem; /* Add rounded corners */
+}
+
+/* Customize the inner 3 bars of the toggler */
+.navbar-toggler-icon {
+    background-image: none; /* Remove the default bars */
+    background-color: #ffffff00; /* Set a custom color for the toggler */
+    width: 1.5rem; /* Adjust width */
+    height: 0.2rem; /* Adjust height */
+    border-radius: 0.25rem; /* Add rounded corners */
+    position: relative;
+}
+
+.navbar-toggler-icon::before,
+.navbar-toggler-icon::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 0.2rem; /* Adjust height of the bars */
+    background-color: #ffffff00; /* Set the color of the bars */
+    border-radius: 0.25rem; /* Add rounded corners */
+}
+
+.navbar-toggler-icon::before {
+    top: -0.5rem; /* Position the top bar */
+}
+
+.navbar-toggler-icon::after {
+    top: 0.5rem; /* Position the bottom bar */
+}
+
+/* Adjust the font size and weight of the Home link */
+.navbar .nav-link {
+    font-size: 0.9rem; /* Adjust the font size (smaller than default) */
+    font-weight: 500; /* Set the font weight to normal */
+    color: #ffffff; /* Ensure the text color remains white */
+    text-decoration: none; /* Remove underline */
+}
+
+/* Optional: Add hover effect for the Home link */
+.navbar .nav-link:hover {
+    color: #3880c9 !important; /* Light blue on hover */
 }
