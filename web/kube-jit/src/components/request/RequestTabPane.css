@@ -1,7 +1,7 @@
 .info-box {
     background: linear-gradient(135deg, #eaf4fc, #d4e9fa); /* Light blue gradient */
-    border: 2px solid #0a74da;
-    border-radius: 8px;
+    border: 2px solid #2e73b4;
+    border-radius: 5px;
     padding: 1.5rem;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     color: #0a1e39;
@@ -30,14 +30,14 @@
 
 .info-box:hover {
     transform: scale(1.01);
-    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15), 0 0 7px #0a74da; /* Add blue glow */
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15), 0 0 7px #0a75da66; /* Add blue glow */
 }
 
 .info-box-title {
     font-size: 1.25rem;
     font-weight: 600;
     margin-bottom: 1rem;
-    color: #0a74da;
+    color: #1b4fa4;
 }
 
 .info-box-list {
@@ -56,7 +56,7 @@
 }
 
 .info-box-list li strong {
-    color: #0a74da;
+    color: #1b4fa4;
 }
 
 /* Fade-in animation */

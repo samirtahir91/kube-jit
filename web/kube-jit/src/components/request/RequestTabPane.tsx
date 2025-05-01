@@ -325,7 +325,7 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
                                 &times; {/* Close icon */}
                             </button>
                             <h5 className="info-box-title">
-                                <i className="bi bi-info-circle me-2"></i> {/* Bootstrap icon */}
+                                <i className="bi bi-info-circle me-2"></i> {/* Bootstrap info icon */}
                                 How to Submit a Request
                             </h5>
                             <ul className="info-box-list">
