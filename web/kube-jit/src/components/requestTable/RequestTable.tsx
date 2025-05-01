@@ -153,6 +153,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selec
                                 <option value="Approved">Approved</option>
                                 <option value="Rejected">Rejected</option>
                                 <option value="Pending">Pending</option>
+                                <option value="Succeeded">Succeeded</option>
                             </select>
                         </th>
                         <th className="table-colour">Notes</th>

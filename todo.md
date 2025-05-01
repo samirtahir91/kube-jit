@@ -3,6 +3,7 @@ todo
 - aks type
 - azure postgres
 - add self approve toggle env var
+- clean expired non approved requests from db
 
 - add env var option for cookie samesite attribute - for strict or lax
 - json logging?

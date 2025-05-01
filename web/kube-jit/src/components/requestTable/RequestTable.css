@@ -1,9 +1,53 @@
-.table-container {
-    max-height: 50vh; /* Set max height to 100% of the viewport height */
-    overflow-y: auto; /* Add scroll if content exceeds the max height */
+.table-colour {
+    background-color: #2073b3 !important; /* Replace with your desired color */
+    color: #ffffff !important; /* Text color */
 }
 
-.table-colour {
-    background-color: #088ec8 !important; /* Replace with your desired color */
-    color: #ffffff !important; /* Text color */
+.table-container {
+    max-height: 50vh; /* Set max height */
+    overflow-x: auto; /* Enable horizontal scrolling */
+    font-family: 'Roboto', sans-serif; /* Modern font */
+    font-size: 14px; /* Adjust font size */
+}
+
+.table-container table {
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    border-collapse: separate; /* Ensure rounded corners work */
+    overflow: hidden; /* Clip content within rounded corners */
+}
+
+.table-container th,
+.table-container td {
+    padding: 12px 16px; /* Better spacing */
+    border: none; /* Remove borders for a clean look */
+}
+
+.table-container tbody tr:nth-child(odd) {
+    background-color: #f9f9f9; /* Light gray for odd rows */
+}
+
+.table-container tbody tr:nth-child(even) {
+    background-color: #ffffff; /* White for even rows */
+}
+
+.table-container tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.1); /* Light blue on hover */
+    cursor: pointer; /* Pointer cursor on hover */
+}
+
+.table-container thead th {
+    position: sticky; /* Sticky header */
+    top: 0;
+    background-color: #f8f9fa; /* Header background */
+    z-index: 2; /* Ensure it stays above other content */
+    text-align: left; /* Align text to the left */
+}
+
+.table-container th {
+    font-weight: bold; /* Bold header text */
+}
+
+.table-container td {
+    vertical-align: middle; /* Vertically center content */
 }
