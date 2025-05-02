@@ -312,14 +312,16 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
                             <Button
                                 variant="primary"
                                 type="submit"
-                                className="w-100"
+                                className="w-100 submit-button"
                                 disabled={
                                     !selectedGroup ||
                                     !selectedRole ||
                                     !selectedCluster ||
-                                    users.length<1 ||
-                                    namespaces.length<1 ||
-                                    !justification
+                                    users.length < 1 ||
+                                    namespaces.length < 1 ||
+                                    !justification ||
+                                    !startDate ||
+                                    !endDate
                                 }
                             >
                                 Submit Request

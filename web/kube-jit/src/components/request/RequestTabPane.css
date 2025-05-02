@@ -139,6 +139,37 @@
     margin: 0; /* Remove auto margin for left alignment */
 }
 
+.submit-button {
+    background: linear-gradient(90deg, #007bff, #0056b3); /* Gradient background */
+    color: #ffffff; /* White text */
+    border: none; /* Remove border */
+    border-radius: 6px; /* Rounded corners */
+    padding: 0.75rem 1.5rem; /* Add padding */
+    font-size: 1rem; /* Adjust font size */
+    font-weight: bold; /* Bold text */
+    cursor: pointer; /* Pointer cursor on hover */
+    transition: all 0.3s ease; /* Smooth transition for hover effects */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.submit-button:hover {
+    background: linear-gradient(90deg, #0056b3, #003f7f); /* Darker gradient on hover */
+    transform: translateY(-2px); /* Slight lift effect */
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+}
+
+.submit-button:active {
+    transform: translateY(0); /* Reset lift effect on click */
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1); /* Reset shadow on click */
+}
+
+.submit-button:disabled {
+    background: #d6d6d6; /* Gray background for disabled state */
+    color: #a1a1a1; /* Light gray text */
+    cursor: not-allowed; /* Disabled cursor */
+    box-shadow: none; /* Remove shadow */
+}
+
 @media (max-width: 768px) {
     .info-box {
         padding: 1rem; /* Reduce padding on smaller screens */
