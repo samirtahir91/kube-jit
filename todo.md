@@ -14,7 +14,7 @@ todo
 - email notifications on status request approve reject and end
 - after request validate namespaces before submitting
 - get approvers from annotations of ns, if not found select platform group to approve 
-
+- fix │ [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you │
 - Admin priveleges
     - able to search any user naame or id
 
