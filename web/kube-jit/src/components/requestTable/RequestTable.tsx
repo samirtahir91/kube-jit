@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Table, Button } from 'react-bootstrap';
 import './RequestTable.css';
 
+
 type Request = {
     ID: number;
     userID: string;
@@ -44,6 +45,12 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selec
         namespaces: '',
         roleName: '',
     });
+
+    const [isExpanded, setIsExpanded] = useState(false); // State to track expanded view
+
+    const handleExpandToggle = () => {
+        setIsExpanded(!isExpanded); // Toggle expanded state
+    };
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>, column: string) => {
         setFilters({ ...filters, [column]: e.target.value });
@@ -109,17 +116,13 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selec
         document.body.removeChild(link);
     };
 
-    const toggleVariant = () => {
-        setVariant(variant === 'light' ? 'dark' : 'light');
-    };
-
     return (
-        <div className="table-container py-5">
+        <div className={`table-container py-5 ${isExpanded ? 'expanded' : ''}`}>
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <div className="d-flex align-items-center">
                     <div
                         className={`toggle-button ${variant === 'dark' ? 'dark' : ''}`}
-                        onClick={toggleVariant}
+                        onClick={() => setVariant(variant === 'light' ? 'dark' : 'light')}
                     >
                         <div className="toggle-circle"></div>
                     </div>
@@ -145,8 +148,11 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selec
                     >
                         Clear Filters
                     </Button>
-                    <Button variant="primary" size="sm" onClick={exportToCSV}>
+                    <Button variant="primary" size="sm" className="me-2" onClick={exportToCSV}>
                         Export to CSV
+                    </Button>
+                    <Button variant="info" size="sm" onClick={handleExpandToggle}>
+                        {isExpanded ? 'Collapse View' : 'Expand View'}
                     </Button>
                 </div>
             </div>
@@ -272,20 +278,12 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selec
                             <td>{request.username}</td>
                             <td>{request.approvingTeamName}</td>
                             <td>{request.approverName}</td>
-                            <td>
-                                {request.users.map(user => (
-                                    <div key={user}>{user}</div>
-                                ))}
-                            </td>
+                            <td>{request.users.join(', ')}</td>
                             <td>{request.clusterName}</td>
-                            <td>
-                                {request.namespaces.map(namespace => (
-                                    <div key={namespace}>{namespace}</div>
-                                ))}
-                            </td>
+                            <td>{request.namespaces.join(', ')}</td>
                             <td>{request.justification}</td>
                             <td>{request.roleName}</td>
-                            <td>{new Date(request.CreatedAt).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' })}</td>
+                            <td>{new Date(request.CreatedAt).toLocaleString()}</td>
                             <td>{request.status}</td>
                             <td>{request.notes}</td>
                         </tr>

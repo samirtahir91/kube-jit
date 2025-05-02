@@ -4,10 +4,15 @@
 }
 
 .table-container {
-    max-height: 50vh; /* Set max height */
-    overflow-x: auto; /* Enable horizontal scrolling */
+    max-height: 50vh; /* Default compact view */
+    overflow-y: auto; /* Enable vertical scrolling */
+    transition: max-height 0.3s ease; /* Smooth transition for height changes */
     font-family: 'Roboto', sans-serif; /* Modern font */
     font-size: 14px; /* Adjust font size */
+}
+
+.table-container.expanded {
+    max-height: none; /* Remove height restriction for expanded view */
 }
 
 .table-container table {
