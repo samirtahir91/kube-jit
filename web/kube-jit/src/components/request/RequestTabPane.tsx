@@ -400,14 +400,22 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
                     </Modal.Footer>
                 </Modal>
                 {successMessage && (
-                    <Alert variant="success" className="mt-3">
+                    <div className="success-message">
+                        <i className="bi bi-check-circle-fill me-2"></i> {/* Bootstrap success icon */}
                         {successMessage}
-                    </Alert>
+                        <button className="success-message-close" onClick={() => setSuccessMessage('')}>
+                            &times; {/* Close icon */}
+                        </button>
+                    </div>
                 )}
                 {errorMessage && (
-                    <Alert variant="danger" className="mt-3">
+                    <div className="error-message">
+                        <i className="bi bi-exclamation-circle-fill me-2"></i> {/* Bootstrap error icon */}
                         {errorMessage}
-                    </Alert>
+                        <button className="error-message-close" onClick={() => setErrorMessage('')}>
+                            &times; {/* Close icon */}
+                        </button>
+                    </div>
                 )}
             </div>
         </Tab.Pane>

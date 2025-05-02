@@ -147,3 +147,10 @@
 .expand-view-button:hover {
     background: linear-gradient(90deg, #117a8b, #0d5c6b); /* Darker gradient on hover */
 }
+
+.results-message {
+    text-align: left; /* Ensure left alignment */
+    margin-bottom: 1rem; /* Add spacing below the message */
+    font-size: 1rem; /* Adjust font size for consistency */
+    color: #495057; /* Subtle text color */
+}

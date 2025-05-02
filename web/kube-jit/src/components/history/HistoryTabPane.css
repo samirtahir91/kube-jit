@@ -1,11 +1,11 @@
 .search-button {
-    width: auto; /* Adjust width to fit content */
+    width: auto; /* Allow the button to fit its content */
     background: linear-gradient(90deg, #007bff, #0056b3); /* Gradient background */
     color: #ffffff; /* White text */
     border: none; /* Remove border */
-    border-radius: 6px; /* Slightly smaller rounded corners */
-    padding: 6px 12px; /* Reduce padding for a smaller button */
-    font-size: 14px; /* Smaller font size */
+    border-radius: 6px; /* Rounded corners */
+    padding: 8px 16px; /* Standard padding for a normal-sized button */
+    font-size: 16px; /* Standard font size */
     font-weight: 500; /* Medium font weight */
     transition: all 0.3s ease; /* Smooth transition for hover effects */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
@@ -13,7 +13,7 @@
 
 .search-button:hover {
     background: linear-gradient(90deg, #0056b3, #003f7f); /* Darker gradient on hover */
-    transform: translateY(-1px); /* Slight lift effect */
+    transform: translateY(-2px); /* Slight lift effect */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
 }
 
