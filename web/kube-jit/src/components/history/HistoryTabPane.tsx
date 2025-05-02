@@ -172,20 +172,9 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
                 </Col>
             </Row>
             {requests.length > 0 ? (
-            <Col className="d-flex align-items-center mt-5">
-                <div
-                    className={`toggle-button ${variant === 'dark' ? 'dark' : ''}`}
-                    onClick={toggleVariant}
-                >
-                    <div className="toggle-circle"></div>
-                </div>
-                <span className="ms-2">{variant === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
-            </Col>
-            ): ''
-            }
-            {requests.length > 0 ? (
                 <RequestTable
                     variant={variant}
+                    setVariant={setVariant} // Pass the setter for the variant
                     requests={requests} 
                     selectable={false} // No select column in history tab
                     selectedRequests={[]}

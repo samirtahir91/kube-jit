@@ -107,16 +107,8 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
             )}
             {pendingRequests.length > 0 && (
                 <>
-                    <Col className="d-flex align-items-center mt-5">
-                        <ToggleButton
-                            variant={toggleVariantColour}
-                            onClick={toggleVariant}
-                            id={'light-dark'}
-                            value={variant}
-                        />
-                        <span className="ms-2">Light/Dark</span>
-                    </Col>
                     <RequestTable
+                        setVariant={setVariant} // Pass the setter for the variant
                         variant={variant}
                         requests={pendingRequests}
                         selectable={true}
