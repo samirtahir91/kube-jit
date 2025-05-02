@@ -58,7 +58,7 @@
     justify-content: center;
     width: 50px; /* Adjust width for the toggle */
     height: 25px; /* Adjust height for the toggle */
-    background: linear-gradient(90deg, #007bff, #0056b3); /* Gradient background */
+    background: #bdc5cd; /* Default light mode background */
     border-radius: 50px; /* Fully rounded corners for a toggle switch */
     border: none; /* Remove border */
     position: relative; /* For positioning the toggle circle */
@@ -67,8 +67,11 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
 }
 
+.toggle-button.dark {
+    background: #343a40; /* Dark mode background */
+}
+
 .toggle-button:hover {
-    background: linear-gradient(90deg, #0056b3, #003f7f); /* Darker gradient on hover */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
 }
 
@@ -83,7 +86,7 @@
     left: 3px; /* Default position for light mode */
     width: 20px; /* Circle size */
     height: 20px; /* Circle size */
-    background: #ffffff; /* White circle */
+    background: #ffffff; /* White circle for light mode */
     border-radius: 50%; /* Fully rounded */
     transition: all 0.3s ease; /* Smooth transition for movement */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Subtle shadow */
@@ -91,5 +94,5 @@
 
 .toggle-button.dark .toggle-circle {
     left: 25px; /* Move the circle to the right for dark mode */
-    background: #f8f9fa; /* Light gray circle for dark mode */
+    background: #adb5bd; /* Gray circle for dark mode */
 }
