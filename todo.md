@@ -9,10 +9,17 @@ todo
 - add log for new jit, approved, rejected - context of requestData
 - set types to either gke or aks in helm for downstream clusters
 - azure scope minimise
+- https
+- domain on email input preconfigured
+- email notifications on status request approve reject and end
 
 - Admin priveleges
     - able to search any user naame or id
-    - able to search 
+
+test
+  unit
+  bdd
+  e2e Selenium 
 
 Poc option to toggle annotation ns approval.
 - Approver.kube-jit.io/group_id = GROUP ID
