@@ -146,18 +146,18 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
                 <Col md={2}>
                     <Form className="text-start">
                         <Form.Group controlId="limit">
-                            <Form.Label>Limit (max 20)</Form.Label>
+                            <Form.Label>Limit (max {isAdmin ? 100 : 20})</Form.Label>
                             <Form.Control
                                 type="number"
                                 value={limit}
-                                max={20}
+                                max={isAdmin ? 100 : 20} // Dynamically set max based on isAdmin
                                 onChange={(e) => {
                                     const value = Number(e.target.value);
-                                    if (value <= 20) { // Set the maximum limit here
+                                    if (value <= (isAdmin ? 100 : 20)) { // Adjust validation based on isAdmin
                                         setLimit(value);
                                     }
                                 }}
-                                placeholder="Enter Limit"
+                                placeholder={`Enter Limit (max ${isAdmin ? 100 : 20})`}
                             />
                         </Form.Group>
                     </Form>

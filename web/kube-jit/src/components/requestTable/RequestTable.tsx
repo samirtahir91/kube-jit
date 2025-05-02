@@ -150,6 +150,12 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selec
                     </Button>
                 </div>
             </div>
+            {/* Display the number of results */}
+            <div className="mb-3">
+                <span>
+                    Showing <strong>{filteredRequests.length}</strong> result{filteredRequests.length !== 1 ? 's' : ''}
+                </span>
+            </div>
             <Table variant={variant} size="sm" striped bordered hover responsive className="mt-3">
                 <thead>
                     <tr>
