@@ -176,9 +176,9 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error
 	return teams, nil
 }
 
-// IsGoogleApprover uses the Google Admin SDK to fetch the user's groups
+// GooglePermissions uses the Google Admin SDK to fetch the user's groups
 // It returns true if the user is an approver, false otherwise
-func IsGoogleApprover(c *gin.Context) {
+func GooglePermissions(c *gin.Context) {
 	session := sessions.Default(c)
 
 	// Check if the user is logged in

@@ -17,9 +17,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// IsGithubApprover uses the GitHub API to fetch the user's teams and checks if they belong to any approver teams
+// GithubPermissions uses the GitHub API to fetch the user's teams and checks if they belong to any approver teams
 // It returns true if the user is an approver, false otherwise
-func IsGithubApprover(c *gin.Context) {
+func GithubPermissions(c *gin.Context) {
 	session := sessions.Default(c)
 
 	// Check if the user is logged in

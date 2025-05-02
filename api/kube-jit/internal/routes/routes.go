@@ -21,9 +21,9 @@ func SetupRoutes(r *gin.Engine) {
 		apiWithSession.GET("/history", handlers.GetRecords)
 		apiWithSession.GET("/approvals", handlers.GetPendingApprovals)
 		apiWithSession.POST("/approve-reject", handlers.ApproveOrRejectRequests)
-		apiWithSession.GET("/github/is-approver", handlers.IsGithubApprover)
-		apiWithSession.GET("/google/is-approver", handlers.IsGoogleApprover)
-		apiWithSession.GET("/azure/is-approver", handlers.IsAzureApprover)
+		apiWithSession.GET("/github/permissions", handlers.GithubPermissions)
+		apiWithSession.GET("/google/permissions", handlers.GooglePermissions)
+		apiWithSession.GET("/azure/permissions", handlers.AzurePermissions)
 	}
 
 	// Routes that do NOT require session handling

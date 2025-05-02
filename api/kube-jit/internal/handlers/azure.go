@@ -167,8 +167,8 @@ func GetAzureProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, normalizedUserData)
 }
 
-// IsAzureApprover checks if the logged-in user is an approver or admin based on their Azure AD groups
-func IsAzureApprover(c *gin.Context) {
+// AzurePermissions checks if the logged-in user is an approver or admin based on their Azure AD groups
+func AzurePermissions(c *gin.Context) {
 	session := sessions.Default(c)
 
 	// Check if the user is logged in

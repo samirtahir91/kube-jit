@@ -9,13 +9,14 @@ import { Request } from '../../types'; // Import the shared Request type
 import config from '../../config/config';
 
 type HistoryTabPaneProps = {
+    isAdmin: boolean;
     activeTab: string;
     originTab: string;
     userId: string;
     setLoadingInCard: (loading: boolean) => void;
 };
 
-const HistoryTabPane = ({ activeTab, originTab, userId, setLoadingInCard }: HistoryTabPaneProps) => {
+const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCard }: HistoryTabPaneProps) => {
     const [requests, setRequests] = useState<Request[]>([]);
     const [errorMessage, setErrorMessage] = useState('');
     const [limit, setLimit] = useState(1);

@@ -31,6 +31,7 @@ function App() {
     const [originTab, setOriginTab] = useState<string>("");
     const [approverGroups, setApproverGroups] = useState<Group[]>([]);
     const [isApprover, setIsApprover] = useState<boolean>(false);
+    const [isAdmin, setIsAdmin] = useState<boolean>(false);
     const navigate = useNavigate();
 
     // Handle sign out
@@ -64,13 +65,14 @@ function App() {
         }
     };
 
-    // Define checkIsApprover outside useEffect
-    const checkIsApprover = async (provider: string | null) => {
+    // Define checkPermissions outside useEffect
+    const checkPermissions = async (provider: string | null) => {
         try {
-            const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/${provider}/is-approver`, {
+            const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/${provider}/permissions`, {
                 withCredentials: true,
             });
             setIsApprover(response.data.isApprover);
+            setIsAdmin(response.data.isAdmin);
         } catch (error) {
             console.error("Error checking approver status:", error);
         }
@@ -121,7 +123,7 @@ function App() {
             const provider = localStorage.getItem("loginMethod");
             if (provider) {
                 const fetchApproverAndGroups = async () => {
-                    await checkIsApprover(provider);
+                    await checkPermissions(provider);
                     await fetchGroups();
                 };
                 fetchApproverAndGroups();
@@ -155,7 +157,7 @@ function App() {
                                         Request
                                     </Nav.Link>
                                 </Nav.Item>
-                                {isApprover && (
+                                {(isApprover || isAdmin) && (
                                     <Nav.Item>
                                         <Nav.Link href="#approveJit" eventKey="approve">
                                             Approve
@@ -177,14 +179,16 @@ function App() {
                                     setOriginTab={setOriginTab}
                                     setLoadingInCard={setLoadingInCard}
                                 />
-                                {isApprover && (
+                                {(isApprover || isAdmin) && (
                                     <ApproveTabPane
+                                        isAdmin={isAdmin}
                                         username={data.userData.name}
                                         userId={data.userData.id}
                                         setLoadingInCard={setLoadingInCard}
                                     />
                                 )}
                                 <HistoryTabPane
+                                    isAdmin={isAdmin}
                                     activeTab={activeTab}
                                     originTab={originTab}
                                     userId={data.userData.id}
