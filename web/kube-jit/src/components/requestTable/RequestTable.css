@@ -101,3 +101,49 @@
     left: 25px; /* Move the circle to the right for dark mode */
     background: #adb5bd; /* Gray circle for dark mode */
 }
+
+.action-button {
+    padding: 8px 16px; /* Add padding for better spacing */
+    border: none; /* Remove default border */
+    border-radius: 6px; /* Rounded corners */
+    font-size: 14px; /* Adjust font size */
+    font-weight: 500; /* Medium font weight */
+    color: #ffffff; /* White text */
+    cursor: pointer; /* Pointer cursor on hover */
+    transition: all 0.3s ease; /* Smooth transition for hover effects */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.action-button:hover {
+    transform: translateY(-2px); /* Slight lift effect */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+}
+
+.action-button:active {
+    transform: translateY(0); /* Reset lift effect on click */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Reset shadow on click */
+}
+
+.clear-filters-button {
+    background: linear-gradient(90deg, #6c757d, #495057); /* Gradient for Clear Filters */
+}
+
+.clear-filters-button:hover {
+    background: linear-gradient(90deg, #495057, #343a40); /* Darker gradient on hover */
+}
+
+.export-csv-button {
+    background: linear-gradient(90deg, #007bff, #0056b3); /* Gradient for Export to CSV */
+}
+
+.export-csv-button:hover {
+    background: linear-gradient(90deg, #0056b3, #003f7f); /* Darker gradient on hover */
+}
+
+.expand-view-button {
+    background: linear-gradient(90deg, #17a2b8, #117a8b); /* Gradient for Expand View */
+}
+
+.expand-view-button:hover {
+    background: linear-gradient(90deg, #117a8b, #0d5c6b); /* Darker gradient on hover */
+}

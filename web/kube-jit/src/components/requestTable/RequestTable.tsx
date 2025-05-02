@@ -129,10 +129,8 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selec
                     <span className="ms-2">{variant === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
                 </div>
                 <div>
-                    <Button
-                        variant="secondary"
-                        size="sm"
-                        className="me-2"
+                    <button
+                        className="action-button clear-filters-button me-2"
                         onClick={() =>
                             setFilters({
                                 username: '',
@@ -147,13 +145,19 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selec
                         }
                     >
                         Clear Filters
-                    </Button>
-                    <Button variant="primary" size="sm" className="me-2" onClick={exportToCSV}>
+                    </button>
+                    <button
+                        className="action-button export-csv-button me-2"
+                        onClick={exportToCSV}
+                    >
                         Export to CSV
-                    </Button>
-                    <Button variant="info" size="sm" onClick={handleExpandToggle}>
+                    </button>
+                    <button
+                        className="action-button expand-view-button"
+                        onClick={handleExpandToggle}
+                    >
                         {isExpanded ? 'Collapse View' : 'Expand View'}
-                    </Button>
+                    </button>
                 </div>
             </div>
             {/* Display the number of results */}
