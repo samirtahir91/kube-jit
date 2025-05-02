@@ -22,6 +22,8 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
     const [limit, setLimit] = useState(1);
     const [startDate, setStartDate] = useState<Date | null>(null);
     const [endDate, setEndDate] = useState<Date | null>(null);
+    const [searchUserId, setSearchUserId] = useState(''); // New state for userID
+    const [searchUsername, setSearchUsername] = useState(''); // New state for username
     const [hasSearched, setHasSearched] = useState(false);
     const [variant, setVariant] = useState<'light' | 'dark'>('light');
     const [toggleVariantColour, setToggleVariant] = useState<'secondary' | 'dark'>('secondary');
@@ -31,7 +33,8 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
         try {
             const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/history`, {
                 params: {
-                    userID: userId,
+                    userID: isAdmin ? searchUserId : userId, // Use searchUserId if admin
+                    username: isAdmin ? searchUsername : undefined, // Use searchUsername if admin
                     limit: limit,
                     startDate: startDate ? startDate.toISOString() : undefined,
                     endDate: endDate ? endDate.toISOString() : undefined,
@@ -46,7 +49,7 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
         } finally {
             setLoadingInCard(false); // Stop loading
         }
-    }, [userId, setLoadingInCard]);
+    }, [userId, isAdmin, searchUserId, searchUsername, setLoadingInCard]);
 
     useEffect(() => {
         if (activeTab === 'history' && originTab === 'request') {
@@ -76,6 +79,32 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
                 </Alert>
             )}
             <Row className="mt-4">
+                {isAdmin && (
+                    <>
+                        <Col md={3}>
+                            <Form.Group controlId="searchUserId" className="text-start">
+                                <Form.Label>User ID</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    value={searchUserId}
+                                    onChange={(e) => setSearchUserId(e.target.value)}
+                                    placeholder="Enter User ID"
+                                />
+                            </Form.Group>
+                        </Col>
+                        <Col md={3}>
+                            <Form.Group controlId="searchUsername" className="text-start">
+                                <Form.Label>Username</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    value={searchUsername}
+                                    onChange={(e) => setSearchUsername(e.target.value)}
+                                    placeholder="Enter Username"
+                                />
+                            </Form.Group>
+                        </Col>
+                    </>
+                )}
                 <Col md={3}>
                     <Form.Group controlId="startDate" className="text-start">
                         <Form.Label>Start Date</Form.Label>

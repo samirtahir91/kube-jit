@@ -8,13 +8,12 @@ import { Request } from '../../types';
 import config from '../../config/config';
 
 type ApproveTabPaneProps = {
-    isAdmin: boolean;
     userId: string;
     username: string;
     setLoadingInCard: (loading: boolean) => void;
 };
 
-const ApproveTabPane = ({ isAdmin, userId, username, setLoadingInCard }: ApproveTabPaneProps) => {
+const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPaneProps) => {
     const [pendingRequests, setPendingRequests] = useState<Request[]>([]);
     const [selectedRequests, setSelectedRequests] = useState<number[]>([]);
     const [variant, setVariant] = useState<'light' | 'dark'>('light');

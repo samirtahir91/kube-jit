@@ -4,7 +4,7 @@ import "./App.css";
 import Profile from "./components/profile/Profile";
 import RequestTabPane from "./components/request/RequestTabPane";
 import Login from "./components/login/Login";
-import { Card, Nav, Tab } from "react-bootstrap";
+import { Card, Nav, Tab, Badge } from "react-bootstrap";
 import ApproveTabPane from "./components/approve/ApproveTabPane";
 import HistoryTabPane from "./components/history/HistoryTabPane";
 import axios from "axios";
@@ -143,7 +143,9 @@ function App() {
         return (
             <div>
                 <SyncLoader className="card-loader-container" color="#0494ba" size={20} loading={loadingInCard} />
-                <Profile user={data.userData} onSignOut={handleSignOut} />
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                    <Profile user={data.userData} onSignOut={handleSignOut} />
+                </div>
                 <Card className="d-flex justify-content-center align-items-start">
                     <Card.Body className="container">
                         <Tab.Container
@@ -151,7 +153,7 @@ function App() {
                             activeKey={activeTab}
                             onSelect={(selectedKey) => setActiveTab(selectedKey || "request")}
                         >
-                            <Nav variant="tabs">
+                            <Nav variant="tabs" className="d-flex align-items-center">
                                 <Nav.Item>
                                     <Nav.Link href="#requestJit" eventKey="request">
                                         Request
@@ -169,6 +171,20 @@ function App() {
                                         History
                                     </Nav.Link>
                                 </Nav.Item>
+                                {isAdmin && (
+                                    <Badge
+                                        bg="success"
+                                        className="ms-auto"
+                                        style={{
+                                            fontSize: "0.9rem",
+                                            padding: "0.3em 0.6em",
+                                            borderRadius: "0.5em",
+                                            height: "fit-content",
+                                        }}
+                                    >
+                                        Admin
+                                    </Badge>
+                                )}
                             </Nav>
                             <Tab.Content>
                                 <RequestTabPane
@@ -181,7 +197,6 @@ function App() {
                                 />
                                 {(isApprover || isAdmin) && (
                                     <ApproveTabPane
-                                        isAdmin={isAdmin}
                                         username={data.userData.name}
                                         userId={data.userData.id}
                                         setLoadingInCard={setLoadingInCard}

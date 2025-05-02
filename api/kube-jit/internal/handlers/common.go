@@ -171,12 +171,16 @@ func ApproveOrRejectRequests(c *gin.Context) {
 func GetRecords(c *gin.Context) {
 
 	// Check if the user is logged in
-	_, ok := checkLoggedIn(c)
+	sessionData, ok := checkLoggedIn(c)
 	if !ok {
 		return // The response has already been sent by CheckLoggedIn
 	}
 
+	// Check if the user is an admin
+	isAdmin, _ := sessionData["isAdmin"].(bool)
+
 	userID := c.Query("userID")       // Get userID from query parameters
+	username := c.Query("username")   // Get username from query parameters
 	limit := c.Query("limit")         // Get limit from query parameters
 	startDate := c.Query("startDate") // Get startDate from query parameters
 	endDate := c.Query("endDate")     // Get endDate from query parameters
@@ -189,13 +193,29 @@ func GetRecords(c *gin.Context) {
 		limitInt = 1 // Default to 1 if limit is not provided or invalid
 	}
 
-	// Build the query with optional date range filter
-	query := db.DB.Where("user_id = ?", userID).Order("created_at desc").Limit(limitInt)
+	// Build the query
+	query := db.DB.Order("created_at desc").Limit(limitInt)
+
+	// Apply filters based on admin status
+	if isAdmin {
+		// Allow filtering by userID or username if provided
+		if userID != "" {
+			query = query.Where("user_id = ?", userID)
+		}
+		if username != "" {
+			query = query.Where("username = ?", username)
+		}
+	} else {
+		// Non-admins can only see their own records
+		query = query.Where("user_id = ?", userID)
+	}
+
+	// Apply optional date range filter
 	if startDate != "" && endDate != "" {
 		query = query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
 	}
 
-	// Fetch the latest records based on the limit and date range
+	// Fetch the records
 	if err := query.Find(&requests).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
