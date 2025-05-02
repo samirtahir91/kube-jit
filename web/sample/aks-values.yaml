@@ -1,0 +1,11 @@
+nginx:
+  apiUrl: http://kube-jit-api.kube-jit-api:8589
+image:
+  repository: samirtahir91076/kube-jit-web
+  tag: v1.1.0
+
+service:
+  type: LoadBalancer
+  port: 80
+  containerPort: 80
+  annotations:

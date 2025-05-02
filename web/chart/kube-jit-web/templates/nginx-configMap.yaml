@@ -26,5 +26,10 @@ data:
           proxy_read_timeout      {{ .Values.nginx.proxyReadTimeout }};
       }
 
+      # Increase buffer sizes to handle large headers
+      proxy_buffer_size 16k;
+      proxy_buffers 4 32k;
+      proxy_busy_buffers_size 64k;
+
       include /etc/nginx/extra-conf.d/*.conf;
     }

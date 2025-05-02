@@ -40,7 +40,7 @@
     position: sticky; /* Sticky header */
     top: 0;
     background-color: #f8f9fa; /* Header background */
-    z-index: 2; /* Ensure it stays above other content */
+    /*z-index: 2; /* Ensure it stays above other content */
     text-align: left; /* Align text to the left */
 }
 
