@@ -115,6 +115,30 @@
     }
 }
 
+.request-page-container {
+    padding: 2rem;
+}
+
+.form-description {
+    text-align: left; /* Align text to the left */
+    margin-bottom: 2rem;
+}
+
+.form-title {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: #343a40;
+    margin-bottom: 0.5rem;
+}
+
+.form-subtitle {
+    font-size: 1rem;
+    color: #6c757d;
+    line-height: 1.5;
+    max-width: 600px;
+    margin: 0; /* Remove auto margin for left alignment */
+}
+
 @media (max-width: 768px) {
     .info-box {
         padding: 1rem; /* Reduce padding on smaller screens */
