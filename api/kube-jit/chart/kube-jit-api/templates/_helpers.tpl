@@ -83,9 +83,9 @@ name
 {{- end -}}
 
 {{/*
-Allowed approver teams configMap keys
+Allowed teams configMap keys
 */}}
-{{- define "allowedApproverTeamKeys" -}}
+{{- define "allowedTeamKeys" -}}
 name
 id
 {{- end -}}

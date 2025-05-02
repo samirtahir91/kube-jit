@@ -32,6 +32,7 @@ type Config struct {
 	Clusters      []ClusterConfig `yaml:"clusters"`
 	AllowedRoles  []models.Roles  `yaml:"allowedRoles"`
 	ApproverTeams []models.Team   `yaml:"allowedApproverTeams"`
+	AdminTeams    []models.Team   `yaml:"adminTeams"`
 }
 
 type ClusterConfig struct {
@@ -55,6 +56,7 @@ var (
 	ApiConfig      Config
 	AllowedRoles   []models.Roles
 	ApproverTeams  []models.Team
+	AdminTeams     []models.Team
 	ClusterNames   []string
 	ClusterConfigs = make(map[string]ClusterConfig)
 	apiNamespace   = os.Getenv("API_NAMESPACE")
@@ -121,6 +123,8 @@ func init() {
 	// Load allowedRoles and approverTeams
 	AllowedRoles = ApiConfig.AllowedRoles
 	ApproverTeams = ApiConfig.ApproverTeams
+	AdminTeams = ApiConfig.AdminTeams
+
 	fmt.Println("\nAllowed roles:")
 	for _, role := range AllowedRoles {
 		fmt.Printf("- %s\n", role.Name)
@@ -129,6 +133,11 @@ func init() {
 	for _, team := range ApproverTeams {
 		fmt.Printf("- %s (ID: %s)\n", team.Name, team.ID)
 	}
+	fmt.Println("\nAdmin teams:")
+	for _, team := range AdminTeams {
+		fmt.Printf("- %s (ID: %s)\n", team.Name, team.ID)
+	}
+
 }
 
 // getTokenFromSecret gets and returns the sa token from a k8s secret during init of kube configs

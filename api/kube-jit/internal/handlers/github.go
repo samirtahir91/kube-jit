@@ -28,12 +28,19 @@ func IsGithubApprover(c *gin.Context) {
 		return // The response has already been sent by CheckLoggedIn
 	}
 
-	// Check if isApprover and approverGroups are already in the session cookie
+	// Check if isApprover, isAdmin, approverGroups, and adminGroups are already in the session cookie
 	isApprover, isApproverOk := sessionData["isApprover"].(bool)
-	approverGroups, groupsOk := sessionData["approverGroups"]
-	if isApproverOk && groupsOk {
+	isAdmin, isAdminOk := sessionData["isAdmin"].(bool)
+	approverGroups, approverGroupsOk := sessionData["approverGroups"]
+	adminGroups, adminGroupsOk := sessionData["adminGroups"]
+	if isApproverOk && isAdminOk && approverGroupsOk && adminGroupsOk {
 		// Return cached values
-		c.JSON(http.StatusOK, gin.H{"isApprover": isApprover, "approverGroups": approverGroups})
+		c.JSON(http.StatusOK, gin.H{
+			"isApprover":     isApprover,
+			"approverGroups": approverGroups,
+			"isAdmin":        isAdmin,
+			"adminGroups":    adminGroups,
+		})
 		return
 	}
 
@@ -85,28 +92,44 @@ func IsGithubApprover(c *gin.Context) {
 		})
 	}
 
-	// Determine if the user is an approver
-	var matchedGroups []string
-	for _, userTeam := range userTeams {
-		for _, approverTeam := range k8s.ApproverTeams {
-			if userTeam.ID == approverTeam.ID && userTeam.Name == approverTeam.Name {
-				matchedGroups = append(matchedGroups, userTeam.ID)
+	// Check if the user belongs to any approver or admin groups
+	var matchedApproverGroups []string
+	var matchedAdminGroups []string
+	for _, group := range userTeams {
+		for _, approverGroup := range k8s.ApproverTeams {
+			if group.ID == approverGroup.ID && group.Name == approverGroup.Name {
+				matchedApproverGroups = append(matchedApproverGroups, group.ID)
+			}
+		}
+		for _, adminGroup := range k8s.AdminTeams {
+			if group.ID == adminGroup.ID && group.Name == adminGroup.Name {
+				matchedAdminGroups = append(matchedAdminGroups, group.ID)
 			}
 		}
 	}
 
-	isApprover = len(matchedGroups) > 0
+	isApprover = len(matchedApproverGroups) > 0
+	isAdmin = len(matchedAdminGroups) > 0
 
-	// Update the session data with isApprover and approverGroups
+	// Update the session data with isApprover, isAdmin, approverGroups, and adminGroups
 	sessionData["isApprover"] = isApprover
-	sessionData["approverGroups"] = matchedGroups
+	sessionData["approverGroups"] = matchedApproverGroups
+	sessionData["isAdmin"] = isAdmin
+	sessionData["adminGroups"] = matchedAdminGroups
+
+	// Save the updated session data
 	session.Set("data", sessionData)
 
 	// Split the session data into cookies
 	middleware.SplitSessionData(c)
 
 	// Respond with the result
-	c.JSON(http.StatusOK, gin.H{"isApprover": isApprover, "approverGroups": matchedGroups})
+	c.JSON(http.StatusOK, gin.H{
+		"isApprover":     isApprover,
+		"approverGroups": matchedApproverGroups,
+		"isAdmin":        isAdmin,
+		"adminGroups":    matchedAdminGroups,
+	})
 }
 
 // HandleGitHubLogin handles the GitHub OAuth callback

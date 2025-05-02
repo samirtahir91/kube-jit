@@ -38,12 +38,20 @@ config:
   #- name: edit
   #- name: admin
 
-  # List of allowed approver teams for jit requests (name and id as per github)
+  # List of allowed approver teams for jit requests (name and id)
   allowedApproverTeams: []
   #- name: "some approver team"
   #  id: 123
   #- name: "some approver team 2"
   #  id: 1234
+
+  # List of admin teams, they have additional access (name and id)
+  # This is used for the admin teams to have access to the api
+  adminTeams: []
+  # - name: "some admin team"
+  #   id: 123
+  # - name: "some admin team 2"
+  #   id: 1234
 
   # Cluster connector config for external clusters
   # name - the name of the cluster (can be any string you want to identify your cluster)
