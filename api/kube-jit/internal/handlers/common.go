@@ -263,6 +263,19 @@ func GetPendingApprovals(c *gin.Context) {
 		return // The response has already been sent by CheckLoggedIn
 	}
 
+	// Check if isAdmin is already in the session cookie
+	isAdmin, isAdminOk := sessionData["isAdmin"].(bool)
+	if isAdminOk && isAdmin {
+		// If the user is an admin, return all pending requests
+		var pendingRequests []models.RequestData
+		if err := db.DB.Where("status = ?", "Requested").Find(&pendingRequests).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"pendingRequests": pendingRequests})
+		return
+	}
+
 	// Retrieve approverGroups from the session
 	rawApproverGroups, ok := sessionData["approverGroups"]
 	if !ok {
