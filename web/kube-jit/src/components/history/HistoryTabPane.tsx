@@ -163,22 +163,23 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
                     </Form>
                 </Col>
                 <Col className="d-flex align-items-end">
-                    <Button variant="primary" onClick={handleSearch} className="mt-2">
+                    <Button
+                        className="search-button mt-2"
+                        onClick={handleSearch}
+                    >
                         Search
                     </Button>
                 </Col>
             </Row>
             {requests.length > 0 ? (
             <Col className="d-flex align-items-center mt-5">
-                <ToggleButton
-                    variant={toggleVariantColour}
+                <div
+                    className={`toggle-button ${variant === 'dark' ? 'dark' : ''}`}
                     onClick={toggleVariant}
-                    id={'light-dark'}
-                    value={variant}
                 >
-                    {/* Remove the text from inside the button */}
-                </ToggleButton>
-                <span className="ms-2">Light/Dark</span> {/* Add the text next to the button */}
+                    <div className="toggle-circle"></div>
+                </div>
+                <span className="ms-2">{variant === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
             </Col>
             ): ''
             }

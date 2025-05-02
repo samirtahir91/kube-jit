@@ -1,3 +1,65 @@
 .search-button {
-    width: 100%;
+    width: auto; /* Adjust width to fit content */
+    background: linear-gradient(90deg, #007bff, #0056b3); /* Gradient background */
+    color: #ffffff; /* White text */
+    border: none; /* Remove border */
+    border-radius: 6px; /* Slightly smaller rounded corners */
+    padding: 6px 12px; /* Reduce padding for a smaller button */
+    font-size: 14px; /* Smaller font size */
+    font-weight: 500; /* Medium font weight */
+    transition: all 0.3s ease; /* Smooth transition for hover effects */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.search-button:hover {
+    background: linear-gradient(90deg, #0056b3, #003f7f); /* Darker gradient on hover */
+    transform: translateY(-1px); /* Slight lift effect */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+}
+
+.search-button:active {
+    transform: translateY(0); /* Reset lift effect on click */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Reset shadow on click */
+}
+
+.toggle-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px; /* Adjust width for the toggle */
+    height: 25px; /* Adjust height for the toggle */
+    background: linear-gradient(90deg, #007bff, #0056b3); /* Gradient background */
+    border-radius: 50px; /* Fully rounded corners for a toggle switch */
+    border: none; /* Remove border */
+    position: relative; /* For positioning the toggle circle */
+    cursor: pointer; /* Pointer cursor on hover */
+    transition: all 0.3s ease; /* Smooth transition for hover and active effects */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.toggle-button:hover {
+    background: linear-gradient(90deg, #0056b3, #003f7f); /* Darker gradient on hover */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+}
+
+.toggle-button:active {
+    transform: scale(0.95); /* Slightly shrink on click */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Reset shadow on click */
+}
+
+.toggle-circle {
+    position: absolute;
+    top: 3px; /* Center the circle vertically */
+    left: 3px; /* Default position for light mode */
+    width: 20px; /* Circle size */
+    height: 20px; /* Circle size */
+    background: #ffffff; /* White circle */
+    border-radius: 50%; /* Fully rounded */
+    transition: all 0.3s ease; /* Smooth transition for movement */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+}
+
+.toggle-button.dark .toggle-circle {
+    left: 25px; /* Move the circle to the right for dark mode */
+    background: #f8f9fa; /* Light gray circle for dark mode */
 }
