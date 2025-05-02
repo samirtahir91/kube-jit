@@ -111,6 +111,25 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selec
     return (
         <div className="table-container">
             <div className="d-flex justify-content-end align-items-center mb-3">
+                <Button
+                    variant="secondary"
+                    size="sm"
+                    className="me-2" // Add spacing between buttons
+                    onClick={() =>
+                        setFilters({
+                            username: '',
+                            approvingTeamName: '',
+                            status: '',
+                            approverName: '',
+                            users: '',
+                            clusterName: '',
+                            namespaces: '',
+                            roleName: '',
+                        })
+                    }
+                >
+                    Clear Filters
+                </Button>
                 <Button variant="primary" size="sm" onClick={exportToCSV}>
                     Export to CSV
                 </Button>
