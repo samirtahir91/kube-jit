@@ -33,9 +33,4 @@ Poc option to toggle annotation ns approval.
 - think about logic in record here
 - requires cluster role on downstream clusters to get ns
 
-controller to watch namespaces
-- update JitGroups:
-  - remove deleted namespaces
-  - create/update namespaces
-
 api caches JitGroups, expires every 10m on, client connect, check expiry of JitGroups cache for the cluster, refetch if required.

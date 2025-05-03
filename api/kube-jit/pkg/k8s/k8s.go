@@ -52,6 +52,11 @@ type CachedClient struct {
 	TokenExpires int64 // Unix timestamp for token expiration
 }
 
+type JitGroupsCache struct {
+	JitGroups *unstructured.Unstructured
+	ExpiresAt int64 // Unix timestamp for cache expiration
+}
+
 var (
 	ApiConfig      Config
 	AllowedRoles   []models.Roles
@@ -67,6 +72,7 @@ var (
 		Resource: "jitrequests",
 	}
 	dynamicClientCache sync.Map
+	jitGroupsCache     sync.Map
 )
 
 // init loads clusters, roles and approver teams from configMap into global vars
@@ -164,6 +170,7 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 		}
 
 		log.Printf("Token expired for cluster: %s, refreshing client", req.ClusterName)
+		InvalidateJitGroupsCache(req.ClusterName) // Invalidate the JitGroups cache
 	}
 
 	// Get the cluster configuration
@@ -371,4 +378,90 @@ func CreateK8sObject(req models.RequestData, approverName string) error {
 
 	log.Printf("Successfully created k8s object for request ID: %d", req.ID)
 	return nil
+}
+
+// GetJitGroups retrieves the JitGroups for a cluster, using cache if available
+func GetJitGroups(clusterName string) (*unstructured.Unstructured, error) {
+	// Check if the cache exists
+	if cached, exists := jitGroupsCache.Load(clusterName); exists {
+		cache := cached.(*JitGroupsCache)
+		currentTime := time.Now().Unix()
+
+		// Check if the cache is still valid
+		if cache.ExpiresAt > currentTime {
+			log.Printf("Using cached JitGroups for cluster: %s", clusterName)
+			return cache.JitGroups, nil
+		}
+
+		log.Printf("JitGroups cache expired for cluster: %s, refreshing", clusterName)
+	}
+
+	// Fetch JitGroups from the cluster
+	jitGroups, err := fetchJitGroupsFromCluster(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the JitGroups with a 10-minute expiration
+	expiration := time.Now().Add(10 * time.Minute).Unix()
+	jitGroupsCache.Store(clusterName, &JitGroupsCache{
+		JitGroups: jitGroups,
+		ExpiresAt: expiration,
+	})
+
+	log.Printf("Cached JitGroups for cluster: %s", clusterName)
+	return jitGroups, nil
+}
+
+func fetchJitGroupsFromCluster(clusterName string) (*unstructured.Unstructured, error) {
+	dynamicClient := createDynamicClient(models.RequestData{ClusterName: clusterName})
+
+	// Query the JitGroups CRD
+	jitGroups, err := dynamicClient.Resource(schema.GroupVersionResource{
+		Group:    "jit.kubejit.io",
+		Version:  "v1",
+		Resource: "jitgroups",
+	}).Get(context.TODO(), "jitgroups", metav1.GetOptions{})
+	if err != nil {
+		log.Printf("Error fetching JitGroups for cluster %s: %v", clusterName, err)
+		return nil, fmt.Errorf("failed to fetch JitGroups for cluster %s", clusterName)
+	}
+
+	return jitGroups, nil
+}
+
+// InvalidateJitGroupsCache invalidates the JitGroups cache for a specific cluster
+func InvalidateJitGroupsCache(clusterName string) {
+	log.Printf("Invalidating JitGroups cache for cluster: %s", clusterName)
+	jitGroupsCache.Delete(clusterName)
+}
+
+// ValidateNamespaces checks if the given namespaces are valid for the cluster
+func ValidateNamespaces(clusterName string, namespaces []string) (map[string]string, error) {
+	// Fetch JitGroups from the cache or the cluster
+	jitGroups, err := GetJitGroups(clusterName)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching JitGroups: %v", err)
+	}
+
+	// Parse the JitGroups object
+	namespaceAnnotations := make(map[string]string)
+	groups, _, _ := unstructured.NestedSlice(jitGroups.Object, "spec", "groups")
+
+	for _, namespace := range namespaces {
+		found := false
+		for _, group := range groups {
+			groupMap := group.(map[string]interface{})
+			if groupMap["namespace"] == namespace {
+				namespaceAnnotations[namespace] = groupMap["id"].(string)
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("namespace %s does not exist in JitGroups", namespace)
+		}
+	}
+
+	return namespaceAnnotations, nil
 }
