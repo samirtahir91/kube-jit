@@ -20,26 +20,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // JitGroupCacheSpec defines the desired state of JitGroupCache.
 type JitGroupCacheSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// The JitGroups to
+	JitGroups []JitGroup `json:"jitGroups"`
+}
 
-	// Foo is an example field of JitGroupCache. Edit jitgroupcache_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+// JitGroup defines the group ID and namespace
+type JitGroup struct {
+	// The group ID
+	ID string `json:"bar"`
+	// The group namespace
+	Namespace string `json:"namespace"`
 }
 
 // JitGroupCacheStatus defines the observed state of JitGroupCache.
 type JitGroupCacheStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Cluster,shortName=kjitcache
 
 // JitGroupCache is the Schema for the jitgroupcaches API.
 type JitGroupCache struct {
