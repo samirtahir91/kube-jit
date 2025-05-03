@@ -32,5 +32,4 @@ Poc option to toggle annotation ns approval.
 - each group will need to approve
 - think about logic in record here
 - requires cluster role on downstream clusters to get ns
-
-api caches JitGroups, expires every 10m on, client connect, check expiry of JitGroups cache for the cluster, refetch if required.
+- nice alert on history and approver pages

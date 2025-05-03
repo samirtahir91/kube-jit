@@ -342,7 +342,14 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                     <td>{historicalRequest.namespaces ? historicalRequest.namespaces.join(', ') : 'N/A'}</td>
                                     <td>{historicalRequest.justification}</td>
                                     <td>{historicalRequest.roleName}</td>
-                                    <td>{new Date(historicalRequest.createdAt).toLocaleString()}</td>
+                                    <td>{new Date(historicalRequest.CreatedAt).toLocaleString(undefined, {
+                                                year: 'numeric',
+                                                month: 'numeric',
+                                                day: 'numeric',
+                                                hour: 'numeric',
+                                                minute: 'numeric',
+                                        })}
+                                    </td>
                                     <td>{historicalRequest.status}</td>
                                     <td>{historicalRequest.notes}</td>
                                 </tr>

@@ -96,10 +96,10 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
                     />
                 </button>
             </div>
-            {pendingRequests.length === 0 && (
+            {pendingRequests && pendingRequests.length === 0 && (
                 <p>No pending requests (hit refresh to check again).</p>
             )}
-            {pendingRequests.length > 0 && (
+            {pendingRequests && pendingRequests.length > 0 && (
                 <>
                     <RequestTable
                         setVariant={setVariant}

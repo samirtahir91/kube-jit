@@ -2,7 +2,7 @@ export type Request = {
     id: number;
     userID: string;
     username: string;
-    createdAt: string;
+    CreatedAt: string;
     updatedAt: string;
     startDate: string;
     endDate: string;
