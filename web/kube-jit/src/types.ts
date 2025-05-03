@@ -1,14 +1,14 @@
 export type Request = {
-    ID: number;
+    id: number;
     userID: string;
     username: string;
-    CreatedAt: string;
-    UpdatedAt: string;
+    createdAt: string;
+    updatedAt: string;
     startDate: string;
     endDate: string;
-    DeletedAt: string | null;
+    deletedAt: string | null;
     users: string[];
-    namespaces: Namespace[];
+    namespaces: string[];
     justification: string;
     clusterName: string;
     roleName: string;
@@ -26,28 +26,18 @@ export type UserData = {
 	email: string
 };
 
-type Namespace = {
-    namespace: string;
-    groupID: string;
-    approved: boolean;
-};
-
 export type PendingRequest = {
-    ID: number;
+    id: number;
     userID: string;
     username: string;
-    CreatedAt: string;
-    UpdatedAt: string;
     startDate: string;
     endDate: string;
     justification: string;
     clusterName: string;
     roleName: string;
-    status: string;
-    namespaces: string; // Single namespace
+    namespace: string;
     groupID: string; // Group ID for the namespace
     approved: boolean; // Approval status for the namespace
-    approverName: string;
     users: string[];
-    notes: string;
+    createdAt: string;
 };

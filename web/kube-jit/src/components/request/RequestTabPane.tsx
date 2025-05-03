@@ -8,10 +8,6 @@ import { Tag as ReactTag } from 'react-tag-input';
 import DatePicker from 'react-datepicker';
 import config from '../../config/config';
 
-type Group = {
-    id: number;
-    name: string;
-};
 
 type Role = {
     name: string;

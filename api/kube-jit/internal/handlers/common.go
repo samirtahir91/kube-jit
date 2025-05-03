@@ -195,6 +195,12 @@ func ApproveOrRejectRequests(c *gin.Context) {
 				req.FullyApproved = true
 
 				// Create the Kubernetes object for the request
+				var namespacesToSpec []string
+				for _, ns := range namespaces {
+					namespacesToSpec = append(namespacesToSpec, ns.Namespace)
+				}
+				// Create the k8s object
+				req.Namespaces = namespacesToSpec
 				if err := k8s.CreateK8sObject(req, approveReq.ApproverName); err != nil {
 					log.Printf("Error creating k8s object for request ID %d: %v", req.ID, err)
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create k8s object"})
@@ -386,6 +392,7 @@ func GetPendingApprovals(c *gin.Context) {
 		RoleName      string    `json:"roleName"`
 		Status        string    `json:"status"`
 		UserID        string    `json:"userID"`
+		Users         []string  `gorm:"type:jsonb;serializer:json" json:"users"`
 		Username      string    `json:"username"`
 		Justification string    `json:"justification"`
 		StartDate     time.Time `json:"startDate"`
@@ -393,6 +400,7 @@ func GetPendingApprovals(c *gin.Context) {
 		Namespace     string    `json:"namespace"`
 		GroupID       string    `json:"groupID"`
 		Approved      bool      `json:"approved"`
+		CreatedAt     time.Time `json:"createdAt"`
 	}
 
 	var pendingRequests []PendingRequest
@@ -400,7 +408,21 @@ func GetPendingApprovals(c *gin.Context) {
 	db.DB = db.DB.Debug()
 	if err := db.DB.
 		Table("request_data").
-		Select("request_data.id, request_data.cluster_name, request_data.role_name, request_data.status, request_data.user_id, request_data.username, request_data.justification, request_data.start_date, request_data.end_date, request_namespaces.namespace, request_namespaces.group_id, request_namespaces.approved").
+		Select(
+			"request_data.id, "+
+				"request_data.cluster_name, "+
+				"request_data.role_name, "+
+				"request_data.user_id, "+
+				"request_data.username, "+
+				"request_data.justification, "+
+				"request_data.start_date, "+
+				"request_data.end_date, "+
+				"request_data.created_at, "+
+				"request_data.users, "+
+				"request_namespaces.namespace, "+
+				"request_namespaces.group_id, "+
+				"request_namespaces.approved",
+		).
 		Joins("JOIN request_namespaces ON request_namespaces.request_id = request_data.id").
 		Where("request_namespaces.group_id IN (?) AND request_data.status = ?", approverGroups, "Requested").
 		Scan(&pendingRequests).Error; err != nil {
