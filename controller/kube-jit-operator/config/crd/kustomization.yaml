@@ -4,6 +4,7 @@
 resources:
 - bases/jit.kubejit.io_jitrequests.yaml
 - bases/jit.kubejit.io_kubejitconfigs.yaml
+- bases/jit.kubejit.io_jitgroupcaches.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

@@ -26,4 +26,13 @@ resources:
   kind: KubeJitConfig
   path: kube-jit-operator/api/v1
   version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: kubejit.io
+  group: jit
+  kind: JitGroupCache
+  path: kube-jit-operator/api/v1
+  version: v1
 version: "3"

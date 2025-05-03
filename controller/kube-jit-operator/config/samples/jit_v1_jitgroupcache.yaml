@@ -1,0 +1,9 @@
+apiVersion: jit.kubejit.io/v1
+kind: JitGroupCache
+metadata:
+  labels:
+    app.kubernetes.io/name: kube-jit-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: jitgroupcache-sample
+spec:
+  # TODO(user): Add fields here

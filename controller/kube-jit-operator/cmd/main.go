@@ -246,6 +246,13 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeJitConfig")
 		os.Exit(1)
 	}
+	if err = (&controller.JitGroupCacheReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "JitGroupCache")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	if metricsCertWatcher != nil {
