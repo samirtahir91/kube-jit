@@ -2,7 +2,7 @@ import "./RequestTabPane.css"
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Select, { SingleValue } from 'react-select';
-import { Form, Button, Tab, Row, Col, Alert, Modal } from 'react-bootstrap';
+import { Form, Button, Tab, Row, Col, Modal } from 'react-bootstrap';
 import InputTag from "../inputTag/InputTag";
 import { Tag as ReactTag } from 'react-tag-input';
 import DatePicker from 'react-datepicker';
@@ -26,16 +26,14 @@ type RequestTabPaneProps = {
     setActiveTab: (tab: string) => void;
     setOriginTab: (tab: string) => void;
     setLoadingInCard: (tab: boolean) => void;
-    approverGroups: Group[];
     userId: string;
     username: string;
 };
 
-const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, setActiveTab, setOriginTab }: RequestTabPaneProps) => {
+const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setOriginTab }: RequestTabPaneProps) => {
     const [roles, setRoles] = useState<Role[]>([]);
     const [clusters, setClusters] = useState<string[]>([]);
     const [showModal, setShowModal] = useState(false);
-    const [selectedGroup, setSelectedGroup] = useState<SingleValue<OptionType>>(null);
     const [selectedRole, setSelectedRole] = useState<SingleValue<OptionType>>(null);
     const [selectedCluster, setSelectedCluster] = useState<SingleValue<OptionType>>(null);
     const [startDate, setStartDate] = useState<Date | null>(null);
@@ -98,7 +96,6 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
             users,
             cluster: selectedCluster ? { name: selectedCluster.label } : null,
             namespaces,
-            approvingTeam: selectedGroup ? { id: selectedGroup.value, name: selectedGroup.label } : null,
             role: selectedRole ? { name: selectedRole.label } : null,
             requestorId: userId.toString(),
             requestorName: username,
@@ -115,7 +112,6 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
             setShowModal(false);
             setSuccessMessage(response.data.message);
             setErrorMessage(''); // Clear any previous error message
-            setSelectedGroup(null); // Clear the selected group
             setSelectedRole(null); // Clear the selected role
             setSelectedCluster(null); // Clear the cluster
             setNamespaces([]); // Clear the namespace
@@ -218,20 +214,6 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
                                     onChange={(e) => setJustification(e.target.value)}
                                 />
                             </Form.Group>
-                            <Form.Group controlId="approvingTeam" className="mb-3">
-                                <Form.Label>Approving Team</Form.Label>
-                                <Select
-                                    inputId="approvingTeam"
-                                    name="approvingTeam"
-                                    options={approverGroups.map(group => ({
-                                        value: group.id,
-                                        label: group.name
-                                    }))}
-                                    isSearchable
-                                    onChange={(selectedOption) => setSelectedGroup(selectedOption)}
-                                    value={selectedGroup}
-                                />
-                            </Form.Group>
                             <Form.Group controlId="role" className="mb-3">
                                 <Form.Label>Role</Form.Label>
                                 <Select
@@ -314,7 +296,6 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
                                 type="submit"
                                 className="w-100 submit-button"
                                 disabled={
-                                    !selectedGroup ||
                                     !selectedRole ||
                                     !selectedCluster ||
                                     users.length < 1 ||
@@ -347,7 +328,6 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
                                     <li><strong>Cluster:</strong> Select the cluster you are requesting access for.</li>
                                     <li><strong>Namespaces:</strong> Enter the Namespaces you are requesting access for (use comma/enter/space for a new namespace).</li>
                                     <li><strong>Justification:</strong> Enter the reason/ticket reference for the access request.</li>
-                                    <li><strong>Approving Team:</strong> Select the team responsible for approving your request.</li>
                                     <li><strong>Role:</strong> Select the role you are requesting access for.</li>
                                     <li><strong>Start Date:</strong> Select the date/time you want the access to begin.</li>
                                     <li><strong>End Date:</strong> Select the date/time you want the access to end.</li>
@@ -376,9 +356,6 @@ const RequestTabPane = ({ username, userId, approverGroups, setLoadingInCard, se
                             {namespaces.map((namespace) => (
                                 <div key={namespace}>{namespace}</div>
                             ))}
-                        </div>
-                        <div>
-                            <strong>Approving Team:</strong> {selectedGroup ? selectedGroup.label : 'Not selected'}
                         </div>
                         <div>
                             <strong>Role:</strong> {selectedRole ? selectedRole.label : 'Not selected'}

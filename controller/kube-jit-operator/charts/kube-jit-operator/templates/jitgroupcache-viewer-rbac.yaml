@@ -1,0 +1,21 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "kube-jit-operator.fullname" . }}-jitgroupcache-viewer-role
+  labels:
+  {{- include "kube-jit-operator.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - jit.kubejit.io
+  resources:
+  - jitgroupcaches
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - jit.kubejit.io
+  resources:
+  - jitgroupcaches/status
+  verbs:
+  - get

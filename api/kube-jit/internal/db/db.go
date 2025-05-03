@@ -56,10 +56,11 @@ func InitDB() {
 
 	// Auto migrate the schema
 	log.Println("Migrating database schema...")
-	err = DB.AutoMigrate(&models.RequestData{})
+	err = DB.AutoMigrate(&models.RequestData{}, &models.RequestNamespace{})
 	if err != nil {
 		log.Fatalf("Error migrating database: %v", err)
 	}
+
 	log.Println("Database schema migrated successfully")
 }
 

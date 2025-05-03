@@ -7,11 +7,9 @@ export type Request = {
     startDate: string;
     endDate: string;
     DeletedAt: string | null;
-    approvingTeamID: string; // Use string for consistency
     users: string[];
-    namespaces: string[];
+    namespaces: Namespace[];
     justification: string;
-    approvingTeamName: string;
     clusterName: string;
     roleName: string;
     status: string;
@@ -26,4 +24,30 @@ export type UserData = {
 	id: string;
 	provider: string;
 	email: string
+};
+
+type Namespace = {
+    namespace: string;
+    groupID: string;
+    approved: boolean;
+};
+
+export type PendingRequest = {
+    ID: number;
+    userID: string;
+    username: string;
+    CreatedAt: string;
+    UpdatedAt: string;
+    startDate: string;
+    endDate: string;
+    justification: string;
+    clusterName: string;
+    roleName: string;
+    status: string;
+    namespaces: string; // Single namespace
+    groupID: string; // Group ID for the namespace
+    approved: boolean; // Approval status for the namespace
+    approverName: string;
+    users: string[];
+    notes: string;
 };

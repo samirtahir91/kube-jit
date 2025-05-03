@@ -12,14 +12,10 @@ import { SyncLoader } from "react-spinners";
 import { UserData } from "./types";
 import config from "./config/config";
 
+
 type ApiResponse = {
     userData: UserData;
     expiresIn: number;
-};
-
-type Group = {
-    id: number;
-    name: string;
 };
 
 function App() {
@@ -29,7 +25,6 @@ function App() {
     const [login, setLogin] = useState(false);
     const [activeTab, setActiveTab] = useState<string>("request");
     const [originTab, setOriginTab] = useState<string>("");
-    const [approverGroups, setApproverGroups] = useState<Group[]>([]);
     const [isApprover, setIsApprover] = useState<boolean>(false);
     const [isAdmin, setIsAdmin] = useState<boolean>(false);
     const navigate = useNavigate();
@@ -51,18 +46,6 @@ function App() {
         setData(null);
         setLogin(true);
         navigate("/"); // Redirect to the login page
-    };
-
-    // Define fetchGroups outside useEffect
-    const fetchGroups = async () => {
-        try {
-            const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/approving-groups`, {
-                withCredentials: true,
-            });
-            setApproverGroups(response.data);
-        } catch (error) {
-            console.error("Error fetching approver groups:", error);
-        }
     };
 
     // Define checkPermissions outside useEffect
@@ -124,7 +107,6 @@ function App() {
             if (provider) {
                 const fetchApproverAndGroups = async () => {
                     await checkPermissions(provider);
-                    await fetchGroups();
                 };
                 fetchApproverAndGroups();
             }
@@ -139,7 +121,7 @@ function App() {
         );
     }
 
-    if (data && data.userData && approverGroups.length > 0) {
+    if (data && data.userData) {
         return (
             <div>
                 <SyncLoader className="card-loader-container" color="#0494ba" size={20} loading={loadingInCard} />
@@ -190,7 +172,6 @@ function App() {
                                 <RequestTabPane
                                     username={data.userData.name}
                                     userId={data.userData.id}
-                                    approverGroups={approverGroups}
                                     setActiveTab={setActiveTab}
                                     setOriginTab={setOriginTab}
                                     setLoadingInCard={setLoadingInCard}

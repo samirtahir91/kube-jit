@@ -57,6 +57,13 @@ type JitGroupsCache struct {
 	ExpiresAt int64 // Unix timestamp for cache expiration
 }
 
+type JitGroup struct {
+	// The group ID
+	GroupID string `json:"groupID"`
+	// The group namespace
+	Namespace string `json:"namespace"`
+}
+
 var (
 	ApiConfig      Config
 	AllowedRoles   []models.Roles
@@ -420,8 +427,8 @@ func fetchJitGroupsFromCluster(clusterName string) (*unstructured.Unstructured, 
 	jitGroups, err := dynamicClient.Resource(schema.GroupVersionResource{
 		Group:    "jit.kubejit.io",
 		Version:  "v1",
-		Resource: "jitgroups",
-	}).Get(context.TODO(), "jitgroups", metav1.GetOptions{})
+		Resource: "jitgroupcaches",
+	}).Get(context.TODO(), "jitgroupcache", metav1.GetOptions{}) // Static name for the JitGroupCache object is 'jitgroupcache
 	if err != nil {
 		log.Printf("Error fetching JitGroups for cluster %s: %v", clusterName, err)
 		return nil, fmt.Errorf("failed to fetch JitGroups for cluster %s", clusterName)
@@ -451,9 +458,19 @@ func ValidateNamespaces(clusterName string, namespaces []string) (map[string]str
 	for _, namespace := range namespaces {
 		found := false
 		for _, group := range groups {
-			groupMap := group.(map[string]interface{})
-			if groupMap["namespace"] == namespace {
-				namespaceAnnotations[namespace] = groupMap["id"].(string)
+			// Convert the group to a JitGroup struct
+			groupMap, ok := group.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("invalid group format in JitGroups")
+			}
+
+			jitGroup := JitGroup{
+				GroupID:   groupMap["groupID"].(string),
+				Namespace: groupMap["namespace"].(string),
+			}
+
+			if jitGroup.Namespace == namespace {
+				namespaceAnnotations[namespace] = jitGroup.GroupID
 				found = true
 				break
 			}

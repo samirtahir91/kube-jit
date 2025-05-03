@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
-import { Alert, Button, Form, Col, Row, ToggleButton } from 'react-bootstrap';
+import { Alert, Button, Form, Col, Row } from 'react-bootstrap';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import './HistoryTabPane.css';
@@ -26,19 +26,19 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
     const [searchUsername, setSearchUsername] = useState(''); // New state for username
     const [hasSearched, setHasSearched] = useState(false);
     const [variant, setVariant] = useState<'light' | 'dark'>('light');
-    const [toggleVariantColour, setToggleVariant] = useState<'secondary' | 'dark'>('secondary');
 
     const fetchRequests = useCallback(async (limit: number, startDate: Date | null, endDate: Date | null) => {
         setLoadingInCard(true); // Start loading
         try {
             const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/history`, {
-                params: {
-                    userID: isAdmin ? searchUserId : userId, // Use searchUserId if admin
-                    username: isAdmin ? searchUsername : undefined, // Use searchUsername if admin
-                    limit: limit,
-                    startDate: startDate ? startDate.toISOString() : undefined,
-                    endDate: endDate ? endDate.toISOString() : undefined,
-                },
+                params:
+                    {
+                        userID: isAdmin ? searchUserId : userId, // Use searchUserId if admin
+                        username: isAdmin ? searchUsername : undefined, // Use searchUsername if admin
+                        limit: limit,
+                        startDate: startDate ? startDate.toISOString() : undefined,
+                        endDate: endDate ? endDate.toISOString() : undefined,
+                    },
                 withCredentials: true
             });
             setRequests(response.data);
@@ -65,11 +65,6 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
     if (activeTab !== 'history') {
         return null; // Do not render anything if the active tab is not 'history'
     }
-
-    const toggleVariant = () => {
-        setVariant(prevVariant => (prevVariant === 'light' ? 'dark' : 'light'));
-        setToggleVariant(prevVariant => (prevVariant === 'secondary' ? 'dark' : 'secondary'));
-    };
 
     return (
         <>
@@ -174,12 +169,13 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
             {requests.length > 0 ? (
                 <RequestTable
                     variant={variant}
-                    setVariant={setVariant} // Pass the setter for the variant
-                    requests={requests} 
-                    selectable={false} // No select column in history tab
+                    setVariant={setVariant}
+                    requests={requests}
+                    mode="history" // Specify mode for historical requests
+                    selectable={false}
                     selectedRequests={[]}
-                    handleSelectRequest={() => {}} // No-op handler
-                /> 
+                    handleSelectRequest={() => {}}
+                />
             ) : (
                 hasSearched && (
                     <Alert variant="info" className="mt-3">

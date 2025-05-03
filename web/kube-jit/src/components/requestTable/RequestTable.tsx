@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Table, Button } from 'react-bootstrap';
+import { Table } from 'react-bootstrap';
 import './RequestTable.css';
+import { PendingRequest } from '../../types'; // Import the shared PendingRequest type
 
 
 type Request = {
@@ -12,11 +13,9 @@ type Request = {
     startDate: string;
     endDate: string;
     DeletedAt: string | null;
-    approvingTeamID: string;
     users: string[];
-    namespaces: string[];
+    namespaces: { namespace: string; approved: boolean; groupID: string }[]; // Updated type for namespaces
     justification: string;
-    approvingTeamName: string;
     clusterName: string;
     roleName: string;
     status: string;
@@ -26,15 +25,16 @@ type Request = {
 };
 
 type RequestTableProps = {
-    requests: Request[];
+    requests: Request[] | PendingRequest[];
+    mode: 'pending' | 'history'; // Add mode to differentiate between tabs
     selectable: boolean;
     selectedRequests: number[];
     handleSelectRequest: (id: number) => void;
     variant: 'light' | 'dark';
-    setVariant: (variant: 'light' | 'dark') => void; // Add a setter for the variant
+    setVariant: (variant: 'light' | 'dark') => void;
 };
 
-const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selectedRequests, handleSelectRequest, variant, setVariant }) => {
+const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable, selectedRequests, handleSelectRequest, variant, setVariant }) => {
     const [filters, setFilters] = useState({
         username: '',
         approvingTeamName: '',
@@ -57,23 +57,35 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selec
     };
 
     const filteredRequests = requests.filter(request => {
-        return (
-            (filters.username === '' || request.username.toLowerCase().includes(filters.username.toLowerCase())) &&
-            (filters.approvingTeamName === '' || request.approvingTeamName.toLowerCase().includes(filters.approvingTeamName.toLowerCase())) &&
-            (filters.status === '' || request.status.toLowerCase().includes(filters.status.toLowerCase())) &&
-            (filters.approverName === '' || request.approverName.toLowerCase().includes(filters.approverName.toLowerCase())) &&
-            (filters.users === '' || request.users.some(user => user.toLowerCase().includes(filters.users.toLowerCase()))) &&
-            (filters.clusterName === '' || request.clusterName.toLowerCase().includes(filters.clusterName.toLowerCase())) &&
-            (filters.namespaces === '' || request.namespaces.some(namespace => namespace.toLowerCase().includes(filters.namespaces.toLowerCase()))) &&
-            (filters.roleName === '' || request.roleName.toLowerCase().includes(filters.roleName.toLowerCase()))
-        );
+        if (mode === 'pending') {
+            const pendingRequest = request as PendingRequest;
+            return (
+                (filters.username === '' || request.username.toLowerCase().includes(filters.username.toLowerCase())) &&
+                (filters.status === '' || request.status.toLowerCase().includes(filters.status.toLowerCase())) &&
+                (filters.approverName === '' || request.approverName.toLowerCase().includes(filters.approverName.toLowerCase())) &&
+                (filters.users === '' || request.users.some(user => user.toLowerCase().includes(filters.users.toLowerCase()))) &&
+                (filters.clusterName === '' || request.clusterName.toLowerCase().includes(filters.clusterName.toLowerCase())) &&
+                (filters.roleName === '' || request.roleName.toLowerCase().includes(filters.roleName.toLowerCase())) &&
+                (filters.namespaces === '' || pendingRequest.namespaces.toLowerCase().includes(filters.namespaces.toLowerCase()))
+            );
+        } else {
+            const historicalRequest = request as Request;
+            return (
+                (filters.username === '' || request.username.toLowerCase().includes(filters.username.toLowerCase())) &&
+                (filters.status === '' || request.status.toLowerCase().includes(filters.status.toLowerCase())) &&
+                (filters.approverName === '' || request.approverName.toLowerCase().includes(filters.approverName.toLowerCase())) &&
+                (filters.users === '' || request.users.some(user => user.toLowerCase().includes(filters.users.toLowerCase()))) &&
+                (filters.clusterName === '' || request.clusterName.toLowerCase().includes(filters.clusterName.toLowerCase())) &&
+                (filters.roleName === '' || request.roleName.toLowerCase().includes(filters.roleName.toLowerCase())) &&
+                (filters.namespaces === '' || historicalRequest.namespaces.some(ns => ns.namespace.toLowerCase().includes(filters.namespaces.toLowerCase())))
+            );
+        }
     });
 
     const exportToCSV = () => {
         const headers = [
             'ID',
             'Username',
-            'Approving Team',
             'Approver',
             'Users',
             'Cluster',
@@ -89,11 +101,10 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selec
         const rows = filteredRequests.map(request => [
             request.ID,
             request.username,
-            request.approvingTeamName,
             request.approverName,
             request.users.join(', '),
             request.clusterName,
-            request.namespaces.join(', '),
+            request.namespaces,
             request.roleName,
             request.status,
             new Date(request.startDate).toLocaleString(),
@@ -181,16 +192,6 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selec
                             />
                         </th>
                         <th className="table-colour">
-                            Approving Team
-                            <input
-                                type="text"
-                                placeholder="Filter"
-                                className="form-control form-control-sm mt-1"
-                                value={filters.approvingTeamName}
-                                onChange={(e) => handleFilterChange(e, 'approvingTeamName')}
-                            />
-                        </th>
-                        <th className="table-colour">
                             Approver
                             <input
                                 type="text"
@@ -261,35 +262,93 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, selectable, selec
                     </tr>
                 </thead>
                 <tbody>
-                    {filteredRequests.map(request => (
-                        <tr key={request.ID}>
-                            {selectable && (
-                                <td>
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedRequests.includes(request.ID)}
-                                        onChange={() => handleSelectRequest(request.ID)}
-                                    />
-                                </td>
-                            )}
-                            <td>{request.ID}</td>
-                            <td>
-                                {new Date(request.startDate).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' })} -{' '}
-                                {new Date(request.endDate).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
-                            </td>
-                            <td>{request.username}</td>
-                            <td>{request.approvingTeamName}</td>
-                            <td>{request.approverName}</td>
-                            <td>{request.users.join(', ')}</td>
-                            <td>{request.clusterName}</td>
-                            <td>{request.namespaces.join(', ')}</td>
-                            <td>{request.justification}</td>
-                            <td>{request.roleName}</td>
-                            <td>{new Date(request.CreatedAt).toLocaleString()}</td>
-                            <td>{request.status}</td>
-                            <td>{request.notes}</td>
-                        </tr>
-                    ))}
+                    {filteredRequests.map(request => {
+                        if (mode === 'pending') {
+                            const pendingRequest = request as PendingRequest;
+                            return (
+                                <tr key={pendingRequest.ID}>
+                                    {selectable && (
+                                        <td>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedRequests.includes(pendingRequest.ID)}
+                                                onChange={() => handleSelectRequest(pendingRequest.ID)}
+                                            />
+                                        </td>
+                                    )}
+                                    <td>{pendingRequest.ID}</td>
+                                    <td>
+                                        {new Date(pendingRequest.startDate).toLocaleString(undefined, {
+                                            year: 'numeric',
+                                            month: 'numeric',
+                                            day: 'numeric',
+                                            hour: 'numeric',
+                                            minute: 'numeric',
+                                        })}{' '}
+                                        -{' '}
+                                        {new Date(pendingRequest.endDate).toLocaleString(undefined, {
+                                            year: 'numeric',
+                                            month: 'numeric',
+                                            day: 'numeric',
+                                            hour: 'numeric',
+                                            minute: 'numeric',
+                                        })}
+                                    </td>
+                                    <td>{pendingRequest.username}</td>
+                                    <td>{pendingRequest.approverName}</td>
+                                    <td>{pendingRequest.users.join(', ')}</td>
+                                    <td>{pendingRequest.clusterName}</td>
+                                    <td>
+                                        {pendingRequest.namespaces} ({pendingRequest.groupID}) -{' '}
+                                        {pendingRequest.approved ? 'Approved' : 'Pending'}
+                                    </td>
+                                    <td>{pendingRequest.justification}</td>
+                                    <td>{pendingRequest.roleName}</td>
+                                    <td>{new Date(pendingRequest.CreatedAt).toLocaleString()}</td>
+                                    <td>{pendingRequest.status}</td>
+                                    <td>{pendingRequest.notes}</td>
+                                </tr>
+                            );
+                        } else {
+                            const historicalRequest = request as Request;
+                            return (
+                                <tr key={historicalRequest.ID}>
+                                    <td>{historicalRequest.ID}</td>
+                                    <td>
+                                        {new Date(historicalRequest.startDate).toLocaleString(undefined, {
+                                            year: 'numeric',
+                                            month: 'numeric',
+                                            day: 'numeric',
+                                            hour: 'numeric',
+                                            minute: 'numeric',
+                                        })}{' '}
+                                        -{' '}
+                                        {new Date(historicalRequest.endDate).toLocaleString(undefined, {
+                                            year: 'numeric',
+                                            month: 'numeric',
+                                            day: 'numeric',
+                                            hour: 'numeric',
+                                            minute: 'numeric',
+                                        })}
+                                    </td>
+                                    <td>{historicalRequest.username}</td>
+                                    <td>{historicalRequest.approverName}</td>
+                                    <td>{historicalRequest.users.join(', ')}</td>
+                                    <td>{historicalRequest.clusterName}</td>
+                                    <td>
+                                        {historicalRequest.namespaces
+                                            .map(ns => `${ns.namespace} (${ns.groupID})`)
+                                            .join(', ')}
+                                    </td>
+                                    <td>{historicalRequest.justification}</td>
+                                    <td>{historicalRequest.roleName}</td>
+                                    <td>{new Date(historicalRequest.CreatedAt).toLocaleString()}</td>
+                                    <td>{historicalRequest.status}</td>
+                                    <td>{historicalRequest.notes}</td>
+                                </tr>
+                            );
+                        }
+                    })}
                 </tbody>
             </Table>
         </div>

@@ -25,21 +25,29 @@ type Cluster struct {
 // RequestData represents a JIT request
 type RequestData struct {
 	gorm.Model
-	ApprovingTeamID   string    `json:"approvingTeamID"`
-	ApprovingTeamName string    `json:"approvingTeamName"`
-	ApproverID        string    `json:"approverID"`
-	ApproverName      string    `json:"approverName"`
-	ClusterName       string    `json:"clusterName"`
-	RoleName          string    `json:"roleName"`
-	Status            string    `json:"status"`
-	Notes             string    `json:"notes"`
-	UserID            string    `json:"userID"`
-	Username          string    `json:"username"`
-	Users             []string  `gorm:"type:jsonb;serializer:json" json:"users"`
-	Namespaces        []string  `gorm:"type:jsonb;serializer:json" json:"namespaces"`
-	Justification     string    `json:"justification"`
-	StartDate         time.Time `json:"startDate"`
-	EndDate           time.Time `json:"endDate"`
+	ApproverID    string    `json:"approverID"`
+	ApproverName  string    `json:"approverName"`
+	ClusterName   string    `json:"clusterName"`
+	RoleName      string    `json:"roleName"`
+	Status        string    `json:"status"`
+	Notes         string    `json:"notes"`
+	UserID        string    `json:"userID"`
+	Username      string    `json:"username"`
+	Users         []string  `gorm:"type:jsonb;serializer:json" json:"users"`
+	Namespaces    []string  `gorm:"type:jsonb;serializer:json" json:"namespaces"`
+	Justification string    `json:"justification"`
+	StartDate     time.Time `json:"startDate"`
+	EndDate       time.Time `json:"endDate"`
+	FullyApproved bool      `gorm:"default:false"`
+}
+
+// RequestNamespace represents the namespace-level approval tracking
+type RequestNamespace struct {
+	ID        uint   `gorm:"primaryKey"`
+	RequestID uint   `gorm:"not null;index"`
+	Namespace string `gorm:"not null"`
+	GroupID   string `gorm:"not null"`
+	Approved  bool   `gorm:"default:false"`
 }
 
 // GitHubTokenResponse represents the response from GitHub's OAuth token endpoint

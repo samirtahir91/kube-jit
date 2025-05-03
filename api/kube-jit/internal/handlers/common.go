@@ -114,9 +114,8 @@ func K8sCallback(c *gin.Context) {
 // It creates the k8s object for each request if status is Approved
 // It updates the status of the requests in the database
 func ApproveOrRejectRequests(c *gin.Context) {
-
 	// Check if the user is logged in
-	_, ok := checkLoggedIn(c)
+	sessionData, ok := checkLoggedIn(c)
 	if !ok {
 		return // The response has already been sent by CheckLoggedIn
 	}
@@ -135,35 +134,90 @@ func ApproveOrRejectRequests(c *gin.Context) {
 		return
 	}
 
-	// If status is "Approved", create the k8s object for each request
-	if approveReq.Status == "Approved" {
-		for _, req := range approveReq.Requests {
-			if err := k8s.CreateK8sObject(req, approveReq.ApproverName); err != nil {
-				log.Printf("Error creating k8s object for request ID %d: %v", req.ID, err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create k8s object"})
-				return
-			}
-		}
-	}
-
-	// Extract request IDs for bulk update
-	requestIDs := make([]uint, len(approveReq.Requests))
-	for i, req := range approveReq.Requests {
-		requestIDs[i] = req.ID
-	}
-	// Update the status of the requests to "Approved or Rejected"
-	if err := db.DB.Model(&models.RequestData{}).Where("id IN ?", requestIDs).Updates(map[string]interface{}{
-		"status":        approveReq.Status,
-		"approver_id":   approveReq.ApproverID,
-		"approver_name": approveReq.ApproverName,
-	}).Error; err != nil {
-		log.Printf("Error updating requests: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to approve requests (database error)"})
+	// Retrieve approverGroups from the session
+	rawApproverGroups, ok := sessionData["approverGroups"]
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
 		return
 	}
 
-	log.Printf("Approved requests: %v", requestIDs)
-	c.JSON(http.StatusOK, gin.H{"message": "Requests approved successfully"})
+	// Convert approverGroups to a slice of strings
+	approverGroups := []string{}
+	if rawGroups, ok := rawApproverGroups.([]interface{}); ok {
+		for _, group := range rawGroups {
+			if groupStr, ok := group.(string); ok {
+				approverGroups = append(approverGroups, groupStr)
+			}
+		}
+	} else if rawGroups, ok := rawApproverGroups.([]string); ok {
+		approverGroups = rawGroups
+	}
+
+	if len(approverGroups) == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
+		return
+	}
+
+	for _, req := range approveReq.Requests {
+		// Approve namespaces for the request
+		if approveReq.Status == "Approved" {
+			var namespaces []models.RequestNamespace
+			if err := db.DB.Where("request_id = ?", req.ID).Find(&namespaces).Error; err != nil {
+				log.Printf("Error fetching namespaces for request ID %d: %v", req.ID, err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch namespaces"})
+				return
+			}
+
+			// Check if all namespaces are approved
+			allApproved := true
+			for _, ns := range namespaces {
+				// Ensure the approver belongs to the group responsible for the namespace
+				if contains(approverGroups, ns.GroupID) {
+					ns.Approved = true
+					if err := db.DB.Save(&ns).Error; err != nil {
+						log.Printf("Error updating namespace approval: %v", err)
+						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update namespace approval"})
+						return
+					}
+				} else {
+					log.Printf("Approver does not belong to group %s for namespace %s", ns.GroupID, ns.Namespace)
+					c.JSON(http.StatusForbidden, gin.H{"error": fmt.Sprintf("Unauthorized to approve namespace %s", ns.Namespace)})
+					return
+				}
+
+				if !ns.Approved {
+					allApproved = false
+				}
+			}
+
+			// If all namespaces are approved, mark the request as fully approved
+			if allApproved {
+				req.FullyApproved = true
+
+				// Create the Kubernetes object for the request
+				if err := k8s.CreateK8sObject(req, approveReq.ApproverName); err != nil {
+					log.Printf("Error creating k8s object for request ID %d: %v", req.ID, err)
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create k8s object"})
+					return
+				}
+			}
+		}
+
+		// Update the request status
+		if err := db.DB.Model(&models.RequestData{}).Where("id = ?", req.ID).Updates(map[string]interface{}{
+			"status":         approveReq.Status,
+			"approver_id":    approveReq.ApproverID,
+			"approver_name":  approveReq.ApproverName,
+			"fully_approved": req.FullyApproved,
+		}).Error; err != nil {
+			log.Printf("Error updating request: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update request"})
+			return
+		}
+	}
+
+	log.Println("Requests processed successfully")
+	c.JSON(http.StatusOK, gin.H{"message": "Requests processed successfully"})
 }
 
 // GetRecords returns the latest jit requests for a user with optional limit and date range
@@ -283,27 +337,32 @@ func GetPendingApprovals(c *gin.Context) {
 		return // The response has already been sent by CheckLoggedIn
 	}
 
-	// Check if isAdmin is already in the session cookie
+	// Check if the user is an admin
 	isAdmin, isAdminOk := sessionData["isAdmin"].(bool)
 	if isAdminOk && isAdmin {
 		// If the user is an admin, return all pending requests
 		var pendingRequests []models.RequestData
-		if err := db.DB.Where("status = ?", "Requested").Find(&pendingRequests).Error; err != nil {
+
+		// Fetch all pending requests
+		if err := db.DB.
+			Where("status = ?", "Requested").
+			Find(&pendingRequests).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+
 		c.JSON(http.StatusOK, gin.H{"pendingRequests": pendingRequests})
 		return
 	}
 
-	// Retrieve approverGroups from the session
+	// Retrieve approverGroups from the session for non-admin users
 	rawApproverGroups, ok := sessionData["approverGroups"]
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
 		return
 	}
 
-	// Convert to []string if necessary
+	// Convert approverGroups to a slice of strings
 	approverGroups := []string{}
 	if rawGroups, ok := rawApproverGroups.([]interface{}); ok {
 		for _, group := range rawGroups {
@@ -320,9 +379,31 @@ func GetPendingApprovals(c *gin.Context) {
 		return
 	}
 
-	// Query the database for pending requests
-	var pendingRequests []models.RequestData
-	if err := db.DB.Where("approving_team_id IN (?) AND status = ?", approverGroups, "Requested").Find(&pendingRequests).Error; err != nil {
+	// Query the database for pending requests for non-admin users
+	type PendingRequest struct {
+		ID            uint      `json:"id"`
+		ClusterName   string    `json:"clusterName"`
+		RoleName      string    `json:"roleName"`
+		Status        string    `json:"status"`
+		UserID        string    `json:"userID"`
+		Username      string    `json:"username"`
+		Justification string    `json:"justification"`
+		StartDate     time.Time `json:"startDate"`
+		EndDate       time.Time `json:"endDate"`
+		Namespace     string    `json:"namespace"`
+		GroupID       string    `json:"groupID"`
+		Approved      bool      `json:"approved"`
+	}
+
+	var pendingRequests []PendingRequest
+
+	db.DB = db.DB.Debug()
+	if err := db.DB.
+		Table("request_data").
+		Select("request_data.id, request_data.cluster_name, request_data.role_name, request_data.status, request_data.user_id, request_data.username, request_data.justification, request_data.start_date, request_data.end_date, request_namespaces.namespace, request_namespaces.group_id, request_namespaces.approved").
+		Joins("JOIN request_namespaces ON request_namespaces.request_id = request_data.id").
+		Where("request_namespaces.group_id IN (?) AND request_data.status = ?", approverGroups, "Requested").
+		Scan(&pendingRequests).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -345,7 +426,6 @@ func SubmitRequest(c *gin.Context) {
 
 	// Process the request as before
 	var requestData struct {
-		ApprovingTeam models.Team    `json:"approvingTeam"`
 		Role          models.Roles   `json:"role"`
 		ClusterName   models.Cluster `json:"cluster"`
 		UserID        string         `json:"requestorId"`
@@ -362,32 +442,58 @@ func SubmitRequest(c *gin.Context) {
 		return
 	}
 
-	// Create a new models.RequestData instance with extracted labels
+	// Validate namespaces and fetch group IDs
+	namespaceGroups, err := k8s.ValidateNamespaces(requestData.ClusterName.Name, requestData.Namespaces)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Namespace validation failed: %v", err)})
+		return
+	}
+
+	// Create a new models.RequestData instance
 	dbRequestData := models.RequestData{
-		ApprovingTeamID:   requestData.ApprovingTeam.ID,
-		ApprovingTeamName: requestData.ApprovingTeam.Name,
-		ClusterName:       requestData.ClusterName.Name,
-		RoleName:          requestData.Role.Name,
-		Status:            "Requested",
-		UserID:            requestData.UserID,
-		Username:          requestData.Username,
-		Users:             requestData.Users,
-		Namespaces:        requestData.Namespaces,
-		Justification:     requestData.Justification,
-		StartDate:         requestData.StartDate,
-		EndDate:           requestData.EndDate,
+		ClusterName:   requestData.ClusterName.Name,
+		RoleName:      requestData.Role.Name,
+		Status:        "Requested",
+		UserID:        requestData.UserID,
+		Username:      requestData.Username,
+		Users:         requestData.Users,
+		Namespaces:    requestData.Namespaces,
+		Justification: requestData.Justification,
+		StartDate:     requestData.StartDate,
+		EndDate:       requestData.EndDate,
 	}
 
 	// Insert the request data into the database
 	if err := db.DB.Create(&dbRequestData).Error; err != nil {
 		log.Printf("Error inserting data: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit request (database err)"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit request (database error)"})
 		return
 	}
 
-	// Process the request data (e.g., save to database, perform actions)
-	log.Printf("Received request: Approving Team: %s, Cluster: %s, Role: %s, Namespaces: %s, Users: %s", requestData.ApprovingTeam.Name, requestData.ClusterName, requestData.Role.Name, requestData.Namespaces, requestData.Users)
+	// Insert namespaces into the request_namespaces table
+	for namespace, groupID := range namespaceGroups {
+		namespaceEntry := models.RequestNamespace{
+			RequestID: dbRequestData.ID,
+			Namespace: namespace,
+			GroupID:   groupID,
+			Approved:  false,
+		}
+		if err := db.DB.Create(&namespaceEntry).Error; err != nil {
+			log.Printf("Error inserting namespace data: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit request (namespace error)"})
+			return
+		}
+	}
 
 	// Respond with success message
 	c.JSON(http.StatusOK, gin.H{"message": "Request submitted successfully"})
+}
+
+func contains(slice []string, item string) bool {
+	for _, a := range slice {
+		if a == item {
+			return true
+		}
+	}
+	return false
 }

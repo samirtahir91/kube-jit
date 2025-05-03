@@ -1,10 +1,10 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
-import { Tab, Button, Col, ToggleButton, Alert } from 'react-bootstrap';
+import { Tab, Button, Alert } from 'react-bootstrap';
 import RequestTable from '../requestTable/RequestTable';
 import refreshLogo from '../../assets/refresh.svg';
 import './ApproveTabPane.css';
-import { Request } from '../../types';
+import { PendingRequest } from '../../types';
 import config from '../../config/config';
 
 type ApproveTabPaneProps = {
@@ -14,10 +14,9 @@ type ApproveTabPaneProps = {
 };
 
 const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPaneProps) => {
-    const [pendingRequests, setPendingRequests] = useState<Request[]>([]);
+    const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
     const [selectedRequests, setSelectedRequests] = useState<number[]>([]);
     const [variant, setVariant] = useState<'light' | 'dark'>('light');
-    const [toggleVariantColour, setToggleVariant] = useState<'secondary' | 'dark'>('secondary');
     const [errorMessage, setErrorMessage] = useState('');
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -72,11 +71,6 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
         }
     };
 
-    const toggleVariant = () => {
-        setVariant(prevVariant => (prevVariant === 'light' ? 'dark' : 'light'));
-        setToggleVariant(prevVariant => (prevVariant === 'secondary' ? 'dark' : 'secondary'));
-    };
-
     useEffect(() => {
         fetchPendingRequests();
     }, []);
@@ -108,9 +102,10 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
             {pendingRequests.length > 0 && (
                 <>
                     <RequestTable
-                        setVariant={setVariant} // Pass the setter for the variant
+                        setVariant={setVariant}
                         variant={variant}
                         requests={pendingRequests}
+                        mode="pending" // Specify mode for pending requests
                         selectable={true}
                         selectedRequests={selectedRequests}
                         handleSelectRequest={handleSelectRequest}
