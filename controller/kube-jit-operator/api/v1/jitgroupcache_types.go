@@ -29,7 +29,7 @@ type JitGroupCacheSpec struct {
 // JitGroup defines the group ID and namespace
 type JitGroup struct {
 	// The group ID
-	ID string `json:"bar"`
+	ID string `json:"id"`
 	// The group namespace
 	Namespace string `json:"namespace"`
 }

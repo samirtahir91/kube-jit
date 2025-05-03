@@ -15,6 +15,7 @@ rules:
 - apiGroups:
   - jit.kubejit.io
   resources:
+  - jitgroupcaches
   - jitrequests
   - kubejitconfigs
   verbs:
@@ -28,6 +29,7 @@ rules:
 - apiGroups:
   - jit.kubejit.io
   resources:
+  - jitgroupcaches/finalizers
   - jitrequests/finalizers
   - kubejitconfigs/finalizers
   verbs:
@@ -35,6 +37,7 @@ rules:
 - apiGroups:
   - jit.kubejit.io
   resources:
+  - jitgroupcaches/status
   - jitrequests/status
   - kubejitconfigs/status
   verbs:
