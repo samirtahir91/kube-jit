@@ -7,7 +7,7 @@ metadata:
   name: jitgroupcache-sample
 spec:
   jitGroups:
-    - id: group1
+    - groupID: group1
       namespace: namespace1
-    - id: group2
+    - groupID: group2
       namespace: namespace2

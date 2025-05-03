@@ -23,13 +23,13 @@ import (
 // JitGroupCacheSpec defines the desired state of JitGroupCache.
 type JitGroupCacheSpec struct {
 	// The JitGroups to
-	JitGroups []JitGroup `json:"jitGroups"`
+	Groups []JitGroup `json:"groups"`
 }
 
 // JitGroup defines the group ID and namespace
 type JitGroup struct {
 	// The group ID
-	ID string `json:"id"`
+	GroupID string `json:"groupID"`
 	// The group namespace
 	Namespace string `json:"namespace"`
 }
