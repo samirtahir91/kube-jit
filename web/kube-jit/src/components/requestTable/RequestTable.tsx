@@ -44,7 +44,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                 (filters.users === '' || pendingRequest.users.some(user => user.toLowerCase().includes(filters.users.toLowerCase()))) &&
                 (filters.clusterName === '' || pendingRequest.clusterName.toLowerCase().includes(filters.clusterName.toLowerCase())) &&
                 (filters.roleName === '' || pendingRequest.roleName.toLowerCase().includes(filters.roleName.toLowerCase())) &&
-                (filters.namespaces === '' || (pendingRequest.namespace.toLowerCase().includes(filters.namespaces.toLowerCase())))
+                (filters.namespaces === '' || (Array.isArray(pendingRequest.namespaces) && pendingRequest.namespaces.some(namespace => namespace.toLowerCase().includes(filters.namespaces.toLowerCase()))))
             );
         } else {
             const historicalRequest = request as Request;
@@ -80,11 +80,11 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
             if (mode === 'pending') {
                 const pendingRequest = request as PendingRequest;
                 return [
-                    pendingRequest.id,
+                    pendingRequest.ID,
                     pendingRequest.username,
                     pendingRequest.users.join(', '),
                     pendingRequest.clusterName,
-                    pendingRequest.namespace,
+                    pendingRequest.namespaces,
                     pendingRequest.roleName,
                     new Date(pendingRequest.startDate).toLocaleString(),
                     new Date(pendingRequest.endDate).toLocaleString(),
@@ -93,7 +93,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
             } else {
                 const historicalRequest = request as Request;
                 return [
-                    historicalRequest.id,
+                    historicalRequest.ID,
                     historicalRequest.username,
                     historicalRequest.approverName,
                     historicalRequest.users.join(', '),
@@ -268,17 +268,17 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                         if (mode === 'pending') {
                             const pendingRequest = request as PendingRequest;
                             return (
-                                <tr key={pendingRequest.id}>
+                                <tr key={pendingRequest.ID}>
                                     {selectable && (
                                         <td>
                                             <input
                                                 type="checkbox"
-                                                checked={selectedRequests.includes(pendingRequest.id)}
-                                                onChange={() => handleSelectRequest(pendingRequest.id)}
+                                                checked={selectedRequests.includes(pendingRequest.ID)}
+                                                onChange={() => handleSelectRequest(pendingRequest.ID)}
                                             />
                                         </td>
                                     )}
-                                    <td>{pendingRequest.id}</td>
+                                    <td>{pendingRequest.ID}</td>
                                     <td>
                                         {new Date(pendingRequest.startDate).toLocaleString(undefined, {
                                             year: 'numeric',
@@ -299,11 +299,11 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                     <td>{pendingRequest.username}</td>
                                     <td>{pendingRequest.users.join(', ')}</td>
                                     <td>{pendingRequest.clusterName}</td>
-                                    <td>{pendingRequest.namespace}</td>
+                                    <td>{Array.isArray(pendingRequest.namespaces) ? pendingRequest.namespaces.join(', ') : pendingRequest.namespaces}</td>
                                     <td>{pendingRequest.justification}</td>
                                     <td>{pendingRequest.roleName}</td>
                                     <td>
-                                        {new Date(pendingRequest.createdAt).toLocaleString(undefined, {
+                                        {new Date(pendingRequest.CreatedAt).toLocaleString(undefined, {
                                                 year: 'numeric',
                                                 month: 'numeric',
                                                 day: 'numeric',
@@ -316,8 +316,8 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                         } else {
                             const historicalRequest = request as Request;
                             return (
-                                <tr key={historicalRequest.id}>
-                                    <td>{historicalRequest.id}</td>
+                                <tr key={historicalRequest.ID}>
+                                    <td>{historicalRequest.ID}</td>
                                     <td>
                                         {new Date(historicalRequest.startDate).toLocaleString(undefined, {
                                             year: 'numeric',

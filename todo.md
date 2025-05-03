@@ -34,8 +34,9 @@ Poc option to toggle annotation ns approval.
 - requires cluster role on downstream clusters to get ns
 - nice alert on history and approver pages
 - add history of approved reqs for approvers
+- nicer looking approve/reject button
+- env var for db debug mode
 
-- multi ns view for admin fix - just shows blank ns in approver view only
 - not returning as approver if mapped to a ns group - need to check jitGroupsCache too
 - approving as an owner of one namespace doesnt alow it wants all ns/group permissions - it should just approve the ns it owns
   - it should show all approvers and for the namespace they approved in history

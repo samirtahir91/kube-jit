@@ -49,7 +49,7 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
     const handleSelected = async (status: string) => {
         setLoadingInCard(true);
         try {
-            const selectedRequestData = pendingRequests.filter(request => selectedRequests.includes(request.id));
+            const selectedRequestData = pendingRequests.filter(request => selectedRequests.includes(request.ID));
             await axios.post(`${config.apiBaseUrl}/kube-jit-api/approve-reject`, {
                 requests: selectedRequestData,
                 approverID: userId,
@@ -59,7 +59,7 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
                 withCredentials: true
             });
             setPendingRequests(prevRequests =>
-                prevRequests.filter(request => !selectedRequests.includes(request.id))
+                prevRequests.filter(request => !selectedRequests.includes(request.ID))
             );
             setSelectedRequests([]);
             setErrorMessage('');

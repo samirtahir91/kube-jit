@@ -143,7 +143,7 @@ func ApproveOrRejectRequests(c *gin.Context) {
 
 	// Convert approverGroups to a slice of strings
 	approverGroups := []string{}
-	if rawGroups, ok := rawApproverGroups.([]interface{}); ok {
+	if rawGroups, ok := rawApproverGroups.([]any); ok {
 		for _, group := range rawGroups {
 			if groupStr, ok := group.(string); ok {
 				approverGroups = append(approverGroups, groupStr)
@@ -368,7 +368,7 @@ func GetPendingApprovals(c *gin.Context) {
 
 	// Convert approverGroups to a slice of strings
 	approverGroups := []string{}
-	if rawGroups, ok := rawApproverGroups.([]interface{}); ok {
+	if rawGroups, ok := rawApproverGroups.([]any); ok {
 		for _, group := range rawGroups {
 			if groupStr, ok := group.(string); ok {
 				approverGroups = append(approverGroups, groupStr)
@@ -385,7 +385,7 @@ func GetPendingApprovals(c *gin.Context) {
 
 	// Query the database for pending requests for non-admin users
 	type PendingRequest struct {
-		ID            uint      `json:"id"`
+		ID            uint      `json:"ID"`
 		ClusterName   string    `json:"clusterName"`
 		RoleName      string    `json:"roleName"`
 		Status        string    `json:"status"`
@@ -395,10 +395,10 @@ func GetPendingApprovals(c *gin.Context) {
 		Justification string    `json:"justification"`
 		StartDate     time.Time `json:"startDate"`
 		EndDate       time.Time `json:"endDate"`
-		Namespace     string    `json:"namespace"`
+		Namespace     string    `json:"namespaces"`
 		GroupID       string    `json:"groupID"`
 		Approved      bool      `json:"approved"`
-		CreatedAt     time.Time `json:"createdAt"`
+		CreatedAt     time.Time `json:"CreatedAt"`
 	}
 
 	var pendingRequests []PendingRequest

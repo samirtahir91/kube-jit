@@ -1,12 +1,12 @@
 export type Request = {
-    id: number;
+    ID: number;
     userID: string;
     username: string;
     CreatedAt: string;
-    updatedAt: string;
+    UpdatedAt: string;
     startDate: string;
     endDate: string;
-    deletedAt: string | null;
+    DeletedAt: string | null;
     users: string[];
     namespaces: string[];
     justification: string;
@@ -27,7 +27,7 @@ export type UserData = {
 };
 
 export type PendingRequest = {
-    id: number;
+    ID: number;
     userID: string;
     username: string;
     startDate: string;
@@ -35,9 +35,9 @@ export type PendingRequest = {
     justification: string;
     clusterName: string;
     roleName: string;
-    namespace: string;
+    namespaces: string[] | string; // Can be a single string or an array of strings
     groupID: string; // Group ID for the namespace
     approved: boolean; // Approval status for the namespace
     users: string[];
-    createdAt: string;
+    CreatedAt: string;
 };
