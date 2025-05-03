@@ -21,10 +21,15 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	jitv1 "kube-jit-operator/api/v1"
+	v1 "kube-jit-operator/api/v1"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 // JitGroupCacheReconciler reconciles a JitGroupCache object
@@ -38,27 +43,35 @@ type JitGroupCacheReconciler struct {
 // +kubebuilder:rbac:groups=jit.kubejit.io,resources=jitgroupcaches/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the JitGroupCache object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.20.4/pkg/reconcile
+// JitGroupCacheReconciler reconciles a JitGroupCache object
 func (r *JitGroupCacheReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = logf.FromContext(ctx)
 
-	// TODO(user): your logic here
-
 	return ctrl.Result{}, nil
+}
+
+// Only watch namespaces with the label "kube-jit.io/adopt=true"
+func namespacePredicate() predicate.Predicate {
+	return predicate.NewPredicateFuncs(func(object client.Object) bool {
+		labels := object.GetLabels()
+		return labels["kube-jit.io/adopt"] == "true"
+	})
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *JitGroupCacheReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&jitv1.JitGroupCache{}).
+		For(&v1.JitGroupCache{}).
 		Named("jitgroupcache").
+		// Watch Namespaces with the label "kube-jit.io/adopt=true"
+		Watches(
+			&corev1.Namespace{},
+			&handler.EnqueueRequestForObject{},
+			builder.WithPredicates(
+				// on create/update/delete
+				predicate.ResourceVersionChangedPredicate{},
+				// filter on label "kube-jit.io/adopt=true"
+				namespacePredicate(),
+			)).
 		Complete(r)
 }

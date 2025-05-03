@@ -39,7 +39,7 @@ controller to watch namespaces
     - Groups
       - id:<group id>
         namespace: <ns name>
-- watch namespaces, indexed with label `kube-jit.io/managed: true`
+- watch namespaces, indexed with label `kube-jit.io/adopt: true`
 - check pre hook of annotation change `kube-jit.io/group_id` annotation
 - update JitGroups:
   - remove deleted namespaces
