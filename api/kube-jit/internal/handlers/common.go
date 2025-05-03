@@ -159,53 +159,51 @@ func ApproveOrRejectRequests(c *gin.Context) {
 	}
 
 	for _, req := range approveReq.Requests {
-		// Approve namespaces for the request
-		if approveReq.Status == "Approved" {
-			var namespaces []models.RequestNamespace
-			if err := db.DB.Where("request_id = ?", req.ID).Find(&namespaces).Error; err != nil {
-				log.Printf("Error fetching namespaces for request ID %d: %v", req.ID, err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch namespaces"})
-				return
-			}
+		// Fetch namespaces for the request
+		var namespaces []models.RequestNamespace
+		if err := db.DB.Where("request_id = ?", req.ID).Find(&namespaces).Error; err != nil {
+			log.Printf("Error fetching namespaces for request ID %d: %v", req.ID, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch namespaces"})
+			return
+		}
 
-			// Check if all namespaces are approved
-			allApproved := true
+		// Approve only the namespaces the approver has permissions for
+		for _, ns := range namespaces {
+			if contains(approverGroups, ns.GroupID) {
+				ns.Approved = true
+				if err := db.DB.Save(&ns).Error; err != nil {
+					log.Printf("Error updating namespace approval: %v", err)
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update namespace approval"})
+					return
+				}
+			} else {
+				log.Printf("Skipping namespace %s (GroupID: %s) - approver does not have permissions", ns.Namespace, ns.GroupID)
+			}
+		}
+
+		// Check if all namespaces for the request are approved
+		allApproved := true
+		for _, ns := range namespaces {
+			if !ns.Approved {
+				allApproved = false
+				break
+			}
+		}
+
+		// If all namespaces are approved, mark the request as fully approved
+		req.FullyApproved = allApproved
+
+		// If fully approved, create the Kubernetes object for the request
+		if allApproved && approveReq.Status == "Approved" {
+			var namespacesToSpec []string
 			for _, ns := range namespaces {
-				// Ensure the approver belongs to the group responsible for the namespace
-				if contains(approverGroups, ns.GroupID) {
-					ns.Approved = true
-					if err := db.DB.Save(&ns).Error; err != nil {
-						log.Printf("Error updating namespace approval: %v", err)
-						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update namespace approval"})
-						return
-					}
-				} else {
-					log.Printf("Approver does not belong to group %s for namespace %s", ns.GroupID, ns.Namespace)
-					c.JSON(http.StatusForbidden, gin.H{"error": fmt.Sprintf("Unauthorized to approve namespace %s", ns.Namespace)})
-					return
-				}
-
-				if !ns.Approved {
-					allApproved = false
-				}
+				namespacesToSpec = append(namespacesToSpec, ns.Namespace)
 			}
-
-			// If all namespaces are approved, mark the request as fully approved
-			if allApproved {
-				req.FullyApproved = true
-
-				// Create the Kubernetes object for the request
-				var namespacesToSpec []string
-				for _, ns := range namespaces {
-					namespacesToSpec = append(namespacesToSpec, ns.Namespace)
-				}
-				// Create the k8s object
-				req.Namespaces = namespacesToSpec
-				if err := k8s.CreateK8sObject(req, approveReq.ApproverName); err != nil {
-					log.Printf("Error creating k8s object for request ID %d: %v", req.ID, err)
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create k8s object"})
-					return
-				}
+			req.Namespaces = namespacesToSpec
+			if err := k8s.CreateK8sObject(req, approveReq.ApproverName); err != nil {
+				log.Printf("Error creating k8s object for request ID %d: %v", req.ID, err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create k8s object"})
+				return
 			}
 		}
 
