@@ -15,6 +15,7 @@ todo
 - after request validate namespaces before submitting
 - get approvers from annotations of ns, if not found select platform group to approve 
 - fix │ [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you │
+- upload request ooption
 
 
 test
@@ -32,4 +33,16 @@ Poc option to toggle annotation ns approval.
 - think about logic in record here
 - requires cluster role on downstream clusters to get ns
 
+controller to watch namespaces
+- crd JitGroups
+  - spec
+    - Groups
+      - id:<group id>
+        namespace: <ns name>
+- watch namespaces, indexed with label `kube-jit.io/managed: true`
+- check pre hook of annotation change `kube-jit.io/group_id` annotation
+- update JitGroups:
+  - remove deleted namespaces
+  - create/update namespaces
 
+api caches JitGroups, expires every 10m on, client connect, check expiry of JitGroups cache for the cluster, refetch if required.
