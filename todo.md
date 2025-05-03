@@ -37,7 +37,5 @@ Poc option to toggle annotation ns approval.
 - nicer looking approve/reject button
 - env var for db debug mode
 
-- not returning as approver if mapped to a ns group - need to check jitGroupsCache too
-- approving as an owner of one namespace doesnt alow it wants all ns/group permissions - it should just approve the ns it owns
   - it should show all approvers and for the namespace they approved in history
-
+- for multi approver, get all approvers not just last

@@ -16,6 +16,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 var (
@@ -241,6 +242,31 @@ func AzurePermissions(c *gin.Context) {
 		for _, adminGroup := range k8s.AdminTeams {
 			if group.ID == adminGroup.ID && group.DisplayName == adminGroup.Name {
 				matchedAdminGroups = append(matchedAdminGroups, group.ID)
+			}
+		}
+	}
+
+	// Check JitGroupCache for the user's groups
+	for _, clusterName := range k8s.ClusterNames {
+		jitGroups, err := k8s.GetJitGroups(clusterName)
+		if err != nil {
+			log.Printf("Error fetching JitGroups for cluster %s: %v", clusterName, err)
+			continue
+		}
+
+		groups, _, _ := unstructured.NestedSlice(jitGroups.Object, "spec", "groups")
+		for _, group := range groups {
+			groupMap, ok := group.(map[string]any)
+			if !ok {
+				continue
+			}
+			groupID, ok := groupMap["groupID"].(string)
+			if ok {
+				for _, userGroup := range groupsResponse.Value {
+					if userGroup.ID == groupID {
+						matchedApproverGroups = append(matchedApproverGroups, groupID)
+					}
+				}
 			}
 		}
 	}
