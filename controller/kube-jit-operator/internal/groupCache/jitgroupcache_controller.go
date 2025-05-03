@@ -23,7 +23,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	corev1 "k8s.io/api/core/v1"
@@ -79,9 +78,8 @@ func (r *JitGroupCacheReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 func (r *JitGroupCacheReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		// Watch Namespaces with the label "jit.kubejit.io/adopt=true"
-		Watches(
+		For(
 			&corev1.Namespace{},
-			&handler.EnqueueRequestForObject{},
 			builder.WithPredicates(
 				// Filter on label "jit.kubejit.io/adopt=true"
 				namespacePredicate(),
