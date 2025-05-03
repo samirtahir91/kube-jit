@@ -449,7 +449,7 @@ func GetPendingApprovals(c *gin.Context) {
 	}
 
 	// Query the database for pending requests for non-admin users
-	type PendingRequest struct {
+	type PendingRequestRow struct {
 		ID            uint      `json:"ID"`
 		ClusterName   string    `json:"clusterName"`
 		RoleName      string    `json:"roleName"`
@@ -460,13 +460,30 @@ func GetPendingApprovals(c *gin.Context) {
 		Justification string    `json:"justification"`
 		StartDate     time.Time `json:"startDate"`
 		EndDate       time.Time `json:"endDate"`
-		Namespace     string    `json:"namespaces"`
+		Namespace     string    `json:"namespace"`
 		GroupID       string    `json:"groupID"`
 		Approved      bool      `json:"approved"`
 		CreatedAt     time.Time `json:"CreatedAt"`
 	}
 
-	var pendingRequests []PendingRequest
+	type PendingRequest struct {
+		ID            uint      `json:"ID"`
+		ClusterName   string    `json:"clusterName"`
+		RoleName      string    `json:"roleName"`
+		Status        string    `json:"status"`
+		UserID        string    `json:"userID"`
+		Users         []string  `json:"users"`
+		Username      string    `json:"username"`
+		Justification string    `json:"justification"`
+		StartDate     time.Time `json:"startDate"`
+		EndDate       time.Time `json:"endDate"`
+		Namespaces    []string  `json:"namespaces"`
+		GroupIDs      []string  `json:"groupIDs"`
+		ApprovedList  []bool    `json:"approvedList"`
+		CreatedAt     time.Time `json:"CreatedAt"`
+	}
+
+	var rows []PendingRequestRow
 
 	if err := db.DB.
 		Table("request_data").
@@ -487,9 +504,42 @@ func GetPendingApprovals(c *gin.Context) {
 		).
 		Joins("JOIN request_namespaces ON request_namespaces.request_id = request_data.id").
 		Where("request_namespaces.group_id IN (?) AND request_data.status = ? AND request_namespaces.approved = false", approverGroups, "Requested").
-		Scan(&pendingRequests).Error; err != nil {
+		Scan(&rows).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Group by request ID
+	grouped := map[uint]*PendingRequest{}
+	for _, row := range rows {
+		req, exists := grouped[row.ID]
+		if !exists {
+			grouped[row.ID] = &PendingRequest{
+				ID:            row.ID,
+				ClusterName:   row.ClusterName,
+				RoleName:      row.RoleName,
+				Status:        row.Status,
+				UserID:        row.UserID,
+				Users:         row.Users,
+				Username:      row.Username,
+				Justification: row.Justification,
+				StartDate:     row.StartDate,
+				EndDate:       row.EndDate,
+				CreatedAt:     row.CreatedAt,
+				Namespaces:    []string{},
+				GroupIDs:      []string{},
+				ApprovedList:  []bool{},
+			}
+			req = grouped[row.ID]
+		}
+		req.Namespaces = append(req.Namespaces, row.Namespace)
+		req.GroupIDs = append(req.GroupIDs, row.GroupID)
+		req.ApprovedList = append(req.ApprovedList, row.Approved)
+	}
+
+	var pendingRequests []PendingRequest
+	for _, v := range grouped {
+		pendingRequests = append(pendingRequests, *v)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"pendingRequests": pendingRequests})

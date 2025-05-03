@@ -36,6 +36,8 @@ Poc option to toggle annotation ns approval.
 - add history of approved reqs for approvers
 - nicer looking approve/reject button
 - env var for db debug mode
+- increase select check box area in approve/reject
 
-  - it should show all approvers and for the namespace they approved in history
-- for multi approver, get all approvers not just last
+- it should show all approvers and for the namespace they approved in history
+- for multi approver, get all approvers not just last - change approvaers names and ids to string and update
+- if no group found admin only or allowed approvers?

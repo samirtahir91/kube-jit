@@ -28,16 +28,17 @@ export type UserData = {
 
 export type PendingRequest = {
     ID: number;
-    userID: string;
-    username: string;
-    startDate: string;
-    endDate: string;
-    justification: string;
     clusterName: string;
     roleName: string;
-    namespaces: string[] | string; // Can be a single string or an array of strings
-    groupID: string; // Group ID for the namespace
-    approved: boolean; // Approval status for the namespace
+    status: string;
+    userID: string;
     users: string[];
+    username: string;
+    justification: string;
+    startDate: string;
+    endDate: string;
+    namespaces: string[]; // <-- now an array
+    groupIDs: string[];   // <-- now an array
+    approvedList: boolean[];
     CreatedAt: string;
 };
