@@ -23,6 +23,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -30,6 +31,11 @@ import (
 	v1 "kube-jit-operator/api/v1"
 
 	corev1 "k8s.io/api/core/v1"
+)
+
+const (
+	labelAdopt        = "jit.kubejit.io/adopt"
+	annotationGroupID = "jit.kubejit.io/group_id"
 )
 
 // JitGroupCacheReconciler reconciles a JitGroupCache object
@@ -50,12 +56,36 @@ func (r *JitGroupCacheReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return ctrl.Result{}, nil
 }
 
-// Only watch namespaces with the label "kube-jit.io/adopt=true"
+// namespacePredicate checks namespaces have the label "jit.kubejit.io/adopt=true"
+// and if the annotation annotationGroupID has changed or exists
 func namespacePredicate() predicate.Predicate {
-	return predicate.NewPredicateFuncs(func(object client.Object) bool {
-		labels := object.GetLabels()
-		return labels["kube-jit.io/adopt"] == "true"
-	})
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			labels := e.Object.GetLabels()
+			if labels[labelAdopt] != "true" {
+				return false
+			}
+			annotations := e.Object.GetAnnotations()
+			return annotations[annotationGroupID] != ""
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			labels := e.ObjectNew.GetLabels()
+			if labels[labelAdopt] != "true" {
+				return false
+			}
+
+			oldAnnotations := e.ObjectOld.GetAnnotations()
+			newAnnotations := e.ObjectNew.GetAnnotations()
+			return oldAnnotations[annotationGroupID] != newAnnotations[annotationGroupID]
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			labels := e.Object.GetLabels()
+			return labels[labelAdopt] == "true"
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return false
+		},
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -63,14 +93,12 @@ func (r *JitGroupCacheReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1.JitGroupCache{}).
 		Named("jitgroupcache").
-		// Watch Namespaces with the label "kube-jit.io/adopt=true"
+		// Watch Namespaces with the label "jit.kubejit.io/adopt=true"
 		Watches(
 			&corev1.Namespace{},
 			&handler.EnqueueRequestForObject{},
 			builder.WithPredicates(
-				// on create/update/delete
-				predicate.ResourceVersionChangedPredicate{},
-				// filter on label "kube-jit.io/adopt=true"
+				// filter on label "jit.kubejit.io/adopt=true"
 				namespacePredicate(),
 			)).
 		Complete(r)
