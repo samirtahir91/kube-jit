@@ -23,21 +23,12 @@ test
   bdd
   e2e Selenium 
 
-Poc option to toggle annotation ns approval.
-- Approver.kube-jit.io/group_id = GROUP ID
-- on request api Iterate through namespaces and get approvers.
-- get groups
-- add multi approver to request
-- if multi show pending approvers
-- each group will need to approve
-- think about logic in record here
-- requires cluster role on downstream clusters to get ns
 - nice alert on history and approver pages
-- add history of approved reqs for approvers
+- add to history search records approved by you.
 - nicer looking approve/reject button
 - env var for db debug mode
 - increase select check box area in approve/reject
 
-- it should show all approvers and for the namespace they approved in history
+- it should show all approvers and for the namespace they approved in history and pending.
 - for multi approver, get all approvers not just last - change approvaers names and ids to string and update
-- if no group found admin only or allowed approvers?
+- if no group found admin only or allowed approvers can approve
