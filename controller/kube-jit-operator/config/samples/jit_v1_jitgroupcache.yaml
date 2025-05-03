@@ -6,4 +6,8 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: jitgroupcache-sample
 spec:
-  # TODO(user): Add fields here
+  jitGroups:
+    - id: group1
+      namespace: namespace1
+    - id: group2
+      namespace: namespace2

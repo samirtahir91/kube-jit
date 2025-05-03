@@ -42,6 +42,7 @@ import (
 	jitv1 "kube-jit-operator/api/v1"
 	"kube-jit-operator/internal/config"
 	"kube-jit-operator/internal/controller"
+	"kube-jit-operator/internal/groupCache"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -246,7 +247,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeJitConfig")
 		os.Exit(1)
 	}
-	if err = (&controller.JitGroupCacheReconciler{
+	if err = (&groupCache.JitGroupCacheReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
