@@ -21,6 +21,7 @@ test
 ## Sprint:
 Test:
 DO:
+- Card to fill width of the users screen
 - email notifications to requestors (depends if they have email configured in profile)
 - - upload request option
 

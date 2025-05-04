@@ -153,7 +153,7 @@ function App() {
         return (
             <div>
                 <SyncLoader className="card-loader-container" color="#0494ba" size={20} loading={loadingInCard} />
-                <div className="d-flex justify-content-between align-items-center mb-3">
+                <div className="d-flex justify-content-between align-items-center mb-">
                     <Profile user={data.userData} onSignOut={handleSignOut} />
                 </div>
                 <Card className="d-flex justify-content-center align-items-start">
