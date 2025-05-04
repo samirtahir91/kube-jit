@@ -355,13 +355,20 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                     {mode === 'history' && (
                                         <td>
                                             {historicalRequest.namespaceApprovals && historicalRequest.namespaceApprovals.length > 0 ? (
-                                                <ul style={{paddingLeft: 16}}>
-                                                    {historicalRequest.namespaceApprovals.map((ns, idx) => (
-                                                        <li key={idx}>
-                                                            <strong>{ns.namespace}</strong> ({ns.groupID}): {ns.approved ? '✅' : '❌'}{' '}
-                                                            {ns.approverName ? `by ${ns.approverName}` : ''}
-                                                        </li>
-                                                    ))}
+                                                <ul style={{ paddingLeft: 16, marginBottom: 0 }}>
+                                                    {historicalRequest.namespaceApprovals.map((ns, idx) => {
+                                                        let statusIcon = '🟡'; // Default: pending
+                                                        if (ns.approved === true && ns.approverName) statusIcon = '✅';
+                                                        else if (ns.approved === false && ns.approverName) statusIcon = '❌';
+                                                        return (
+                                                            <li key={idx}>
+                                                                <strong>{ns.namespace}</strong>
+                                                                {' '}(<span style={{ color: '#888' }}>{ns.groupID}</span>)
+                                                                : {statusIcon}
+                                                                {ns.approverName ? ` by ${ns.approverName}` : ''}
+                                                            </li>
+                                                        );
+                                                    })}
                                                 </ul>
                                             ) : (
                                                 'N/A'

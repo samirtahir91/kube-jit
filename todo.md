@@ -34,8 +34,6 @@ test
 
 
 ## Priority:
-- it should show all approvers and for the namespace they approved in history and pending.
-- for multi approver, get all approvers not just last - change approvaers names and ids to string and update
 - if no group found admin only or allowed approvers can approve
 - copy changes from azure permissions to google and github
   - make it common function to call
