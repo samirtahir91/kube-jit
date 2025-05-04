@@ -1,8 +1,7 @@
 todo
 
-- add env var option for cookie samesite
-- env var for db debug mode
-- json logging or not 
+- json logging or not
+
 - log important errors
 - remove and debut logging 
 - add log for new jit, approved, rejected - context of requestData
@@ -21,7 +20,6 @@ test
 ## Sprint:
 Test:
 DO:
-- Card to fill width of the users screen
 - email notifications to requestors (depends if they have email configured in profile)
 - - upload request option
 

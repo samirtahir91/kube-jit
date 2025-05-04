@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-contrib/sessions"
@@ -100,6 +101,17 @@ func SplitSessionData(c *gin.Context) {
 	for i, chunk := range chunks {
 		cookieName := fmt.Sprintf("%s%d", SessionPrefix, i)
 
+		sameSiteEnv := os.Getenv("COOKIE_SAMESITE")
+		var sameSite http.SameSite
+		switch sameSiteEnv {
+		case "Strict":
+			sameSite = http.SameSiteStrictMode
+		case "None":
+			sameSite = http.SameSiteNoneMode
+		default:
+			sameSite = http.SameSiteLaxMode
+		}
+
 		http.SetCookie(c.Writer, &http.Cookie{
 			Name:     cookieName,
 			Value:    chunk,
@@ -107,6 +119,7 @@ func SplitSessionData(c *gin.Context) {
 			HttpOnly: true,
 			Secure:   true,
 			MaxAge:   3600, // Set cookie expiration time
+			SameSite: sameSite,
 		})
 	}
 

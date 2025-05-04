@@ -37,6 +37,11 @@ func InitDB() {
 		log.Fatal(err)
 	}
 
+	// Enable GORM debug mode if DB_DEBUG=true
+	if os.Getenv("DB_DEBUG") == "true" {
+		DB = DB.Debug()
+	}
+
 	// Configure connection pool
 	sqlDB, err := DB.DB()
 	if err != nil {

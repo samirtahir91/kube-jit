@@ -95,6 +95,13 @@ config:
     # This is the Azure token URL
     #azureTokenUrl: "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
 
+  # Cookie SameSite policy
+  # This is used for the cookie auth flow
+  # Lax - Cookies are sent with top-level navigations and will be sent along with GET requests initiated by third party websites.
+  # Strict - Cookies will only be sent in a first-party context and not be sent along with requests initiated by third party websites.
+  # None - Cookies will be sent in all contexts, i.e. sending cross-origin is possible. This requires the Secure attribute to be set (https).
+  cookieSameSite: "Lax"   # Options: "Lax", "Strict", "None"
+
 # Postgres database connection details
 db:
   # If using GCP Cloud SQL Proxy with GKE workload identity, set the cloudSqlProxy.enabled to true
@@ -136,6 +143,8 @@ db:
   maxIdleConns: "20"
   connMaxLifetime: "10m"
   connMaxIdleTime: "15m"
+  # Enable debug logging for the database - true or false
+  debug: false
 
 serviceAccount:
   # Specifies whether a service account should be created

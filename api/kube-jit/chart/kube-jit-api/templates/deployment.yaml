@@ -116,6 +116,8 @@ spec:
             value: {{ quote .Values.db.connMaxLifetime }}
           - name: DB_CONN_MAX_IDLE_TIME
             value: {{ quote .Values.db.connMaxIdleTime }}
+          - name: DB_DEBUG
+            value: {{ .Values.db.debug | quote }}
           - name: HMAC_SECRET
             valueFrom:
               secretKeyRef:
@@ -126,6 +128,8 @@ spec:
               secretKeyRef:
                 key: {{ .Values.config.cookieSecretKey }}
                 name: kube-jit-api-secrets
+          - name: COOKIE_SAMESITE
+            value: {{ .Values.config.cookieSameSite | quote }}
           - name: API_NAMESPACE
             valueFrom:
               fieldRef:
