@@ -3,11 +3,13 @@ package main
 import (
 	"flag"
 	"kube-jit/internal/db"
+	"kube-jit/internal/handlers"
 	"kube-jit/internal/middleware"
 	"kube-jit/internal/routes"
 	"kube-jit/pkg/k8s"
 	"kube-jit/pkg/utils"
 	"os"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -46,6 +48,7 @@ func main() {
 	defer logger.Sync()
 
 	// Initialize zap logger in all packages
+	handlers.InitLogger(logger)
 	db.InitLogger(logger)
 	middleware.InitLogger(logger)
 	k8s.InitLogger(logger)
@@ -58,7 +61,14 @@ func main() {
 	db.InitDB()
 
 	r := gin.New()
-	r.Use(ginzap.Ginzap(logger, time.RFC3339, true))
+
+	// Skip logging for /kube-jit-api/healthz
+	rxHealthz := regexp.MustCompile(`^/kube-jit-api/healthz$`)
+	r.Use(ginzap.GinzapWithConfig(logger, &ginzap.Config{
+		UTC:             true,
+		TimeFormat:      time.RFC3339,
+		SkipPathRegexps: []*regexp.Regexp{rxHealthz},
+	}))
 	r.Use(ginzap.RecoveryWithZap(logger, true))
 
 	// Setup middleware

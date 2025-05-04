@@ -77,10 +77,10 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
                     </button>
                 </div>
             )}
-            <Row className="mt-4">
+            <Row className="mt-4 align-items-end">
                 {isAdmin && (
                     <>
-                        <Col md={3}>
+                        <Col md={3} className="mb-3">
                             <Form.Group controlId="searchUserId" className="text-start">
                                 <Form.Label>User ID</Form.Label>
                                 <Form.Control
@@ -91,7 +91,7 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
                                 />
                             </Form.Group>
                         </Col>
-                        <Col md={3}>
+                        <Col md={3} className="mb-3">
                             <Form.Group controlId="searchUsername" className="text-start">
                                 <Form.Label>Username</Form.Label>
                                 <Form.Control
@@ -104,16 +104,12 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
                         </Col>
                     </>
                 )}
-                <Col md={3}>
+                <Col md={3} className="mb-3">
                     <Form.Group controlId="startDate" className="text-start">
                         <Form.Label>Start Date</Form.Label>
                         <DatePicker
                             selected={startDate}
-                            onChange={(date: Date | null) => {
-                                if (date) {
-                                    setStartDate(date);
-                                }
-                            }}
+                            onChange={(date: Date | null) => date && setStartDate(date)}
                             showTimeSelect
                             timeFormat="HH:mm"
                             timeIntervals={15}
@@ -123,16 +119,12 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
                         />
                     </Form.Group>
                 </Col>
-                <Col md={3}>
+                <Col md={3} className="mb-3">
                     <Form.Group controlId="endDate" className="text-start">
                         <Form.Label>End Date</Form.Label>
                         <DatePicker
                             selected={endDate}
-                            onChange={(date: Date | null) => {
-                                if (date) {
-                                    setEndDate(date);
-                                }
-                            }}
+                            onChange={(date: Date | null) => date && setEndDate(date)}
                             showTimeSelect
                             timeFormat="HH:mm"
                             timeIntervals={15}
@@ -142,28 +134,26 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
                         />
                     </Form.Group>
                 </Col>
-                <Col md={2}>
-                    <Form className="text-start">
-                        <Form.Group controlId="limit">
-                            <Form.Label>Limit (max {isAdmin ? 100 : 20})</Form.Label>
-                            <Form.Control
-                                type="number"
-                                value={limit}
-                                max={isAdmin ? 100 : 20} // Dynamically set max based on isAdmin
-                                onChange={(e) => {
-                                    const value = Number(e.target.value);
-                                    if (value <= (isAdmin ? 100 : 20)) { // Adjust validation based on isAdmin
-                                        setLimit(value);
-                                    }
-                                }}
-                                placeholder={`Enter Limit (max ${isAdmin ? 100 : 20})`}
-                            />
-                        </Form.Group>
-                    </Form>
+                <Col md={2} className="mb-3">
+                    <Form.Group controlId="limit" className="text-start">
+                        <Form.Label>Limit (max {isAdmin ? 100 : 20})</Form.Label>
+                        <Form.Control
+                            type="number"
+                            value={limit}
+                            max={isAdmin ? 100 : 20}
+                            onChange={(e) => {
+                                const value = Number(e.target.value);
+                                if (value <= (isAdmin ? 100 : 20)) {
+                                    setLimit(value);
+                                }
+                            }}
+                            placeholder={`Enter Limit (max ${isAdmin ? 100 : 20})`}
+                        />
+                    </Form.Group>
                 </Col>
-                <Col className="d-flex align-items-end">
+                <Col md="auto" className="mb-3">
                     <Button
-                        className="search-button mt-2"
+                        className="search-button"
                         onClick={handleSearch}
                     >
                         Search
