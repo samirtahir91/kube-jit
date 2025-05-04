@@ -383,8 +383,16 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                                                         <li key={idx}>
                                                                             <strong>{ns.namespace}</strong>
                                                                             {' '}(<span style={{ color: '#888' }}>{ns.groupID}</span>)
-                                                                            : {statusIcon}
-                                                                            {ns.approverName ? ` by ${ns.approverName}` : ''}
+                                                                            :
+                                                                            {ns.approverName ? (
+                                                                                <div style={{ display: 'block', marginLeft: 0 }}>
+                                                                                    {ns.approverName} {statusIcon}
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div style={{ display: 'block', marginLeft: 0 }}>
+                                                                                    Pending {statusIcon}
+                                                                                </div>
+                                                                            )}
                                                                         </li>
                                                                     );
                                                                 })}
