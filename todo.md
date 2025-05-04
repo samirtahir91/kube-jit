@@ -11,9 +11,7 @@ todo
 - azure scope minimise
 - https
 - domain on email input preconfigured
-- email notifications on status request approve reject and end
-- after request validate namespaces before submitting
-- get approvers from annotations of ns, if not found select platform group to approve 
+- email notifications on status request approve reject and end 
 - fix │ [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you │
 - upload request ooption
 
