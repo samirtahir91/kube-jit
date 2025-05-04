@@ -15,6 +15,7 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 var (
@@ -665,4 +666,145 @@ func contains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+// CommonPermissions checks if the user has common permissions
+// It checks if the user is logged in and retrieves their permissions
+// It returns the permissions as JSON
+func CommonPermissions(c *gin.Context) {
+	session := sessions.Default(c)
+
+	// Check if the user is logged in
+	sessionData, ok := checkLoggedIn(c)
+	if !ok {
+		return
+	}
+
+	// Parse provider from payload
+	var payload struct {
+		Provider string `json:"provider"`
+	}
+	if err := c.ShouldBindJSON(&payload); err != nil || payload.Provider == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing or invalid provider"})
+		return
+	}
+
+	// Check if cached in session
+	isApprover, isApproverOk := sessionData["isApprover"].(bool)
+	isAdmin, isAdminOk := sessionData["isAdmin"].(bool)
+	approverGroups, approverGroupsOk := sessionData["approverGroups"]
+	adminGroups, adminGroupsOk := sessionData["adminGroups"]
+	if isApproverOk && isAdminOk && approverGroupsOk && adminGroupsOk {
+		c.JSON(http.StatusOK, gin.H{
+			"isApprover":     isApprover,
+			"approverGroups": approverGroups,
+			"isAdmin":        isAdmin,
+			"adminGroups":    adminGroups,
+		})
+		return
+	}
+
+	// Get token from session
+	token, _ := sessionData["token"].(string)
+
+	var userGroups []models.Team
+	var err error
+
+	switch payload.Provider {
+	case "github":
+		userGroups, err = GetGithubTeams(token)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch GitHub teams"})
+			return
+		}
+	case "google":
+		userEmail, _ := sessionData["email"].(string)
+		userGroups, err = GetGoogleGroupsWithWorkloadIdentity(userEmail)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Google groups"})
+			return
+		}
+	case "azure":
+		userGroups, err = GetAzureGroups(token)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Azure groups"})
+			return
+		}
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown provider"})
+		return
+	}
+
+	// Match user groups to approver/admin teams
+	isAdmin, matchedApproverGroups, matchedAdminGroups := MatchUserGroups(
+		userGroups,
+		k8s.ApproverTeams,
+		k8s.AdminTeams,
+	)
+
+	// Check and append if user is in any JitGroup for any cluster
+	for _, clusterName := range k8s.ClusterNames {
+		jitGroups, err := k8s.GetJitGroups(clusterName)
+		if err != nil {
+			log.Printf("Error fetching JitGroups for cluster %s: %v", clusterName, err)
+			continue
+		}
+		groups, _, _ := unstructured.NestedSlice(jitGroups.Object, "spec", "groups")
+		for _, group := range groups {
+			groupMap, ok := group.(map[string]any)
+			if !ok {
+				continue
+			}
+			groupID, ok := groupMap["groupID"].(string)
+			if ok {
+				for _, userGroup := range userGroups {
+					if userGroup.ID == groupID {
+						matchedApproverGroups = append(matchedApproverGroups, groupID)
+					}
+				}
+			}
+		}
+	}
+
+	// Check if the user is an approver
+	isApprover = len(matchedApproverGroups) > 0
+
+	// Update session
+	sessionData["isApprover"] = isApprover
+	sessionData["approverGroups"] = matchedApproverGroups
+	sessionData["isAdmin"] = isAdmin
+	sessionData["adminGroups"] = matchedAdminGroups
+	session.Set("data", sessionData)
+	middleware.SplitSessionData(c)
+
+	c.JSON(http.StatusOK, gin.H{
+		"isApprover":     isApprover,
+		"approverGroups": matchedApproverGroups,
+		"isAdmin":        isAdmin,
+		"adminGroups":    matchedAdminGroups,
+	})
+}
+
+// MatchUserGroups checks if the user belongs to any approver or admin groups
+// It returns boolean flags indicating if the user is an approver or admin
+// along with the matched approver and admin groups
+func MatchUserGroups(
+	userGroups []models.Team,
+	approverTeams []models.Team,
+	adminTeams []models.Team,
+) (isAdmin bool, matchedApproverGroups []string, matchedAdminGroups []string) {
+	for _, group := range userGroups {
+		for _, approverGroup := range approverTeams {
+			if group.ID == approverGroup.ID && group.Name == approverGroup.Name {
+				matchedApproverGroups = append(matchedApproverGroups, group.ID)
+			}
+		}
+		for _, adminGroup := range adminTeams {
+			if group.ID == adminGroup.ID && group.Name == adminGroup.Name {
+				matchedAdminGroups = append(matchedAdminGroups, group.ID)
+			}
+		}
+	}
+	isAdmin = len(matchedAdminGroups) > 0
+	return
 }

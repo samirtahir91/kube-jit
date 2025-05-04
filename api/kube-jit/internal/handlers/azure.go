@@ -7,7 +7,6 @@ import (
 	"io"
 	"kube-jit/internal/middleware"
 	"kube-jit/internal/models"
-	"kube-jit/pkg/k8s"
 	"log"
 	"net/http"
 	"os"
@@ -16,7 +15,6 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 var (
@@ -168,57 +166,20 @@ func GetAzureProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, normalizedUserData)
 }
 
-// AzurePermissions checks if the logged-in user is an approver or admin based on their Azure AD groups
-func AzurePermissions(c *gin.Context) {
-	session := sessions.Default(c)
-
-	// Check if the user is logged in
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return // The response has already been sent by CheckLoggedIn
-	}
-
-	// Check if isApprover, isAdmin, approverGroups, and adminGroups are already in the session cookie
-	isApprover, isApproverOk := sessionData["isApprover"].(bool)
-	isAdmin, isAdminOk := sessionData["isAdmin"].(bool)
-	approverGroups, approverGroupsOk := sessionData["approverGroups"]
-	adminGroups, adminGroupsOk := sessionData["adminGroups"]
-	if isApproverOk && isAdminOk && approverGroupsOk && adminGroupsOk {
-		// Return cached values
-		c.JSON(http.StatusOK, gin.H{
-			"isApprover":     isApprover,
-			"approverGroups": approverGroups,
-			"isAdmin":        isAdmin,
-			"adminGroups":    adminGroups,
-		})
-		return
-	}
-
-	// Retrieve the token from the session data
-	token, ok := sessionData["token"].(string)
-	if !ok || token == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
-		return
-	}
-
-	// Fetch the user's groups from Azure AD
-	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{
-		AccessToken: token,
-	}))
+// Fetch Azure AD groups for a user using their OAuth token
+func GetAzureGroups(token string) ([]models.Team, error) {
+	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token}))
 	resp, err := client.Get("https://graph.microsoft.com/v1.0/me/memberOf")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch groups from Azure AD"})
-		return
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Error fetching groups from Azure AD: %s", string(body))})
-		return
+		return nil, fmt.Errorf("error fetching groups from Azure AD: %s", string(body))
 	}
 
-	// Decode the response into a struct
 	var groupsResponse struct {
 		Value []struct {
 			ID          string `json:"id"`
@@ -226,71 +187,15 @@ func AzurePermissions(c *gin.Context) {
 		} `json:"value"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&groupsResponse); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode groups response"})
-		return
+		return nil, err
 	}
 
-	// Check if the user belongs to any approver or admin groups
-	var matchedApproverGroups []string
-	var matchedAdminGroups []string
-	for _, group := range groupsResponse.Value {
-		for _, approverGroup := range k8s.ApproverTeams {
-			if group.ID == approverGroup.ID && group.DisplayName == approverGroup.Name {
-				matchedApproverGroups = append(matchedApproverGroups, group.ID)
-			}
-		}
-		for _, adminGroup := range k8s.AdminTeams {
-			if group.ID == adminGroup.ID && group.DisplayName == adminGroup.Name {
-				matchedAdminGroups = append(matchedAdminGroups, group.ID)
-			}
-		}
+	var teams []models.Team
+	for _, g := range groupsResponse.Value {
+		teams = append(teams, models.Team{
+			ID:   g.ID,
+			Name: g.DisplayName,
+		})
 	}
-
-	// Check JitGroupCache for the user's groups
-	for _, clusterName := range k8s.ClusterNames {
-		jitGroups, err := k8s.GetJitGroups(clusterName)
-		if err != nil {
-			log.Printf("Error fetching JitGroups for cluster %s: %v", clusterName, err)
-			continue
-		}
-
-		groups, _, _ := unstructured.NestedSlice(jitGroups.Object, "spec", "groups")
-		for _, group := range groups {
-			groupMap, ok := group.(map[string]any)
-			if !ok {
-				continue
-			}
-			groupID, ok := groupMap["groupID"].(string)
-			if ok {
-				for _, userGroup := range groupsResponse.Value {
-					if userGroup.ID == groupID {
-						matchedApproverGroups = append(matchedApproverGroups, groupID)
-					}
-				}
-			}
-		}
-	}
-
-	isApprover = len(matchedApproverGroups) > 0
-	isAdmin = len(matchedAdminGroups) > 0
-
-	// Update the session data with isApprover, isAdmin, approverGroups, and adminGroups
-	sessionData["isApprover"] = isApprover
-	sessionData["approverGroups"] = matchedApproverGroups
-	sessionData["isAdmin"] = isAdmin
-	sessionData["adminGroups"] = matchedAdminGroups
-
-	// Save the updated session data
-	session.Set("data", sessionData)
-
-	// Split the session data into cookies
-	middleware.SplitSessionData(c)
-
-	// Respond with the result
-	c.JSON(http.StatusOK, gin.H{
-		"isApprover":     isApprover,
-		"approverGroups": matchedApproverGroups,
-		"isAdmin":        isAdmin,
-		"adminGroups":    matchedAdminGroups,
-	})
+	return teams, nil
 }

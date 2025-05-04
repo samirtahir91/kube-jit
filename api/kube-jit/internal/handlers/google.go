@@ -7,7 +7,6 @@ import (
 	"io"
 	"kube-jit/internal/middleware"
 	"kube-jit/internal/models"
-	"kube-jit/pkg/k8s"
 	"log"
 	"net/http"
 	"strings"
@@ -174,94 +173,6 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error
 	}
 
 	return teams, nil
-}
-
-// GooglePermissions uses the Google Admin SDK to fetch the user's groups
-// It returns true if the user is an approver, false otherwise
-func GooglePermissions(c *gin.Context) {
-	session := sessions.Default(c)
-
-	// Check if the user is logged in
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return // The response has already been sent by CheckLoggedIn
-	}
-
-	// Check if isApprover, isAdmin, approverGroups, and adminGroups are already in the session cookie
-	isApprover, isApproverOk := sessionData["isApprover"].(bool)
-	isAdmin, isAdminOk := sessionData["isAdmin"].(bool)
-	approverGroups, approverGroupsOk := sessionData["approverGroups"]
-	adminGroups, adminGroupsOk := sessionData["adminGroups"]
-	if isApproverOk && isAdminOk && approverGroupsOk && adminGroupsOk {
-		// Return cached values
-		c.JSON(http.StatusOK, gin.H{
-			"isApprover":     isApprover,
-			"approverGroups": approverGroups,
-			"isAdmin":        isAdmin,
-			"adminGroups":    adminGroups,
-		})
-		return
-	}
-
-	// Retrieve the token from the session data
-	token, ok := sessionData["token"].(string)
-	if !ok || token == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
-		return
-	}
-
-	// Retrieve the user's email from the session
-	userEmail := sessionData["email"]
-	if userEmail == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no email in session"})
-		return
-	}
-
-	// Fetch the user's groups using Workload Identity
-	userGroups, err := GetGoogleGroupsWithWorkloadIdentity(userEmail.(string))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Google groups"})
-		return
-	}
-
-	// Check if the user belongs to any approver or admin groups
-	var matchedApproverGroups []string
-	var matchedAdminGroups []string
-	for _, group := range userGroups {
-		for _, approverGroup := range k8s.ApproverTeams {
-			if group.ID == approverGroup.ID && group.Name == approverGroup.Name {
-				matchedApproverGroups = append(matchedApproverGroups, group.ID)
-			}
-		}
-		for _, adminGroup := range k8s.AdminTeams {
-			if group.ID == adminGroup.ID && group.Name == adminGroup.Name {
-				matchedAdminGroups = append(matchedAdminGroups, group.ID)
-			}
-		}
-	}
-
-	isApprover = len(matchedApproverGroups) > 0
-	isAdmin = len(matchedAdminGroups) > 0
-
-	// Update the session data with isApprover, isAdmin, approverGroups, and adminGroups
-	sessionData["isApprover"] = isApprover
-	sessionData["approverGroups"] = matchedApproverGroups
-	sessionData["isAdmin"] = isAdmin
-	sessionData["adminGroups"] = matchedAdminGroups
-
-	// Save the updated session data
-	session.Set("data", sessionData)
-
-	// Split the session data into cookies
-	middleware.SplitSessionData(c)
-
-	// Respond with the result
-	c.JSON(http.StatusOK, gin.H{
-		"isApprover":     isApprover,
-		"approverGroups": matchedApproverGroups,
-		"isAdmin":        isAdmin,
-		"adminGroups":    matchedAdminGroups,
-	})
 }
 
 func HandleGoogleLogin(c *gin.Context) {

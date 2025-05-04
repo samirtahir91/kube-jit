@@ -3,10 +3,10 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"kube-jit/internal/middleware"
 	"kube-jit/internal/models"
-	"kube-jit/pkg/k8s"
 	"log"
 	"net/http"
 	"net/url"
@@ -17,119 +17,41 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GithubPermissions uses the GitHub API to fetch the user's teams and checks if they belong to any approver teams
-// It returns true if the user is an approver, false otherwise
-func GithubPermissions(c *gin.Context) {
-	session := sessions.Default(c)
-
-	// Check if the user is logged in
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return // The response has already been sent by CheckLoggedIn
-	}
-
-	// Check if isApprover, isAdmin, approverGroups, and adminGroups are already in the session cookie
-	isApprover, isApproverOk := sessionData["isApprover"].(bool)
-	isAdmin, isAdminOk := sessionData["isAdmin"].(bool)
-	approverGroups, approverGroupsOk := sessionData["approverGroups"]
-	adminGroups, adminGroupsOk := sessionData["adminGroups"]
-	if isApproverOk && isAdminOk && approverGroupsOk && adminGroupsOk {
-		// Return cached values
-		c.JSON(http.StatusOK, gin.H{
-			"isApprover":     isApprover,
-			"approverGroups": approverGroups,
-			"isAdmin":        isAdmin,
-			"adminGroups":    adminGroups,
-		})
-		return
-	}
-
-	// Retrieve the token from the session data
-	token, ok := sessionData["token"].(string)
-	if !ok || token == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
-		return
-	}
-
-	// Fetch user's teams from GitHub
+// Fetch GitHub teams for a user using their OAuth token
+func GetGithubTeams(token string) ([]models.Team, error) {
 	req, err := http.NewRequest("GET", "https://api.github.com/user/teams", nil)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		log.Printf("Response Body: %s", string(body))
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Error fetching teams from GitHub"})
-		return
+		return nil, fmt.Errorf("error fetching teams from GitHub: %s", string(body))
 	}
 
-	// Decode the response and convert IDs to strings
 	var githubTeams []struct {
-		ID   int    `json:"id"`   // GitHub returns numeric IDs
-		Name string `json:"name"` // Team name
+		ID   int    `json:"id"`
+		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&githubTeams); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return nil, err
 	}
 
-	// Convert GitHub teams to the Team struct
-	var userTeams []models.Team
-	for _, githubTeam := range githubTeams {
-		userTeams = append(userTeams, models.Team{
-			ID:   strconv.Itoa(githubTeam.ID), // Convert numeric ID to string
-			Name: githubTeam.Name,
+	var teams []models.Team
+	for _, t := range githubTeams {
+		teams = append(teams, models.Team{
+			ID:   strconv.Itoa(t.ID),
+			Name: t.Name,
 		})
 	}
-
-	// Check if the user belongs to any approver or admin groups
-	var matchedApproverGroups []string
-	var matchedAdminGroups []string
-	for _, group := range userTeams {
-		for _, approverGroup := range k8s.ApproverTeams {
-			if group.ID == approverGroup.ID && group.Name == approverGroup.Name {
-				matchedApproverGroups = append(matchedApproverGroups, group.ID)
-			}
-		}
-		for _, adminGroup := range k8s.AdminTeams {
-			if group.ID == adminGroup.ID && group.Name == adminGroup.Name {
-				matchedAdminGroups = append(matchedAdminGroups, group.ID)
-			}
-		}
-	}
-
-	isApprover = len(matchedApproverGroups) > 0
-	isAdmin = len(matchedAdminGroups) > 0
-
-	// Update the session data with isApprover, isAdmin, approverGroups, and adminGroups
-	sessionData["isApprover"] = isApprover
-	sessionData["approverGroups"] = matchedApproverGroups
-	sessionData["isAdmin"] = isAdmin
-	sessionData["adminGroups"] = matchedAdminGroups
-
-	// Save the updated session data
-	session.Set("data", sessionData)
-
-	// Split the session data into cookies
-	middleware.SplitSessionData(c)
-
-	// Respond with the result
-	c.JSON(http.StatusOK, gin.H{
-		"isApprover":     isApprover,
-		"approverGroups": matchedApproverGroups,
-		"isAdmin":        isAdmin,
-		"adminGroups":    matchedAdminGroups,
-	})
+	return teams, nil
 }
 
 // HandleGitHubLogin handles the GitHub OAuth callback

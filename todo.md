@@ -34,6 +34,5 @@ test
 
 
 ## Priority:
-- if no group found admin only or allowed approvers can approve
 - copy changes from azure permissions to google and github
   - make it common function to call

@@ -51,11 +51,19 @@ function App() {
     // Define checkPermissions outside useEffect
     const checkPermissions = async (provider: string | null) => {
         try {
-            const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/${provider}/permissions`, {
+            const payload = {
+                provider: provider,
+            };
+            axios.post(`${config.apiBaseUrl}/kube-jit-api/permissions`, payload, {
                 withCredentials: true,
+            })
+            .then(response => {
+                setIsApprover(response.data.isApprover);
+                setIsAdmin(response.data.isAdmin);
+            })
+            .catch(error => {
+                console.error("Error in permissions request:", error);
             });
-            setIsApprover(response.data.isApprover);
-            setIsAdmin(response.data.isAdmin);
         } catch (error) {
             console.error("Error checking approver status:", error);
         }
