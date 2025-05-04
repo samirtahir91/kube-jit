@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Table } from 'react-bootstrap';
 import './RequestTable.css';
-import { PendingRequest, Request } from '../../types'; // Import the shared PendingRequest type
+import { PendingRequest, Request } from '../../types';
 
 
 type RequestTableProps = {
@@ -136,8 +136,9 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
     };
 
     return (
-        <div className={`table-container py-5 ${isExpanded ? 'expanded' : ''}`}>
-            <div className="d-flex justify-content-between align-items-center mb-3">
+        <>
+            {/* Controls OUTSIDE the table-container */}
+            <div className="table-controls d-flex justify-content-between align-items-center mb-3">
                 <div className="d-flex align-items-center">
                     <div
                         className={`toggle-button ${variant === 'dark' ? 'dark' : ''}`}
@@ -179,228 +180,243 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                     </button>
                 </div>
             </div>
-            {/* Display the number of results */}
             <div className="results-message">
                 Showing <strong>{filteredRequests.length}</strong> result{filteredRequests.length !== 1 ? 's' : ''}
             </div>
-            <Table variant={variant} size="sm" striped bordered hover responsive className="mt-3">
-                <thead>
-                    <tr>
-                        {selectable && <th className="table-colour">Select</th>}
-                        <th className="table-colour">ID</th>
-                        <th className="table-colour">Period requested</th>
-                        <th className="table-colour">
-                            Requestee
-                            <input
-                                type="text"
-                                placeholder="Filter"
-                                className="form-control form-control-sm mt-1"
-                                value={filters.username}
-                                onChange={(e) => handleFilterChange(e, 'username')}
-                            />
-                        </th>
-                        {mode === 'history' && (
-                            <th className="table-colour">
-                                Approvers
-                                <input
-                                    type="text"
-                                    placeholder="Filter"
-                                    className="form-control form-control-sm mt-1"
-                                    value={filters.approverNames}
-                                    onChange={(e) => handleFilterChange(e, 'approverNames')}
-                                />
-                            </th>
-                        )}
-                        {mode === 'history' && (
-                            <th className="table-colour namespace-approvals-col">Namespace Approvals (with owning group ID)</th>
-                        )}
-                        <th className="table-colour">
-                            Users
-                            <input
-                                type="text"
-                                placeholder="Filter"
-                                className="form-control form-control-sm mt-1"
-                                value={filters.users}
-                                onChange={(e) => handleFilterChange(e, 'users')}
-                            />
-                        </th>
-                        <th className="table-colour">
-                            Cluster
-                            <input
-                                type="text"
-                                placeholder="Filter"
-                                className="form-control form-control-sm mt-1"
-                                value={filters.clusterName}
-                                onChange={(e) => handleFilterChange(e, 'clusterName')}
-                            />
-                        </th>
-                        <th className="table-colour">
-                            Namespaces
-                            <input
-                                type="text"
-                                placeholder="Filter"
-                                className="form-control form-control-sm mt-1"
-                                value={filters.namespaces}
-                                onChange={(e) => handleFilterChange(e, 'namespaces')}
-                            />
-                        </th>
-                        <th className="table-colour">Justification</th>
-                        <th className="table-colour">
-                            Role
-                            <input
-                                type="text"
-                                placeholder="Filter"
-                                className="form-control form-control-sm mt-1"
-                                value={filters.roleName}
-                                onChange={(e) => handleFilterChange(e, 'roleName')}
-                            />
-                        </th>
-                        <th className="table-colour">Created At</th>
-                        {mode === 'history' && (
-                            <th className="table-colour">
-                                Status
-                                <select
-                                    className="form-select form-select-sm mt-1"
-                                    value={filters.status}
-                                    onChange={(e) => handleFilterChange(e, 'status')}
-                                >
-                                    <option value="">All</option>
-                                    <option value="Requested">Requested</option>
-                                    <option value="Approved">Approved</option>
-                                    <option value="Rejected">Rejected</option>
-                                    <option value="Pending">Pending</option>
-                                    <option value="Succeeded">Succeeded</option>
-                                </select>
-                            </th>
-                        )}
-                        {mode === 'history' && (
-                            <th className="table-colour">Notes</th>
-                        )}
-                    </tr>
-                </thead>
-                <tbody>
-                    {filteredRequests.map(request => {
-                        if (mode === 'pending') {
-                            const pendingRequest = request as PendingRequest;
-                            return (
-                                <tr key={pendingRequest.ID}>
-                                    {selectable && (
-                                        <td>
-                                            <label className="select-checkbox-label">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedRequests.includes(pendingRequest.ID)}
-                                                    onChange={() => handleSelectRequest(pendingRequest.ID)}
-                                                    className="select-checkbox"
-                                                />
-                                                <span className="custom-checkbox"></span>
-                                            </label>
-                                        </td>
-                                    )}
-                                    <td>{pendingRequest.ID}</td>
-                                    <td>
-                                        {new Date(pendingRequest.startDate).toLocaleString(undefined, {
-                                            year: 'numeric',
-                                            month: 'numeric',
-                                            day: 'numeric',
-                                            hour: 'numeric',
-                                            minute: 'numeric',
-                                        })}{' '}
-                                        -{' '}
-                                        {new Date(pendingRequest.endDate).toLocaleString(undefined, {
-                                            year: 'numeric',
-                                            month: 'numeric',
-                                            day: 'numeric',
-                                            hour: 'numeric',
-                                            minute: 'numeric',
-                                        })}
-                                    </td>
-                                    <td>{pendingRequest.username}</td>
-                                    <td>{pendingRequest.users.join(', ')}</td>
-                                    <td>{pendingRequest.clusterName}</td>
-                                    <td>{Array.isArray(pendingRequest.namespaces) ? pendingRequest.namespaces.join(', ') : pendingRequest.namespaces}</td>
-                                    <td>{pendingRequest.justification}</td>
-                                    <td>{pendingRequest.roleName}</td>
-                                    <td>
-                                        {new Date(pendingRequest.CreatedAt).toLocaleString(undefined, {
-                                                year: 'numeric',
-                                                month: 'numeric',
-                                                day: 'numeric',
-                                                hour: 'numeric',
-                                                minute: 'numeric',
-                                        })}
-                                    </td>
-                                </tr>
-                            );
-                        } else {
-                            const historicalRequest = request as Request;
-                            return (
-                                <tr key={historicalRequest.ID}>
-                                    <td>{historicalRequest.ID}</td>
-                                    <td>
-                                        {new Date(historicalRequest.startDate).toLocaleString(undefined, {
-                                            year: 'numeric',
-                                            month: 'numeric',
-                                            day: 'numeric',
-                                            hour: 'numeric',
-                                            minute: 'numeric',
-                                        })}{' '}
-                                        -{' '}
-                                        {new Date(historicalRequest.endDate).toLocaleString(undefined, {
-                                            year: 'numeric',
-                                            month: 'numeric',
-                                            day: 'numeric',
-                                            hour: 'numeric',
-                                            minute: 'numeric',
-                                        })}
-                                    </td>
-                                    <td>{historicalRequest.username}</td>
-                                    <td>{historicalRequest.approverNames ? historicalRequest.approverNames.join(', ') : 'N/A'}</td>
+            {/* Table and results message */}
+            <div className={`table-container py-5${isExpanded ? ' expanded' : ''}`}>
+                <div className="table-outer-scroll-x">
+                    <div className="table-inner-scroll-y" style={{ minWidth: 1200 }}>
+                        <Table
+                            variant={variant}
+                            size="sm"
+                            striped
+                            bordered
+                            hover
+                            responsive={false} // <--- set to false to avoid Bootstrap's own x-scroll
+                            className="mt-3"
+                            style={{ marginBottom: 0, minWidth: 1200 }}
+                        >
+                            <thead>
+                                <tr>
+                                    {selectable && <th className="table-colour">Select</th>}
+                                    <th className="table-colour">ID</th>
+                                    <th className="table-colour">Period requested</th>
+                                    <th className="table-colour">
+                                        Requestee
+                                        <input
+                                            type="text"
+                                            placeholder="Filter"
+                                            className="form-control form-control-sm mt-1"
+                                            value={filters.username}
+                                            onChange={(e) => handleFilterChange(e, 'username')}
+                                        />
+                                    </th>
                                     {mode === 'history' && (
-                                        <td className="namespace-approvals-col">
-                                            {historicalRequest.namespaceApprovals && historicalRequest.namespaceApprovals.length > 0 ? (
-                                                <ul style={{ paddingLeft: 16, marginBottom: 0 }}>
-                                                    {historicalRequest.namespaceApprovals.map((ns, idx) => {
-                                                        let statusIcon = '🟡'; // Default: pending
-                                                        if (ns.approved === true && ns.approverName) statusIcon = '✅';
-                                                        else if (ns.approved === false && ns.approverName) statusIcon = '❌';
-                                                        return (
-                                                            <li key={idx}>
-                                                                <strong>{ns.namespace}</strong>
-                                                                {' '}(<span style={{ color: '#888' }}>{ns.groupID}</span>)
-                                                                : {statusIcon}
-                                                                {ns.approverName ? ` by ${ns.approverName}` : ''}
-                                                            </li>
-                                                        );
-                                                    })}
-                                                </ul>
-                                            ) : (
-                                                'N/A'
-                                            )}
-                                        </td>
+                                        <th className="table-colour">
+                                            Approvers
+                                            <input
+                                                type="text"
+                                                placeholder="Filter"
+                                                className="form-control form-control-sm mt-1"
+                                                value={filters.approverNames}
+                                                onChange={(e) => handleFilterChange(e, 'approverNames')}
+                                            />
+                                        </th>
                                     )}
-                                    <td>{historicalRequest.users.join(', ')}</td>
-                                    <td>{historicalRequest.clusterName}</td>
-                                    <td>{historicalRequest.namespaces ? historicalRequest.namespaces.join(', ') : 'N/A'}</td>
-                                    <td>{historicalRequest.justification}</td>
-                                    <td>{historicalRequest.roleName}</td>
-                                    <td>{new Date(historicalRequest.CreatedAt).toLocaleString(undefined, {
-                                                year: 'numeric',
-                                                month: 'numeric',
-                                                day: 'numeric',
-                                                hour: 'numeric',
-                                                minute: 'numeric',
-                                        })}
-                                    </td>
-                                    <td>{historicalRequest.status}</td>
-                                    <td>{historicalRequest.notes}</td>
+                                    {mode === 'history' && (
+                                        <th className="table-colour namespace-approvals-col">Namespace Approvals (with owning group ID)</th>
+                                    )}
+                                    <th className="table-colour">
+                                        Users
+                                        <input
+                                            type="text"
+                                            placeholder="Filter"
+                                            className="form-control form-control-sm mt-1"
+                                            value={filters.users}
+                                            onChange={(e) => handleFilterChange(e, 'users')}
+                                        />
+                                    </th>
+                                    <th className="table-colour">
+                                        Cluster
+                                        <input
+                                            type="text"
+                                            placeholder="Filter"
+                                            className="form-control form-control-sm mt-1"
+                                            value={filters.clusterName}
+                                            onChange={(e) => handleFilterChange(e, 'clusterName')}
+                                        />
+                                    </th>
+                                    <th className="table-colour">
+                                        Namespaces
+                                        <input
+                                            type="text"
+                                            placeholder="Filter"
+                                            className="form-control form-control-sm mt-1"
+                                            value={filters.namespaces}
+                                            onChange={(e) => handleFilterChange(e, 'namespaces')}
+                                        />
+                                    </th>
+                                    <th className="table-colour">Justification</th>
+                                    <th className="table-colour">
+                                        Role
+                                        <input
+                                            type="text"
+                                            placeholder="Filter"
+                                            className="form-control form-control-sm mt-1"
+                                            value={filters.roleName}
+                                            onChange={(e) => handleFilterChange(e, 'roleName')}
+                                        />
+                                    </th>
+                                    <th className="table-colour">Created At</th>
+                                    {mode === 'history' && (
+                                        <th className="table-colour">
+                                            Status
+                                            <select
+                                                className="form-select form-select-sm mt-1"
+                                                value={filters.status}
+                                                onChange={(e) => handleFilterChange(e, 'status')}
+                                            >
+                                                <option value="">All</option>
+                                                <option value="Requested">Requested</option>
+                                                <option value="Approved">Approved</option>
+                                                <option value="Rejected">Rejected</option>
+                                                <option value="Pending">Pending</option>
+                                                <option value="Succeeded">Succeeded</option>
+                                            </select>
+                                        </th>
+                                    )}
+                                    {mode === 'history' && (
+                                        <th className="table-colour">Notes</th>
+                                    )}
                                 </tr>
-                            );
-                        }
-                    })}
-                </tbody>
-            </Table>
-        </div>
+                            </thead>
+                            <tbody>
+                                {filteredRequests.map(request => {
+                                    if (mode === 'pending') {
+                                        const pendingRequest = request as PendingRequest;
+                                        return (
+                                            <tr key={pendingRequest.ID}>
+                                                {selectable && (
+                                                    <td>
+                                                        <label className="select-checkbox-label">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedRequests.includes(pendingRequest.ID)}
+                                                                onChange={() => handleSelectRequest(pendingRequest.ID)}
+                                                                className="select-checkbox"
+                                                            />
+                                                            <span className="custom-checkbox"></span>
+                                                        </label>
+                                                    </td>
+                                                )}
+                                                <td>{pendingRequest.ID}</td>
+                                                <td>
+                                                    {new Date(pendingRequest.startDate).toLocaleString(undefined, {
+                                                        year: 'numeric',
+                                                        month: 'numeric',
+                                                        day: 'numeric',
+                                                        hour: 'numeric',
+                                                        minute: 'numeric',
+                                                    })}{' '}
+                                                    -{' '}
+                                                    {new Date(pendingRequest.endDate).toLocaleString(undefined, {
+                                                        year: 'numeric',
+                                                        month: 'numeric',
+                                                        day: 'numeric',
+                                                        hour: 'numeric',
+                                                        minute: 'numeric',
+                                                    })}
+                                                </td>
+                                                <td>{pendingRequest.username}</td>
+                                                <td>{pendingRequest.users.join(', ')}</td>
+                                                <td>{pendingRequest.clusterName}</td>
+                                                <td>{Array.isArray(pendingRequest.namespaces) ? pendingRequest.namespaces.join(', ') : pendingRequest.namespaces}</td>
+                                                <td>{pendingRequest.justification}</td>
+                                                <td>{pendingRequest.roleName}</td>
+                                                <td>
+                                                    {new Date(pendingRequest.CreatedAt).toLocaleString(undefined, {
+                                                            year: 'numeric',
+                                                            month: 'numeric',
+                                                            day: 'numeric',
+                                                            hour: 'numeric',
+                                                            minute: 'numeric',
+                                                    })}
+                                                </td>
+                                            </tr>
+                                        );
+                                    } else {
+                                        const historicalRequest = request as Request;
+                                        return (
+                                            <tr key={historicalRequest.ID}>
+                                                <td>{historicalRequest.ID}</td>
+                                                <td>
+                                                    {new Date(historicalRequest.startDate).toLocaleString(undefined, {
+                                                        year: 'numeric',
+                                                        month: 'numeric',
+                                                        day: 'numeric',
+                                                        hour: 'numeric',
+                                                        minute: 'numeric',
+                                                    })}{' '}
+                                                    -{' '}
+                                                    {new Date(historicalRequest.endDate).toLocaleString(undefined, {
+                                                        year: 'numeric',
+                                                        month: 'numeric',
+                                                        day: 'numeric',
+                                                        hour: 'numeric',
+                                                        minute: 'numeric',
+                                                    })}
+                                                </td>
+                                                <td>{historicalRequest.username}</td>
+                                                <td>{historicalRequest.approverNames ? historicalRequest.approverNames.join(', ') : 'N/A'}</td>
+                                                {mode === 'history' && (
+                                                    <td className="namespace-approvals-col">
+                                                        {historicalRequest.namespaceApprovals && historicalRequest.namespaceApprovals.length > 0 ? (
+                                                            <ul style={{ paddingLeft: 16, marginBottom: 0 }}>
+                                                                {historicalRequest.namespaceApprovals.map((ns, idx) => {
+                                                                    let statusIcon = '🟡'; // Default: pending
+                                                                    if (ns.approved === true && ns.approverName) statusIcon = '✅';
+                                                                    else if (ns.approved === false && ns.approverName) statusIcon = '❌';
+                                                                    return (
+                                                                        <li key={idx}>
+                                                                            <strong>{ns.namespace}</strong>
+                                                                            {' '}(<span style={{ color: '#888' }}>{ns.groupID}</span>)
+                                                                            : {statusIcon}
+                                                                            {ns.approverName ? ` by ${ns.approverName}` : ''}
+                                                                        </li>
+                                                                    );
+                                                                })}
+                                                            </ul>
+                                                        ) : (
+                                                            'N/A'
+                                                        )}
+                                                    </td>
+                                                )}
+                                                <td>{historicalRequest.users.join(', ')}</td>
+                                                <td>{historicalRequest.clusterName}</td>
+                                                <td>{historicalRequest.namespaces ? historicalRequest.namespaces.join(', ') : 'N/A'}</td>
+                                                <td>{historicalRequest.justification}</td>
+                                                <td>{historicalRequest.roleName}</td>
+                                                <td>{new Date(historicalRequest.CreatedAt).toLocaleString(undefined, {
+                                                            year: 'numeric',
+                                                            month: 'numeric',
+                                                            day: 'numeric',
+                                                            hour: 'numeric',
+                                                            minute: 'numeric',
+                                                    })}
+                                                </td>
+                                                <td>{historicalRequest.status}</td>
+                                                <td>{historicalRequest.notes}</td>
+                                            </tr>
+                                        );
+                                    }
+                                })}
+                            </tbody>
+                        </Table>
+                    </div>
+                </div>
+            </div>
+        </>
     );
 };
 
