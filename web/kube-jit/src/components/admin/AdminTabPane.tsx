@@ -35,12 +35,17 @@ const AdminTabPane = ({ setLoadingInCard }: { setLoadingInCard: (b: boolean) => 
                     Perform administrative tasks such as cleaning up expired, non-approved requests.
                 </p>
             </div>
-            <button
-                className="action-button reject mb-3"
-                onClick={() => setShowConfirm(true)}
-            >
-                Clean Expired Non-Approved Requests
-            </button>
+            <div className="admin-action-group mb-3">
+                <button
+                    className="action-button reject"
+                    onClick={() => setShowConfirm(true)}
+                >
+                    Clean Expired Non-Approved Requests
+                </button>
+                <div className="admin-action-desc text-muted mt-1" style={{ fontSize: "0.95em" }}>
+                    Remove all requests that have expired and were not approved. This helps keep your system and database tidy and up to date.
+                </div>
+            </div>
             {result && (
                 <div className="success-message">
                     <i className="bi bi-check-circle-fill me-2"></i>
