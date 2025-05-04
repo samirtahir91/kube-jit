@@ -5,7 +5,10 @@ import (
 
 	v1 "kube-jit-operator/api/v1"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/go-logr/logr"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -14,7 +17,7 @@ import (
 )
 
 // namespacePredicate checks namespaces have the label "jit.kubejit.io/adopt=true"
-// and if the annotation AnnotationGroupID has changed or exists
+// and if BOTH the annotation AnnotationGroupID AND AnnotationGroupName exist
 func namespacePredicate() predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
@@ -23,17 +26,18 @@ func namespacePredicate() predicate.Predicate {
 				return false
 			}
 			annotations := e.Object.GetAnnotations()
-			return annotations[AnnotationGroupID] != ""
+			return annotations[AnnotationGroupID] != "" && annotations[AnnotationGroupName] != ""
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			labels := e.ObjectNew.GetLabels()
 			if labels[LabelAdopt] != "true" {
 				return false
 			}
-
 			oldAnnotations := e.ObjectOld.GetAnnotations()
 			newAnnotations := e.ObjectNew.GetAnnotations()
-			return oldAnnotations[AnnotationGroupID] != newAnnotations[AnnotationGroupID]
+			return (oldAnnotations[AnnotationGroupID] != newAnnotations[AnnotationGroupID] ||
+				oldAnnotations[AnnotationGroupName] != newAnnotations[AnnotationGroupName]) &&
+				newAnnotations[AnnotationGroupID] != "" && newAnnotations[AnnotationGroupName] != ""
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			labels := e.Object.GetLabels()
@@ -56,12 +60,13 @@ func removeNamespaceFromCache(groups []v1.JitGroup, namespace string) []v1.JitGr
 	return updatedGroups
 }
 
-// addOrUpdateNamespaceInCache adds a namespace to the cache or updates its group ID
-func addOrUpdateNamespaceInCache(groups []v1.JitGroup, namespace, groupID string) []v1.JitGroup {
+// addOrUpdateNamespaceInCache adds a namespace to the cache or updates its group ID and group name
+func addOrUpdateNamespaceInCache(groups []v1.JitGroup, namespace, groupID, groupName string) []v1.JitGroup {
 	updated := false
 	for i, group := range groups {
 		if group.Namespace == namespace {
 			groups[i].GroupID = groupID
+			groups[i].GroupName = groupName
 			updated = true
 			break
 		}
@@ -71,6 +76,7 @@ func addOrUpdateNamespaceInCache(groups []v1.JitGroup, namespace, groupID string
 		groups = append(groups, v1.JitGroup{
 			Namespace: namespace,
 			GroupID:   groupID,
+			GroupName: groupName,
 		})
 	}
 
@@ -112,4 +118,59 @@ func (r *JitGroupCacheReconciler) updateJitGroupCache(ctx context.Context, jitGr
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
+}
+
+// RebuildJitGroupCache rebuilds the JitGroupCache from all namespaces with LabelAdopt and required annotations
+func (r *JitGroupCacheReconciler) RebuildJitGroupCache(ctx context.Context, l logr.Logger) error {
+	var nsList corev1.NamespaceList
+	if err := r.List(ctx, &nsList, client.MatchingLabels{LabelAdopt: "true"}); err != nil {
+		l.Error(err, "Failed to list namespaces for JitGroupCache rebuild")
+		return err
+	}
+
+	groups := []v1.JitGroup{}
+	for _, ns := range nsList.Items {
+		annotations := ns.GetAnnotations()
+		groupID := annotations[AnnotationGroupID]
+		groupName := annotations[AnnotationGroupName]
+		if groupID != "" && groupName != "" {
+			groups = append(groups, v1.JitGroup{
+				Namespace: ns.Name,
+				GroupID:   groupID,
+				GroupName: groupName,
+			})
+		}
+	}
+
+	// Try to get the existing JitGroupCache object
+	jitGroupCache := &v1.JitGroupCache{}
+	err := r.Get(ctx, client.ObjectKey{Name: JitGroupCacheName}, jitGroupCache)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// Not found, so create it
+			jitGroupCache = &v1.JitGroupCache{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: JitGroupCacheName,
+				},
+				Spec: v1.JitGroupCacheSpec{
+					Groups: groups,
+				},
+			}
+			if createErr := r.Create(ctx, jitGroupCache); createErr != nil {
+				l.Error(createErr, "Failed to create JitGroupCache")
+				return createErr
+			}
+			return nil
+		}
+		l.Error(err, "Failed to get JitGroupCache")
+		return err
+	}
+
+	// Found, so update the spec and call Update
+	jitGroupCache.Spec.Groups = groups
+	if updateErr := r.Update(ctx, jitGroupCache); updateErr != nil {
+		l.Error(updateErr, "Failed to update JitGroupCache")
+		return updateErr
+	}
+	return nil
 }

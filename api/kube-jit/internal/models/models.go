@@ -47,6 +47,7 @@ type RequestNamespace struct {
 	RequestID    uint   `gorm:"not null;index"`
 	Namespace    string `gorm:"not null"`
 	GroupID      string `gorm:"not null"`
+	GroupName    string `json:"groupName"`
 	Approved     bool   `gorm:"default:false"`
 	ApproverID   string `json:"approverID"`
 	ApproverName string `json:"approverName"`

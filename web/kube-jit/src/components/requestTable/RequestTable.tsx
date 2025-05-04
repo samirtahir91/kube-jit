@@ -99,7 +99,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                 // Format namespace approvals as a string
                 const nsApprovals = historicalRequest.namespaceApprovals && historicalRequest.namespaceApprovals.length > 0
                     ? historicalRequest.namespaceApprovals.map(ns =>
-                        `${ns.namespace} (${ns.groupID}): ${ns.approved ? 'Approved' : 'Rejected'}${ns.approverName ? ` by ${ns.approverName}` : ''}`
+                        `${ns.namespace} (${ns.groupName}): ${ns.approved ? 'Approved' : 'Rejected'}${ns.approverName ? ` by ${ns.approverName}` : ''}`
                       ).join(' | ')
                     : 'N/A';
     
@@ -382,7 +382,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                                                     return (
                                                                         <li key={idx}>
                                                                             <strong>{ns.namespace}</strong>
-                                                                            {' '}(<span style={{ color: '#888' }}>{ns.groupID}</span>)
+                                                                            {' '}(<span style={{ color: '#888' }}>{ns.groupName}</span>)
                                                                             :
                                                                             {ns.approverName ? (
                                                                                 <div style={{ display: 'block', marginLeft: 0 }}>

@@ -374,6 +374,7 @@ func GetRecords(c *gin.Context) {
 	type NamespaceApprovalInfo struct {
 		Namespace    string `json:"namespace"`
 		GroupID      string `json:"groupID"`
+		GroupName    string `json:"groupName"`
 		Approved     bool   `json:"approved"`
 		ApproverID   string `json:"approverID"`
 		ApproverName string `json:"approverName"`
@@ -388,7 +389,7 @@ func GetRecords(c *gin.Context) {
 		var nsApprovals []NamespaceApprovalInfo
 		if err := db.DB.
 			Table("request_namespaces").
-			Select("namespace, group_id, approved, approver_id, approver_name").
+			Select("namespace, group_name, group_id, approved, approver_id, approver_name").
 			Where("request_id = ?", req.ID).
 			Scan(&nsApprovals).Error; err != nil {
 			logger.Error("Error fetching namespace approvals in GetRecords", zap.Uint("requestID", req.ID), zap.Error(err))
@@ -519,6 +520,7 @@ func GetPendingApprovals(c *gin.Context) {
 		EndDate       time.Time `json:"endDate"`
 		Namespace     string    `json:"namespace"`
 		GroupID       string    `json:"groupID"`
+		GroupName     string    `json:"groupName"`
 		Approved      bool      `json:"approved"`
 		CreatedAt     time.Time `json:"CreatedAt"`
 	}
@@ -536,6 +538,7 @@ func GetPendingApprovals(c *gin.Context) {
 		EndDate       time.Time `json:"endDate"`
 		Namespaces    []string  `json:"namespaces"`
 		GroupIDs      []string  `json:"groupIDs"`
+		GroupNames    []string  `json:"groupNames"`
 		ApprovedList  []bool    `json:"approvedList"`
 		CreatedAt     time.Time `json:"CreatedAt"`
 	}
@@ -557,6 +560,7 @@ func GetPendingApprovals(c *gin.Context) {
 				"request_data.users, "+
 				"request_namespaces.namespace, "+
 				"request_namespaces.group_id, "+
+				"request_namespaces.group_name, "+
 				"request_namespaces.approved",
 		).
 		Joins("JOIN request_namespaces ON request_namespaces.request_id = request_data.id").
@@ -585,12 +589,14 @@ func GetPendingApprovals(c *gin.Context) {
 				CreatedAt:     row.CreatedAt,
 				Namespaces:    []string{},
 				GroupIDs:      []string{},
+				GroupNames:    []string{},
 				ApprovedList:  []bool{},
 			}
 			req = grouped[row.ID]
 		}
 		req.Namespaces = append(req.Namespaces, row.Namespace)
 		req.GroupIDs = append(req.GroupIDs, row.GroupID)
+		req.GroupNames = append(req.GroupNames, row.GroupName)
 		req.ApprovedList = append(req.ApprovedList, row.Approved)
 	}
 
@@ -633,7 +639,7 @@ func SubmitRequest(c *gin.Context) {
 		return
 	}
 
-	// Validate namespaces and fetch group IDs
+	// Validate namespaces and fetch group IDs and names
 	namespaceGroups, err := k8s.ValidateNamespaces(requestData.ClusterName.Name, requestData.Namespaces)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Namespace validation failed: %v", err)})
@@ -662,11 +668,12 @@ func SubmitRequest(c *gin.Context) {
 	}
 
 	// Insert namespaces into the request_namespaces table
-	for namespace, groupID := range namespaceGroups {
+	for namespace, groupInfo := range namespaceGroups {
 		namespaceEntry := models.RequestNamespace{
 			RequestID: dbRequestData.ID,
 			Namespace: namespace,
-			GroupID:   groupID,
+			GroupID:   groupInfo.GroupID,
+			GroupName: groupInfo.GroupName, // <-- Add this field to your model/table if not present
 			Approved:  false,
 		}
 		if err := db.DB.Create(&namespaceEntry).Error; err != nil {

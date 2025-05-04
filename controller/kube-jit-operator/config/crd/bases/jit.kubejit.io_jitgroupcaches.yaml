@@ -44,16 +44,21 @@ spec:
               groups:
                 description: The JitGroups to
                 items:
-                  description: JitGroup defines the group ID and namespace
+                  description: JitGroup defines the group ID, namespace, and group
+                    name
                   properties:
                     groupID:
                       description: The group ID
+                      type: string
+                    groupName:
+                      description: The group name
                       type: string
                     namespace:
                       description: The group namespace
                       type: string
                   required:
                   - groupID
+                  - groupName
                   - namespace
                   type: object
                 type: array

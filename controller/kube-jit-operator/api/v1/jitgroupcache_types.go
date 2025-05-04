@@ -26,12 +26,17 @@ type JitGroupCacheSpec struct {
 	Groups []JitGroup `json:"groups"`
 }
 
-// JitGroup defines the group ID and namespace
+// JitGroup defines the group ID, namespace, and group name
 type JitGroup struct {
 	// The group ID
+	// +kubebuilder:validation:Required
 	GroupID string `json:"groupID"`
 	// The group namespace
+	// +kubebuilder:validation:Required
 	Namespace string `json:"namespace"`
+	// The group name
+	// +kubebuilder:validation:Required
+	GroupName string `json:"groupName"`
 }
 
 // JitGroupCacheStatus defines the observed state of JitGroupCache.

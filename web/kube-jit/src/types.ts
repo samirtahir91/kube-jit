@@ -47,6 +47,7 @@ export type PendingRequest = {
 export type NamespaceApprovalInfo = {
     namespace: string;
     groupID: string;
+    groupName: string;
     approved: boolean;
     approverID: string;
     approverName: string;

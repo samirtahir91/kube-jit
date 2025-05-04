@@ -433,33 +433,29 @@ func InvalidateJitGroupsCache(clusterName string) {
 }
 
 // ValidateNamespaces checks if the given namespaces are valid for the cluster
-func ValidateNamespaces(clusterName string, namespaces []string) (map[string]string, error) {
-	// Fetch JitGroups from the cache or the cluster
+func ValidateNamespaces(clusterName string, namespaces []string) (map[string]struct{ GroupID, GroupName string }, error) {
 	jitGroups, err := GetJitGroups(clusterName)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching JitGroups: %v", err)
 	}
 
-	// Parse the JitGroups object
-	namespaceAnnotations := make(map[string]string)
+	namespaceAnnotations := make(map[string]struct{ GroupID, GroupName string })
 	groups, _, _ := unstructured.NestedSlice(jitGroups.Object, "spec", "groups")
 
 	for _, namespace := range namespaces {
 		found := false
 		for _, group := range groups {
-			// Convert the group to a JitGroup struct
 			groupMap, ok := group.(map[string]interface{})
 			if !ok {
 				return nil, fmt.Errorf("invalid group format in JitGroups")
 			}
-
 			jitGroup := JitGroup{
 				GroupID:   groupMap["groupID"].(string),
 				Namespace: groupMap["namespace"].(string),
 			}
-
+			groupName, _ := groupMap["groupName"].(string)
 			if jitGroup.Namespace == namespace {
-				namespaceAnnotations[namespace] = jitGroup.GroupID
+				namespaceAnnotations[namespace] = struct{ GroupID, GroupName string }{jitGroup.GroupID, groupName}
 				found = true
 				break
 			}
@@ -468,6 +464,5 @@ func ValidateNamespaces(clusterName string, namespaces []string) (map[string]str
 			return nil, fmt.Errorf("namespace %s does not exist in JitGroups", namespace)
 		}
 	}
-
 	return namespaceAnnotations, nil
 }

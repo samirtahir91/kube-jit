@@ -18,12 +18,17 @@ package groupCache
 
 import (
 	"context"
+	v1 "kube-jit-operator/api/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -43,6 +48,15 @@ type JitGroupCacheReconciler struct {
 func (r *JitGroupCacheReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := logf.FromContext(ctx)
 	l.Info("Reconciling JitGroupCache")
+
+	// On startup or on JitGroupCache delete (empty request), rebuild the cache from scratch
+	if req.Name == "" && req.Namespace == "" {
+		if err := r.RebuildJitGroupCache(ctx, l); err != nil {
+			return ctrl.Result{}, err
+		}
+		// Return early so we don't run the rest of the logic with empty name
+		return ctrl.Result{}, nil
+	}
 
 	// Fetch the JitGroupCache object
 	jitGroupCache, err := r.fetchOrCreateJitGroupCache(ctx, l)
@@ -68,7 +82,8 @@ func (r *JitGroupCacheReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Namespace exists, add or update it in JitGroupCache
 	l.Info("Namespace exists, adding/updating in JitGroupCache", "namespace", namespace.Name)
 	groupID := namespace.Annotations[AnnotationGroupID]
-	jitGroupCache.Spec.Groups = addOrUpdateNamespaceInCache(jitGroupCache.Spec.Groups, namespace.Name, groupID)
+	groupName := namespace.Annotations[AnnotationGroupName]
+	jitGroupCache.Spec.Groups = addOrUpdateNamespaceInCache(jitGroupCache.Spec.Groups, namespace.Name, groupID, groupName)
 
 	// Update the JitGroupCache object
 	return r.updateJitGroupCache(ctx, jitGroupCache, l)
@@ -76,14 +91,33 @@ func (r *JitGroupCacheReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *JitGroupCacheReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		// Watch Namespaces with the label "jit.kubejit.io/adopt=true"
+	// On startup, trigger a reconcile with empty request to rebuild the cache
+	mgr.Add(manager.RunnableFunc(func(ctx context.Context) error {
+		l := logf.FromContext(ctx)
+		return r.RebuildJitGroupCache(ctx, l)
+	}))
+
+	// Watch for JitGroupCache delete events and rebuild if deleted
+	if err := ctrl.NewControllerManagedBy(mgr).
 		For(
 			&corev1.Namespace{},
 			builder.WithPredicates(
-				// Filter on label "jit.kubejit.io/adopt=true"
 				namespacePredicate(),
 			),
 		).
-		Complete(r)
+		Watches(
+			&v1.JitGroupCache{},
+			handler.Funcs{
+				DeleteFunc: func(ctx context.Context, e event.TypedDeleteEvent[client.Object], q workqueue.TypedRateLimitingInterface[ctrl.Request]) {
+					// Enqueue a dummy request to trigger a reconcile (which will rebuild the cache)
+					q.Add(ctrl.Request{})
+				},
+			},
+		).
+		Named("JitGroupCache").
+		Complete(r); err != nil {
+		return err
+	}
+
+	return nil
 }
