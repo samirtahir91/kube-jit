@@ -25,8 +25,8 @@ type Cluster struct {
 // RequestData represents a JIT request
 type RequestData struct {
 	gorm.Model
-	ApproverID    string    `json:"approverID"`
-	ApproverName  string    `json:"approverName"`
+	ApproverIDs   []string  `gorm:"type:jsonb;serializer:json" json:"approverIDs"`
+	ApproverNames []string  `gorm:"type:jsonb;serializer:json" json:"approverNames"`
 	ClusterName   string    `json:"clusterName"`
 	RoleName      string    `json:"roleName"`
 	Status        string    `json:"status"`
@@ -43,11 +43,13 @@ type RequestData struct {
 
 // RequestNamespace represents the namespace-level approval tracking
 type RequestNamespace struct {
-	ID        uint   `gorm:"primaryKey"`
-	RequestID uint   `gorm:"not null;index"`
-	Namespace string `gorm:"not null"`
-	GroupID   string `gorm:"not null"`
-	Approved  bool   `gorm:"default:false"`
+	ID           uint   `gorm:"primaryKey"`
+	RequestID    uint   `gorm:"not null;index"`
+	Namespace    string `gorm:"not null"`
+	GroupID      string `gorm:"not null"`
+	Approved     bool   `gorm:"default:false"`
+	ApproverID   string `json:"approverID"`
+	ApproverName string `json:"approverName"`
 }
 
 // GitHubTokenResponse represents the response from GitHub's OAuth token endpoint

@@ -236,6 +236,8 @@ func processApproval(
 		ns := &dbNamespaces[i]
 		if approverGroups == nil || contains(approverGroups, ns.GroupID) {
 			ns.Approved = true
+			ns.ApproverID = approverID
+			ns.ApproverName = approverName
 			if err := db.DB.Save(ns).Error; err != nil {
 				log.Printf("Error updating namespace approval: %v", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update namespace approval"})
@@ -276,13 +278,27 @@ func processApproval(
 		}
 	}
 
-	// Update the request status
-	if err := db.DB.Model(&models.RequestData{}).Where("id = ?", requestID).Updates(map[string]interface{}{
-		"status":         finalStatus,
-		"approver_id":    approverID,
-		"approver_name":  approverName,
-		"fully_approved": allApproved,
-	}).Error; err != nil {
+	// Fetch the request record
+	var req models.RequestData
+	if err := db.DB.First(&req, requestID).Error; err != nil {
+		log.Printf("Error fetching request: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch request"})
+		return
+	}
+
+	// Append approver if not already present
+	if !contains(req.ApproverIDs, approverID) {
+		req.ApproverIDs = append(req.ApproverIDs, approverID)
+	}
+	if !contains(req.ApproverNames, approverName) {
+		req.ApproverNames = append(req.ApproverNames, approverName)
+	}
+
+	// Update the request status and approvers using struct update
+	req.Status = finalStatus
+	req.FullyApproved = allApproved
+
+	if err := db.DB.Model(&req).Select("Status", "ApproverIDs", "ApproverNames", "FullyApproved").Updates(req).Error; err != nil {
 		log.Printf("Error updating request: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update request"})
 		return
@@ -292,36 +308,26 @@ func processApproval(
 // GetRecords returns the latest jit requests for a user with optional limit and date range
 // It fetches the records from the database and returns them as JSON
 func GetRecords(c *gin.Context) {
-
-	// Check if the user is logged in
 	sessionData, ok := checkLoggedIn(c)
 	if !ok {
-		return // The response has already been sent by CheckLoggedIn
+		return
 	}
-
-	// Check if the user is an admin
 	isAdmin, _ := sessionData["isAdmin"].(bool)
+	userID := c.Query("userID")
+	username := c.Query("username")
+	limit := c.Query("limit")
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
 
-	userID := c.Query("userID")       // Get userID from query parameters
-	username := c.Query("username")   // Get username from query parameters
-	limit := c.Query("limit")         // Get limit from query parameters
-	startDate := c.Query("startDate") // Get startDate from query parameters
-	endDate := c.Query("endDate")     // Get endDate from query parameters
-
-	var requests []models.RequestData // Define requests as a slice of models.RequestData
-
-	// Convert limit to an integer
 	limitInt, err := strconv.Atoi(limit)
 	if err != nil || limitInt <= 0 {
-		limitInt = 1 // Default to 1 if limit is not provided or invalid
+		limitInt = 1
 	}
 
-	// Build the query
+	// Fetch requests as before
+	var requests []models.RequestData
 	query := db.DB.Order("created_at desc").Limit(limitInt)
-
-	// Apply filters based on admin status
 	if isAdmin {
-		// Allow filtering by userID or username if provided
 		if userID != "" {
 			query = query.Where("user_id = ?", userID)
 		}
@@ -329,22 +335,47 @@ func GetRecords(c *gin.Context) {
 			query = query.Where("username = ?", username)
 		}
 	} else {
-		// Non-admins can only see their own records
 		query = query.Where("user_id = ?", userID)
 	}
-
-	// Apply optional date range filter
 	if startDate != "" && endDate != "" {
 		query = query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
 	}
-
-	// Fetch the records
 	if err := query.Find(&requests).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, requests)
+	type NamespaceApprovalInfo struct {
+		Namespace    string `json:"namespace"`
+		GroupID      string `json:"groupID"`
+		Approved     bool   `json:"approved"`
+		ApproverID   string `json:"approverID"`
+		ApproverName string `json:"approverName"`
+	}
+	type RequestWithNamespaceApprovers struct {
+		models.RequestData
+		NamespaceApprovals []NamespaceApprovalInfo `json:"namespaceApprovals"`
+	}
+
+	// For each request, fetch its namespace approvals
+	var enriched []RequestWithNamespaceApprovers
+	for _, req := range requests {
+		var nsApprovals []NamespaceApprovalInfo
+		if err := db.DB.
+			Table("request_namespaces").
+			Select("namespace, group_id, approved, approver_id, approver_name").
+			Where("request_id = ?", req.ID).
+			Scan(&nsApprovals).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		enriched = append(enriched, RequestWithNamespaceApprovers{
+			RequestData:        req,
+			NamespaceApprovals: nsApprovals,
+		})
+	}
+
+	c.JSON(http.StatusOK, enriched)
 }
 
 // GetOauthClientId checks the oauthProvider and returns the appropriate client_id, provider and redirect url

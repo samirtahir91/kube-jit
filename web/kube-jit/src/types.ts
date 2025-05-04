@@ -13,9 +13,10 @@ export type Request = {
     clusterName: string;
     roleName: string;
     status: string;
-    approverID: number;
-    approverName: string;
+    approverIDs: string[];
+    approverNames: string[];
     notes: string;
+    namespaceApprovals?: NamespaceApprovalInfo[];
 };
 
 export type UserData = {
@@ -37,8 +38,16 @@ export type PendingRequest = {
     justification: string;
     startDate: string;
     endDate: string;
-    namespaces: string[]; // <-- now an array
-    groupIDs: string[];   // <-- now an array
+    namespaces: string[];
+    groupIDs: string[];
     approvedList: boolean[];
     CreatedAt: string;
+};
+
+export type NamespaceApprovalInfo = {
+    namespace: string;
+    groupID: string;
+    approved: boolean;
+    approverID: string;
+    approverName: string;
 };

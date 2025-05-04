@@ -19,7 +19,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
         username: '',
         approvingTeamName: '',
         status: '',
-        approverName: '',
+        approverNames: '',
         users: '',
         clusterName: '',
         namespaces: '',
@@ -51,7 +51,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
             return (
                 (filters.username === '' || historicalRequest.username.toLowerCase().includes(filters.username.toLowerCase())) &&
                 (filters.status === '' || historicalRequest.status.toLowerCase().includes(filters.status.toLowerCase())) &&
-                (filters.approverName === '' || historicalRequest.approverName.toLowerCase().includes(filters.approverName.toLowerCase())) &&
+                (filters.approverNames === '' || historicalRequest.approverNames.some(name => name.toLowerCase().includes(filters.approverNames.toLowerCase()))) &&
                 (filters.users === '' || historicalRequest.users.some(user => user.toLowerCase().includes(filters.users.toLowerCase()))) &&
                 (filters.clusterName === '' || historicalRequest.clusterName.toLowerCase().includes(filters.clusterName.toLowerCase())) &&
                 (filters.roleName === '' || historicalRequest.roleName.toLowerCase().includes(filters.roleName.toLowerCase())) &&
@@ -64,7 +64,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
         const headers = [
             'ID',
             'Username',
-            'Approver',
+            'Approvers',
             'Users',
             'Cluster',
             'Namespaces',
@@ -74,6 +74,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
             'End Date',
             'Justification',
             'Notes',
+            'Namespace Approvals',
         ];
 
         const rows = filteredRequests.map(request => {
@@ -82,6 +83,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                 return [
                     pendingRequest.ID,
                     pendingRequest.username,
+                    '', // Approvers not relevant for pending
                     pendingRequest.users.join(', '),
                     pendingRequest.clusterName,
                     pendingRequest.namespaces,
@@ -89,13 +91,22 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                     new Date(pendingRequest.startDate).toLocaleString(),
                     new Date(pendingRequest.endDate).toLocaleString(),
                     pendingRequest.justification,
+                    '', // Notes not relevant for pending
+                    '', // Namespace Approvals not relevant for pending
                 ];
             } else {
                 const historicalRequest = request as Request;
+                // Format namespace approvals as a string
+                const nsApprovals = historicalRequest.namespaceApprovals && historicalRequest.namespaceApprovals.length > 0
+                    ? historicalRequest.namespaceApprovals.map(ns =>
+                        `${ns.namespace} (${ns.groupID}): ${ns.approved ? 'Approved' : 'Rejected'}${ns.approverName ? ` by ${ns.approverName}` : ''}`
+                      ).join(' | ')
+                    : 'N/A';
+    
                 return [
                     historicalRequest.ID,
                     historicalRequest.username,
-                    historicalRequest.approverName,
+                    historicalRequest.approverNames ? historicalRequest.approverNames.join(', ') : 'N/A',
                     historicalRequest.users.join(', '),
                     historicalRequest.clusterName,
                     historicalRequest.namespaces ? historicalRequest.namespaces.join(', ') : 'N/A',
@@ -105,6 +116,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                     new Date(historicalRequest.endDate).toLocaleString(),
                     historicalRequest.justification,
                     historicalRequest.notes,
+                    nsApprovals,
                 ];
             }
         });
@@ -143,7 +155,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                 username: '',
                                 approvingTeamName: '',
                                 status: '',
-                                approverName: '',
+                                approverNames: '',
                                 users: '',
                                 clusterName: '',
                                 namespaces: '',
@@ -189,15 +201,18 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                         </th>
                         {mode === 'history' && (
                             <th className="table-colour">
-                                Approver
+                                Approvers
                                 <input
                                     type="text"
                                     placeholder="Filter"
                                     className="form-control form-control-sm mt-1"
-                                    value={filters.approverName}
-                                    onChange={(e) => handleFilterChange(e, 'approverName')}
+                                    value={filters.approverNames}
+                                    onChange={(e) => handleFilterChange(e, 'approverNames')}
                                 />
                             </th>
+                        )}
+                        {mode === 'history' && (
+                            <th className="table-colour">Namespace Approvals</th>
                         )}
                         <th className="table-colour">
                             Users
@@ -336,7 +351,23 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                         })}
                                     </td>
                                     <td>{historicalRequest.username}</td>
-                                    <td>{historicalRequest.approverName}</td>
+                                    <td>{historicalRequest.approverNames ? historicalRequest.approverNames.join(', ') : 'N/A'}</td>
+                                    {mode === 'history' && (
+                                        <td>
+                                            {historicalRequest.namespaceApprovals && historicalRequest.namespaceApprovals.length > 0 ? (
+                                                <ul style={{paddingLeft: 16}}>
+                                                    {historicalRequest.namespaceApprovals.map((ns, idx) => (
+                                                        <li key={idx}>
+                                                            <strong>{ns.namespace}</strong> ({ns.groupID}): {ns.approved ? '✅' : '❌'}{' '}
+                                                            {ns.approverName ? `by ${ns.approverName}` : ''}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                'N/A'
+                                            )}
+                                        </td>
+                                    )}
                                     <td>{historicalRequest.users.join(', ')}</td>
                                     <td>{historicalRequest.clusterName}</td>
                                     <td>{historicalRequest.namespaces ? historicalRequest.namespaces.join(', ') : 'N/A'}</td>
