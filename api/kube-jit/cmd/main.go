@@ -5,6 +5,8 @@ import (
 	"kube-jit/internal/db"
 	"kube-jit/internal/middleware"
 	"kube-jit/internal/routes"
+	"kube-jit/pkg/k8s"
+	"kube-jit/pkg/utils"
 	"os"
 	"strconv"
 	"time"
@@ -42,6 +44,15 @@ func main() {
 		panic(err)
 	}
 	defer logger.Sync()
+
+	// Initialize zap logger in all packages
+	db.InitLogger(logger)
+	middleware.InitLogger(logger)
+	k8s.InitLogger(logger)
+	utils.InitLogger(logger)
+
+	// Initialize Kubernetes client and cache
+	k8s.InitK8sConfig()
 
 	// Initialize database
 	db.InitDB()

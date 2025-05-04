@@ -26,8 +26,8 @@ func InitLogger(l *zap.Logger) {
 }
 
 func init() {
-	// Register map[string]interface{} with gob
-	gob.Register(map[string]interface{}{})
+	// Register the types for gob encoding
+	gob.Register(map[string]any{})
 
 	// Increase the maximum length for securecookie since it is split into multiple cookies
 	secureCookie.MaxLength(16384)

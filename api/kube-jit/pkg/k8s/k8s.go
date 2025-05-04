@@ -86,8 +86,8 @@ var (
 	jitGroupsCache     sync.Map
 )
 
-// init loads clusters, roles and approver teams from configMap into global vars
-func init() {
+// InitK8sConfig loads clusters, roles and approver teams from configMap into global vars
+func InitK8sConfig() {
 	var config *rest.Config
 	var err error
 
