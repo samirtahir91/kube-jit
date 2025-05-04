@@ -24,10 +24,7 @@ test
   e2e Selenium 
 
 ## Sprint:
-- nice alert on history and approver pages
 - add to history search records approved by you.
-- nicer looking approve/reject button
-- increase select check box area in approve/reject
 - try to cache clusters on startup and jitgroups (but dont fail)
 - email notifications to requestors (depends if they have email configured in profile)
 - env var for db debug mode

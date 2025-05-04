@@ -286,11 +286,15 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                 <tr key={pendingRequest.ID}>
                                     {selectable && (
                                         <td>
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedRequests.includes(pendingRequest.ID)}
-                                                onChange={() => handleSelectRequest(pendingRequest.ID)}
-                                            />
+                                            <label className="select-checkbox-label">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedRequests.includes(pendingRequest.ID)}
+                                                    onChange={() => handleSelectRequest(pendingRequest.ID)}
+                                                    className="select-checkbox"
+                                                />
+                                                <span className="custom-checkbox"></span>
+                                            </label>
                                         </td>
                                     )}
                                     <td>{pendingRequest.ID}</td>

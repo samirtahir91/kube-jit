@@ -175,3 +175,27 @@
 .action-button.reject:hover {
     background: linear-gradient(90deg, #c82333, #721c24);
 }
+
+.select-checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    /* Increase clickable area without changing checkbox size */
+    padding: 8px 16px;      /* More horizontal padding for a bigger hit box */
+    min-width: 44px;        /* Minimum recommended touch target */
+    min-height: 100px;       /* Minimum recommended touch target */
+    user-select: none;
+    background: transparent; /* No visual change */
+}
+
+.select-checkbox {
+    width: 18px;            /* Keep checkbox visually normal */
+    height: 18px;
+    margin-right: 8px;
+    accent-color: #2073b3;
+    cursor: pointer;
+}
+
+.custom-checkbox {
+    display: none; /* For future custom styling if needed */
+}
