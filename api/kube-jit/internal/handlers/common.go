@@ -340,7 +340,12 @@ func GetRecords(c *gin.Context) {
 			query = query.Where("username = ?", username)
 		}
 	} else {
-		query = query.Where("user_id = ?", userID)
+		// Show requests where user is requestor OR approver
+		if userID != "" {
+			query = query.Where("user_id = ? OR approver_ids @> ?", userID, fmt.Sprintf(`["%s"]`, userID))
+		} else if username != "" {
+			query = query.Where("username = ? OR approver_names @> ?", username, fmt.Sprintf(`["%s"]`, username))
+		}
 	}
 	if startDate != "" && endDate != "" {
 		query = query.Where("created_at BETWEEN ? AND ?", startDate, endDate)

@@ -1,7 +1,5 @@
 todo
 
-- add self approve toggle env var
-- clean expired non approved requests from db
 - add env var option for cookie samesite
 - env var for db debug mode
 - json logging or not 
@@ -12,18 +10,17 @@ todo
 - https do we need option?
 - domain on email input preconfigured
 - fix │ [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you │
+- must get on required envs
 
 
 test
   unit
   bdd
-  e2e Selenium 
+  e2e Selenium or cypress or other
 
 ## Sprint:
-- add to history search records approved by you.
-- try to cache clusters on startup and jitgroups (but dont fail)
+Test:
+DO:
 - email notifications to requestors (depends if they have email configured in profile)
-- - upload request ooption
-- generic 401 redirect to login
-- email notifications on status shabge to requetsor
+- - upload request option
 

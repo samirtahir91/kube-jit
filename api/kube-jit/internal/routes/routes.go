@@ -22,6 +22,7 @@ func SetupRoutes(r *gin.Engine) {
 		apiWithSession.GET("/approvals", handlers.GetPendingApprovals)
 		apiWithSession.POST("/approve-reject", handlers.ApproveOrRejectRequests)
 		apiWithSession.POST("/permissions", handlers.CommonPermissions)
+		apiWithSession.POST("/admin/clean-expired", handlers.CleanExpiredRequests)
 	}
 
 	// Routes that do NOT require session handling

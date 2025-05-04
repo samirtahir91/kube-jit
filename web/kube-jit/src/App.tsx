@@ -7,6 +7,7 @@ import Login from "./components/login/Login";
 import { Card, Nav, Tab, Badge } from "react-bootstrap";
 import ApproveTabPane from "./components/approve/ApproveTabPane";
 import HistoryTabPane from "./components/history/HistoryTabPane";
+import AdminTabPane from "./components/admin/AdminTabPane";
 import axios from "axios";
 import { SyncLoader } from "react-spinners";
 import { UserData } from "./types";
@@ -17,6 +18,25 @@ type ApiResponse = {
     userData: UserData;
     expiresIn: number;
 };
+
+// 401 interceptio redirect to logout and clear cookies
+axios.interceptors.response.use(
+    response => response,
+    async error => {
+        if (error.response && error.response.status === 401) {
+            // Call logout endpoint to clear cookies/session
+            try {
+                await axios.post(`${config.apiBaseUrl}/kube-jit-api/logout`, {}, { withCredentials: true });
+            } catch (logoutErr) {
+                // Ignore logout errors
+            }
+            // Redirect to login page
+            window.location.href = "/";
+            return;
+        }
+        return Promise.reject(error);
+    }
+);
 
 function App() {
     const [data, setData] = useState<ApiResponse | null>(null);
@@ -162,6 +182,13 @@ function App() {
                                     </Nav.Link>
                                 </Nav.Item>
                                 {isAdmin && (
+                                    <Nav.Item>
+                                        <Nav.Link href="#admin" eventKey="admin">
+                                            Admin
+                                        </Nav.Link>
+                                    </Nav.Item>
+                                )}
+                                {isAdmin && (
                                     <Badge
                                         bg="success"
                                         className="ms-auto"
@@ -198,6 +225,11 @@ function App() {
                                     userId={data.userData.id}
                                     setLoadingInCard={setLoadingInCard}
                                 />
+                                {isAdmin && (
+                                    <Tab.Pane eventKey="admin">
+                                        <AdminTabPane setLoadingInCard={setLoadingInCard} />
+                                    </Tab.Pane>
+                                )}
                             </Tab.Content>
                         </Tab.Container>
                     </Card.Body>

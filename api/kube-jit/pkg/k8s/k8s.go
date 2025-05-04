@@ -151,6 +151,18 @@ func init() {
 		fmt.Printf("- %s (ID: %s)\n", team.Name, team.ID)
 	}
 
+	// Cache dynamic clients for all clusters on startup
+	for _, clusterName := range ClusterNames {
+		req := models.RequestData{ClusterName: clusterName}
+		go func(r models.RequestData) {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Printf("Failed to cache dynamic client for cluster %s: %v", r.ClusterName, err)
+				}
+			}()
+			createDynamicClient(r)
+		}(req)
+	}
 }
 
 // getTokenFromSecret gets and returns the sa token from a k8s secret during init of kube configs
