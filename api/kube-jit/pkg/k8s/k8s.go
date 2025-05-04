@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"kube-jit/internal/models"
 	"kube-jit/pkg/utils"
-	"log"
 	"os"
 	"sync"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice"
+	"go.uber.org/zap"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/container/v1"
 	"gopkg.in/yaml.v2"
@@ -27,6 +27,12 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
+
+var logger *zap.Logger
+
+func InitLogger(l *zap.Logger) {
+	logger = l
+}
 
 type Config struct {
 	Clusters      []ClusterConfig `yaml:"clusters"`
@@ -58,9 +64,7 @@ type JitGroupsCache struct {
 }
 
 type JitGroup struct {
-	// The group ID
-	GroupID string `json:"groupID"`
-	// The group namespace
+	GroupID   string `json:"groupID"`
 	Namespace string `json:"namespace"`
 }
 
@@ -110,45 +114,43 @@ func init() {
 	configPath := os.Getenv("CONFIG_MOUNT_PATH")
 	configData, err := os.ReadFile(configPath + "/apiConfig.yaml")
 	if err != nil {
-		log.Fatalf("Error reading config file: %v", err)
+		logger.Fatal("Error reading config file", zap.Error(err))
 	}
 
 	// Parse ConfigMap data to global ApiConfig
 	err = yaml.Unmarshal([]byte(configData), &ApiConfig)
 	if err != nil {
-		log.Fatalf("Error unmarshalling config data: %v", err)
+		logger.Fatal("Error unmarshalling config data", zap.Error(err))
 	}
 
 	// Get cluster tokens and add to global cluster maps
-	fmt.Println("\nSuccessfully loaded config for clusters:")
+	logger.Info("Successfully loaded config for clusters",
+		zap.Strings("clusters", ClusterNames),
+	)
 	for _, cluster := range ApiConfig.Clusters {
-		fmt.Printf("- %s (Type: %s)\n", cluster.Name, cluster.Type)
+		logger.Info("Loaded cluster", zap.String("name", cluster.Name), zap.String("type", cluster.Type))
 		if cluster.Type == "generic" {
 			cluster.Token = getTokenFromSecret(cluster.TokenSecret)
 		}
 		ClusterConfigs[cluster.Name] = cluster
-
-		// Append cluster name to ClusterNames
 		ClusterNames = append(ClusterNames, cluster.Name)
 	}
-	fmt.Print("\n")
 
-	// Load allowedRoles and approverTeams
 	AllowedRoles = ApiConfig.AllowedRoles
 	ApproverTeams = ApiConfig.ApproverTeams
 	AdminTeams = ApiConfig.AdminTeams
 
-	fmt.Println("\nAllowed roles:")
+	logger.Info("Allowed roles loaded", zap.Int("count", len(AllowedRoles)))
 	for _, role := range AllowedRoles {
-		fmt.Printf("- %s\n", role.Name)
+		logger.Info("Allowed role", zap.String("name", role.Name))
 	}
-	fmt.Println("\nApprover teams:")
+	logger.Info("Approver teams loaded", zap.Int("count", len(ApproverTeams)))
 	for _, team := range ApproverTeams {
-		fmt.Printf("- %s (ID: %s)\n", team.Name, team.ID)
+		logger.Info("Approver team", zap.String("name", team.Name), zap.String("id", team.ID))
 	}
-	fmt.Println("\nAdmin teams:")
+	logger.Info("Admin teams loaded", zap.Int("count", len(AdminTeams)))
 	for _, team := range AdminTeams {
-		fmt.Printf("- %s (ID: %s)\n", team.Name, team.ID)
+		logger.Info("Admin team", zap.String("name", team.Name), zap.String("id", team.ID))
 	}
 
 	// Cache dynamic clients for all clusters on startup
@@ -157,7 +159,7 @@ func init() {
 		go func(r models.RequestData) {
 			defer func() {
 				if err := recover(); err != nil {
-					log.Printf("Failed to cache dynamic client for cluster %s: %v", r.ClusterName, err)
+					logger.Error("Failed to cache dynamic client for cluster", zap.String("cluster", r.ClusterName), zap.Any("error", err))
 				}
 			}()
 			createDynamicClient(r)
@@ -169,7 +171,7 @@ func init() {
 func getTokenFromSecret(secretName string) string {
 	secret, err := localClientset.CoreV1().Secrets(apiNamespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
-		log.Printf("Error getting secret %s: %v", secretName, err)
+		logger.Error("Error getting secret", zap.String("secret", secretName), zap.Error(err))
 		panic(err.Error())
 	}
 	return string(secret.Data["token"])
@@ -184,11 +186,11 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 
 		// Check if the token is expired
 		if cachedClient.TokenExpires > currentTime {
-			log.Printf("Using cached dynamic client for cluster: %s. Expires: %d", req.ClusterName, cachedClient.TokenExpires)
+			logger.Info("Using cached dynamic client for cluster", zap.String("cluster", req.ClusterName), zap.Int64("expires", cachedClient.TokenExpires))
 			return cachedClient.Client
 		}
 
-		log.Printf("Token expired for cluster: %s, refreshing client", req.ClusterName)
+		logger.Info("Token expired for cluster, refreshing client", zap.String("cluster", req.ClusterName))
 		InvalidateJitGroupsCache(req.ClusterName) // Invalidate the JitGroups cache
 	}
 
@@ -202,42 +204,38 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 	// Use a switch statement to handle different cluster types
 	switch selectedCluster.Type {
 	case "gke":
+		logger.Info("Using Google Cloud SDK to access GKE cluster", zap.String("cluster", req.ClusterName))
 		// GKE-specific logic
-		log.Printf("Using Google Cloud SDK to access GKE cluster: %s", req.ClusterName)
-
-		// Initialize Google credentials
 		ctx := context.Background()
 		credentials, err := google.FindDefaultCredentials(ctx, container.CloudPlatformScope)
 		if err != nil {
-			log.Fatalf("Failed to get default credentials: %v", err)
+			logger.Fatal("Failed to get default credentials", zap.Error(err))
 		}
 		tokenSource := credentials.TokenSource
 
 		client, err := containerapiv1.NewClusterManagerClient(ctx)
 		if err != nil {
-			log.Fatalf("Failed to create GKE client: %v", err)
+			logger.Fatal("Failed to create GKE client", zap.Error(err))
 		}
 		defer client.Close()
 
 		location := selectedCluster.Region
 		clusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", selectedCluster.ProjectID, location, selectedCluster.Name)
-
-		clusterReq := &containerpb.GetClusterRequest{Name: clusterName}
-		cluster, err := client.GetCluster(ctx, clusterReq)
+		cluster, err := client.GetCluster(ctx, &containerpb.GetClusterRequest{Name: clusterName})
 		if err != nil {
-			log.Fatalf("Failed to get GKE cluster details: %v", err)
+			logger.Fatal("Failed to get GKE cluster details", zap.Error(err))
 		}
 
 		clusterEndpoint := cluster.Endpoint
 		caCertificate := cluster.MasterAuth.ClusterCaCertificate
 		decodedCACertificate, err := base64.StdEncoding.DecodeString(caCertificate)
 		if err != nil {
-			log.Fatalf("Failed to decode CA certificate: %v", err)
+			logger.Fatal("Failed to decode CA certificate", zap.Error(err))
 		}
 
 		token, err := tokenSource.Token()
 		if err != nil {
-			log.Fatalf("Failed to get OAuth2 token: %v", err)
+			logger.Fatal("Failed to get OAuth2 token", zap.Error(err))
 		}
 
 		restConfig = &rest.Config{
@@ -247,53 +245,40 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 				CAData: decodedCACertificate,
 			},
 		}
-
 		// Set token expiration time (e.g., 5 minutes before actual expiration)
 		tokenExpires = token.Expiry.Unix() - 300
 
 	case "aks":
+		logger.Info("Using Azure SDK to access AKS cluster", zap.String("cluster", req.ClusterName))
 		// AKS-specific logic
-		log.Printf("Using Azure SDK to access AKS cluster: %s", req.ClusterName)
-
-		// Create Azure credentials
 		cred, err := azidentity.NewDefaultAzureCredential(nil)
 		if err != nil {
-			log.Fatalf("Failed to create Azure credential: %v", err)
+			logger.Fatal("Failed to create Azure credential", zap.Error(err))
 		}
-
-		// Create an AKS AdminCredentialsClient
 		adminClient, err := armcontainerservice.NewManagedClustersClient(selectedCluster.ProjectID, cred, nil)
 		if err != nil {
-			log.Fatalf("Failed to create AKS AdminCredentialsClient: %v", err)
+			logger.Fatal("Failed to create AKS AdminCredentialsClient", zap.Error(err))
 		}
-
-		// Fetch the kubeconfig for the AKS cluster
 		kubeconfigResp, err := adminClient.ListClusterUserCredentials(context.Background(), selectedCluster.Region, selectedCluster.Name, nil)
 		if err != nil {
-			log.Fatalf("Failed to get AKS cluster user credentials: %v", err)
+			logger.Fatal("Failed to get AKS cluster user credentials", zap.Error(err))
 		}
-
-		// Parse the kubeconfig
 		kubeconfigData := kubeconfigResp.Kubeconfigs[0].Value
 		config, err := clientcmd.Load(kubeconfigData)
 		if err != nil {
-			log.Fatalf("Failed to parse kubeconfig: %v", err)
+			logger.Fatal("Failed to parse kubeconfig", zap.Error(err))
 		}
-
-		// Extract the API server URL and CA certificate
 		cluster := config.Clusters[config.Contexts[config.CurrentContext].Cluster]
 		clusterEndpoint := cluster.Server
 		caCertificate := cluster.CertificateAuthorityData
 
-		// Get an AAD token for the AKS API server
 		token, err := cred.GetToken(context.Background(), policy.TokenRequestOptions{
-			Scopes: []string{"6dae42f8-4368-4678-94ff-3960e28e3630/.default"}, // AKS API scope
+			Scopes: []string{"6dae42f8-4368-4678-94ff-3960e28e3630/.default"},
 		})
 		if err != nil {
-			log.Fatalf("Failed to get AAD token: %v", err)
+			logger.Fatal("Failed to get AAD token", zap.Error(err))
 		}
 
-		// Configure the Kubernetes client
 		restConfig = &rest.Config{
 			Host:        clusterEndpoint,
 			BearerToken: token.Token,
@@ -301,21 +286,18 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 				CAData: caCertificate,
 			},
 		}
-
 		// Set token expiration time (e.g., 1 hour)
 		tokenExpires = time.Now().Add(1 * time.Hour).Unix()
 
 	default:
+		logger.Info("Using generic configuration for cluster", zap.String("cluster", req.ClusterName))
 		// Generic cluster logic
-		log.Printf("Using generic configuration for cluster: %s", req.ClusterName)
-
 		apiServerURL := selectedCluster.Host
 		saToken := selectedCluster.Token
 		caData, err := base64.StdEncoding.DecodeString(selectedCluster.CA)
 		if err != nil {
-			log.Fatalf("Failed to decode CA certificate: %v\n", err)
+			logger.Fatal("Failed to decode CA certificate", zap.Error(err))
 		}
-
 		restConfig = &rest.Config{
 			Host:        apiServerURL,
 			BearerToken: saToken,
@@ -324,7 +306,6 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 				CAData:   caData,
 			},
 		}
-
 		// Non-GKE clusters don't use token expiration
 		tokenExpires = time.Now().Add(24 * time.Hour).Unix() // Arbitrary long expiration
 	}
@@ -332,7 +313,7 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 	// Create the dynamic client
 	dynamicClient, err := dynamic.NewForConfig(restConfig)
 	if err != nil {
-		log.Fatalf("Failed to create k8s client: %v", err)
+		logger.Fatal("Failed to create k8s client", zap.Error(err))
 	}
 
 	// Cache the dynamic client with expiration
@@ -340,14 +321,12 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 		Client:       dynamicClient,
 		TokenExpires: tokenExpires,
 	})
-	log.Printf("Cached dynamic client for cluster: %s", req.ClusterName)
-
+	logger.Info("Cached dynamic client for cluster", zap.String("cluster", req.ClusterName))
 	return dynamicClient
 }
 
 // CreateK8sObject creates the k8s JitRequest object on target cluster
 func CreateK8sObject(req models.RequestData, approverName string) error {
-
 	// Convert time.Time to metav1.Time
 	startTime := metav1.NewTime(req.StartDate)
 	endTime := metav1.NewTime(req.EndDate)
@@ -357,7 +336,7 @@ func CreateK8sObject(req models.RequestData, approverName string) error {
 	callbackBaseURL := baseUrl + "/kube-jit-api/k8s-callback"
 	signedURL, err := utils.GenerateSignedURL(callbackBaseURL, req.EndDate)
 	if err != nil {
-		log.Printf("Failed to generate signed URL: %v\n", err)
+		logger.Error("Failed to generate signed URL", zap.Error(err))
 		return err
 	}
 
@@ -388,14 +367,13 @@ func CreateK8sObject(req models.RequestData, approverName string) error {
 	dynamicClient := createDynamicClient(req)
 
 	// Create jitRequest
-	log.Printf("Creating k8s object for request ID: %d", req.ID)
+	logger.Info("Creating k8s object for request", zap.Uint("requestID", req.ID))
 	_, err = dynamicClient.Resource(gvr).Create(context.TODO(), jitRequest, metav1.CreateOptions{})
 	if err != nil {
-		log.Printf("Error creating k8s object for request ID %d: %v", req.ID, err)
+		logger.Error("Error creating k8s object for request", zap.Uint("requestID", req.ID), zap.Error(err))
 		return err
 	}
-
-	log.Printf("Successfully created k8s object for request ID: %d", req.ID)
+	logger.Info("Successfully created k8s object for request", zap.Uint("requestID", req.ID))
 	return nil
 }
 
@@ -408,17 +386,18 @@ func GetJitGroups(clusterName string) (*unstructured.Unstructured, error) {
 
 		// Check if the cache is still valid
 		if cache.ExpiresAt > currentTime {
-			log.Printf("Using cached JitGroups for cluster: %s", clusterName)
+			logger.Info("Using cached JitGroups for cluster", zap.String("cluster", clusterName))
 			return cache.JitGroups, nil
 		}
 
-		log.Printf("JitGroups cache expired for cluster: %s, refreshing", clusterName)
+		logger.Info("JitGroups cache expired for cluster, refreshing", zap.String("cluster", clusterName))
 	}
 
 	// Fetch JitGroups from the cluster
 	jitGroups, err := fetchJitGroupsFromCluster(clusterName)
 	if err != nil {
-		return nil, err
+		logger.Error("Error fetching JitGroups for cluster", zap.String("cluster", clusterName), zap.Error(err))
+		return nil, fmt.Errorf("failed to fetch JitGroups for cluster %s", clusterName)
 	}
 
 	// Cache the JitGroups with a 10-minute expiration
@@ -427,8 +406,7 @@ func GetJitGroups(clusterName string) (*unstructured.Unstructured, error) {
 		JitGroups: jitGroups,
 		ExpiresAt: expiration,
 	})
-
-	log.Printf("Cached JitGroups for cluster: %s", clusterName)
+	logger.Info("Cached JitGroups for cluster", zap.String("cluster", clusterName))
 	return jitGroups, nil
 }
 
@@ -442,16 +420,15 @@ func fetchJitGroupsFromCluster(clusterName string) (*unstructured.Unstructured, 
 		Resource: "jitgroupcaches",
 	}).Get(context.TODO(), "jitgroupcache", metav1.GetOptions{}) // Static name for the JitGroupCache object is 'jitgroupcache
 	if err != nil {
-		log.Printf("Error fetching JitGroups for cluster %s: %v", clusterName, err)
+		logger.Error("Error fetching JitGroups from cluster", zap.String("cluster", clusterName), zap.Error(err))
 		return nil, fmt.Errorf("failed to fetch JitGroups for cluster %s", clusterName)
 	}
-
 	return jitGroups, nil
 }
 
 // InvalidateJitGroupsCache invalidates the JitGroups cache for a specific cluster
 func InvalidateJitGroupsCache(clusterName string) {
-	log.Printf("Invalidating JitGroups cache for cluster: %s", clusterName)
+	logger.Info("Invalidating JitGroups cache for cluster", zap.String("cluster", clusterName))
 	jitGroupsCache.Delete(clusterName)
 }
 

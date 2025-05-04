@@ -1,15 +1,7 @@
 todo
-
-- json logging or not
-
-- log important errors
-- remove and debut logging 
-- add log for new jit, approved, rejected - context of requestData
-- set types to either gke or aks in helm for downstream clusters
-- https do we need option?
-- domain on email input preconfigured
-- fix │ [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you │
 - must get on required envs
+- https do we need option?
+- fix │ [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you │
 
 
 test

@@ -5,19 +5,29 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"strconv"
 	"time"
+
+	"go.uber.org/zap"
 )
 
-var hmacKey = os.Getenv("HMAC_SECRET")
+var (
+	hmacKey = os.Getenv("HMAC_SECRET")
+	logger  *zap.Logger
+)
+
+// InitLogger sets the zap logger for this package
+func InitLogger(l *zap.Logger) {
+	logger = l
+}
 
 // GenerateSignedURL creates a signed url with hmac key based on expiry
 func GenerateSignedURL(baseURL string, expiryTime time.Time) (string, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
+		logger.Error("Failed to parse base URL for signed URL", zap.Error(err))
 		return "", err
 	}
 
@@ -35,7 +45,7 @@ func GenerateSignedURL(baseURL string, expiryTime time.Time) (string, error) {
 	return u.String(), nil
 }
 
-// GenerateHMAC creates/returs hash string
+// GenerateHMAC creates/returns hash string
 func GenerateHMAC(data string) string {
 	key := []byte(hmacKey)
 	h := hmac.New(sha256.New, key)
@@ -52,13 +62,13 @@ func ValidateSignedURL(u *url.URL) bool {
 	// Check if the URL has expired
 	expiryTime, err := strconv.ParseInt(expiry, 10, 64)
 	if err != nil {
-		log.Printf("Failed to parse expiry time: %v\n", err)
+		logger.Warn("Failed to parse expiry time in signed URL", zap.Error(err))
 		return false
 	}
 
 	currentTime := time.Now().Unix()
 	if currentTime > expiryTime {
-		log.Println("URL has expired")
+		logger.Warn("Signed URL has expired")
 		return false
 	}
 
@@ -75,11 +85,13 @@ func ValidateSignedURL(u *url.URL) bool {
 	encodedURL := u.String()
 	expectedSignature := GenerateHMAC(encodedURL)
 
-	log.Printf("Expected signature: %s\n", expectedSignature)
-	log.Printf("Provided signature: %s\n", signature)
+	logger.Debug("Validating signed URL",
+		zap.String("expectedSignature", expectedSignature),
+		zap.String("providedSignature", signature),
+	)
 
 	if !hmac.Equal([]byte(expectedSignature), []byte(signature)) {
-		log.Println("Invalid signature")
+		logger.Warn("Invalid signature in signed URL")
 		return false
 	}
 

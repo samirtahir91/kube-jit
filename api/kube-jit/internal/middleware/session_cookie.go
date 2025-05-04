@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 const maxCookieSize = 4000 // Max size for a single cookie
@@ -39,7 +40,6 @@ func CombineSessionData(c *gin.Context) {
 		if err != nil {
 			break // Stop when no more cookies are found
 		}
-
 		combinedData.WriteString(chunk)
 	}
 
@@ -48,13 +48,13 @@ func CombineSessionData(c *gin.Context) {
 		var decodedData string
 		err := decodeSessionData("session_data", combinedData.String(), &decodedData)
 		if err != nil {
-			c.Error(fmt.Errorf("failed to decode session data: %v", err))
+			logger.Error("Failed to decode session data", zap.Error(err))
 			return
 		}
 
 		// Check if the decoded data is valid JSON
 		if !json.Valid([]byte(decodedData)) {
-			c.Error(fmt.Errorf("decoded session data is not valid JSON"))
+			logger.Error("Decoded session data is not valid JSON")
 			return
 		}
 
@@ -62,7 +62,7 @@ func CombineSessionData(c *gin.Context) {
 		var sessionData map[string]interface{}
 		err = json.Unmarshal([]byte(decodedData), &sessionData)
 		if err != nil {
-			c.Error(fmt.Errorf("failed to deserialize session data: %v", err))
+			logger.Error("Failed to deserialize session data", zap.Error(err))
 			return
 		}
 
@@ -83,14 +83,14 @@ func SplitSessionData(c *gin.Context) {
 	// Serialize session data to JSON
 	sessionDataJSON, err := json.Marshal(data)
 	if err != nil {
-		c.Error(fmt.Errorf("failed to serialize session data: %v", err))
+		logger.Error("Failed to serialize session data", zap.Error(err))
 		return
 	}
 
 	// Encode the session data
 	encodedData, err := encodeSessionData("session_data", string(sessionDataJSON))
 	if err != nil {
-		c.Error(fmt.Errorf("failed to encode session data: %v", err))
+		logger.Error("Failed to encode session data", zap.Error(err))
 		return
 	}
 
@@ -156,6 +156,7 @@ func splitIntoChunks(data string, chunkSize int) []string {
 func encodeSessionData(name string, value interface{}) (string, error) {
 	encoded, err := secureCookie.Encode(name, value)
 	if err != nil {
+		logger.Error("Failed to encode session data", zap.Error(err))
 		return "", fmt.Errorf("failed to encode session data: %v", err)
 	}
 	return encoded, nil
@@ -165,6 +166,7 @@ func encodeSessionData(name string, value interface{}) (string, error) {
 func decodeSessionData(name, encodedValue string, dst interface{}) error {
 	err := secureCookie.Decode(name, encodedValue, dst)
 	if err != nil {
+		logger.Error("Failed to decode session data", zap.Error(err))
 		return fmt.Errorf("failed to decode session data: %v", err)
 	}
 	return nil

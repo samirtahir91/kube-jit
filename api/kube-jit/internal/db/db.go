@@ -2,18 +2,26 @@ package db
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"time"
 
 	"kube-jit/internal/models"
 
+	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+var (
+	DB     *gorm.DB
+	logger *zap.Logger
+)
+
+// InitLogger sets the zap logger for this package
+func InitLogger(l *zap.Logger) {
+	logger = l
+}
 
 func InitDB() {
 	var err error
@@ -34,18 +42,19 @@ func InitDB() {
 
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal("Failed to open database connection", zap.Error(err))
 	}
 
 	// Enable GORM debug mode if DB_DEBUG=true
 	if os.Getenv("DB_DEBUG") == "true" {
 		DB = DB.Debug()
+		logger.Info("GORM debug mode enabled")
 	}
 
 	// Configure connection pool
 	sqlDB, err := DB.DB()
 	if err != nil {
-		log.Fatalf("Failed to get database connection: %v", err)
+		logger.Fatal("Failed to get database connection", zap.Error(err))
 	}
 
 	// Read connection pool settings from environment variables
@@ -54,19 +63,18 @@ func InitDB() {
 	connMaxLifetime, _ := time.ParseDuration(getEnv("DB_CONN_MAX_LIFETIME", "5m"))
 	connMaxIdleTime, _ := time.ParseDuration(getEnv("DB_CONN_MAX_IDLE_TIME", "10m"))
 
-	sqlDB.SetMaxOpenConns(maxOpenConns)       // Maximum number of open connections
-	sqlDB.SetMaxIdleConns(maxIdleConns)       // Maximum number of idle connections
-	sqlDB.SetConnMaxLifetime(connMaxLifetime) // Maximum lifetime of a connection
-	sqlDB.SetConnMaxIdleTime(connMaxIdleTime) // Maximum idle time for a connection
+	sqlDB.SetMaxOpenConns(maxOpenConns)
+	sqlDB.SetMaxIdleConns(maxIdleConns)
+	sqlDB.SetConnMaxLifetime(connMaxLifetime)
+	sqlDB.SetConnMaxIdleTime(connMaxIdleTime)
 
-	// Auto migrate the schema
-	log.Println("Migrating database schema...")
+	logger.Info("Migrating database schema...")
 	err = DB.AutoMigrate(&models.RequestData{}, &models.RequestNamespace{})
 	if err != nil {
-		log.Fatalf("Error migrating database: %v", err)
+		logger.Fatal("Error migrating database", zap.Error(err))
 	}
 
-	log.Println("Database schema migrated successfully")
+	logger.Info("Database schema migrated successfully")
 }
 
 // getEnv reads an environment variable or returns a default value if not set

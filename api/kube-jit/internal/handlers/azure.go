@@ -7,13 +7,13 @@ import (
 	"io"
 	"kube-jit/internal/middleware"
 	"kube-jit/internal/models"
-	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 )
 
@@ -24,8 +24,8 @@ var (
 		RedirectURL:  redirectUri,
 		Scopes:       []string{"openid", "email", "profile", "User.Read", "Directory.Read.All"},
 		Endpoint: oauth2.Endpoint{
-			AuthURL:  os.Getenv("AZURE_AUTH_URL"),  // Use the configurable authorization endpoint
-			TokenURL: os.Getenv("AZURE_TOKEN_URL"), // Use the configurable token endpoint
+			AuthURL:  os.Getenv("AZURE_AUTH_URL"),
+			TokenURL: os.Getenv("AZURE_TOKEN_URL"),
 		},
 	}
 )
@@ -34,28 +34,24 @@ var (
 func HandleAzureLogin(c *gin.Context) {
 	code := c.Query("code")
 	if code == "" {
-		log.Println("Missing 'code' query parameter")
+		logger.Warn("Missing 'code' query parameter in Azure login")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Code query parameter is required"})
 		return
 	}
 
-	log.Println("Received authorization code:", code)
-
 	// Exchange the authorization code for a token
 	token, err := azureOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
-		log.Printf("Failed to exchange token: %v", err)
+		logger.Error("Failed to exchange Azure token", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to exchange token"})
 		return
 	}
-
-	log.Printf("Token received: %+v", token)
 
 	// Use the token to fetch user info
 	client := azureOAuthConfig.Client(context.Background(), token)
 	resp, err := client.Get("https://graph.microsoft.com/v1.0/me")
 	if err != nil {
-		log.Printf("Failed to fetch user info: %v", err)
+		logger.Error("Failed to fetch Azure user info", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user info"})
 		return
 	}
@@ -63,7 +59,7 @@ func HandleAzureLogin(c *gin.Context) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		log.Printf("Error fetching user profile from Azure AD: %s", string(body))
+		logger.Warn("Error fetching user profile from Azure AD", zap.String("response", string(body)))
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user profile from Azure AD"})
 		return
 	}
@@ -71,12 +67,10 @@ func HandleAzureLogin(c *gin.Context) {
 	// Decode the user info into the AzureUser struct
 	var azureUser models.AzureUser
 	if err := json.NewDecoder(resp.Body).Decode(&azureUser); err != nil {
-		log.Printf("Failed to decode user info: %v", err)
+		logger.Error("Failed to decode Azure user info", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user info"})
 		return
 	}
-
-	log.Printf("Azure user info: %+v", azureUser)
 
 	// Normalize the user data
 	normalizedUserData := models.NormalizedUserData{
@@ -95,12 +89,12 @@ func HandleAzureLogin(c *gin.Context) {
 
 	// Save the session data in the session
 	session := sessions.Default(c)
-	session.Set("data", sessionData) // Store as a map, not a JSON string
+	session.Set("data", sessionData)
 
 	// Split the session data into cookies
 	middleware.SplitSessionData(c)
 
-	log.Println("Session cookies set successfully")
+	logger.Info("Session cookies set successfully for Azure login", zap.String("name", azureUser.DisplayName))
 
 	// Respond with the normalized user data
 	c.JSON(http.StatusOK, gin.H{
@@ -115,12 +109,12 @@ func GetAzureProfile(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData, ok := checkLoggedIn(c)
 	if !ok {
-		return // The response has already been sent by CheckLoggedIn
+		return
 	}
 
-	// Retrieve the token from the session data
 	token, ok := sessionData["token"].(string)
 	if !ok || token == "" {
+		logger.Warn("No token in session data for Azure profile")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
 		return
 	}
@@ -131,17 +125,18 @@ func GetAzureProfile(c *gin.Context) {
 	}))
 	resp, err := client.Get("https://graph.microsoft.com/v1.0/me")
 	if err != nil {
+		logger.Error("Failed to fetch Azure user profile", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user profile"})
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		logger.Warn("Error fetching user profile from Azure", zap.Int("status", resp.StatusCode))
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user profile from Azure"})
 		return
 	}
 
-	// Decode the response into a struct
 	var azureUser struct {
 		ID                string `json:"id"`
 		DisplayName       string `json:"displayName"`
@@ -149,20 +144,20 @@ func GetAzureProfile(c *gin.Context) {
 		UserPrincipalName string `json:"userPrincipalName"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&azureUser); err != nil {
+		logger.Error("Failed to decode Azure user profile", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user profile"})
 		return
 	}
 
 	// Normalize the response to match the structure of other providers
-	normalizedUserData := map[string]interface{}{
+	normalizedUserData := map[string]any{
 		"id":         azureUser.ID,
 		"name":       azureUser.DisplayName,
 		"email":      azureUser.Mail,
-		"avatar_url": "", // Azure AD doesn't provide an avatar URL by default
+		"avatar_url": "",
 		"provider":   "azure",
 	}
 
-	// Return the normalized user data
 	c.JSON(http.StatusOK, normalizedUserData)
 }
 
@@ -171,13 +166,15 @@ func GetAzureGroups(token string) ([]models.Team, error) {
 	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token}))
 	resp, err := client.Get("https://graph.microsoft.com/v1.0/me/memberOf")
 	if err != nil {
-		return nil, err
+		logger.Error("Failed to fetch Azure groups", zap.Error(err))
+		return nil, fmt.Errorf("failed to fetch groups from Azure AD")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("error fetching groups from Azure AD: %s", string(body))
+		logger.Warn("Error fetching Azure groups", zap.String("response", string(body)))
+		return nil, fmt.Errorf("error fetching groups from Azure AD")
 	}
 
 	var groupsResponse struct {
@@ -187,7 +184,8 @@ func GetAzureGroups(token string) ([]models.Team, error) {
 		} `json:"value"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&groupsResponse); err != nil {
-		return nil, err
+		logger.Error("Failed to decode Azure groups response", zap.Error(err))
+		return nil, fmt.Errorf("failed to decode groups response")
 	}
 
 	var teams []models.Team

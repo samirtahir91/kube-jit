@@ -11,10 +11,19 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/securecookie"
+	"go.uber.org/zap"
 )
 
-var cookieSecret = os.Getenv("HMAC_SECRET")
-var secureCookie = securecookie.New([]byte(cookieSecret), nil)
+var (
+	cookieSecret = os.Getenv("HMAC_SECRET")
+	secureCookie = securecookie.New([]byte(cookieSecret), nil)
+	logger       *zap.Logger
+)
+
+// InitLogger sets the zap logger for this package
+func InitLogger(l *zap.Logger) {
+	logger = l
+}
 
 func init() {
 	// Register map[string]interface{} with gob
@@ -30,6 +39,7 @@ func SetupMiddleware(r *gin.Engine) {
 	var allowOrigins []string
 	allowOriginsStr := os.Getenv("ALLOW_ORIGINS")
 	if err := json.Unmarshal([]byte(allowOriginsStr), &allowOrigins); err != nil {
+		logger.Error("Failed to parse ALLOW_ORIGINS env var", zap.Error(err))
 		panic(err)
 	}
 
@@ -46,4 +56,6 @@ func SetupMiddleware(r *gin.Engine) {
 	// Session middleware with custom logic
 	store := cookie.NewStore([]byte(cookieSecret))
 	r.Use(sessions.Sessions("mysession", store))
+
+	logger.Info("Middleware setup complete", zap.Strings("allowOrigins", allowOrigins))
 }

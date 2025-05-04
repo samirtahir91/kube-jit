@@ -126,10 +126,16 @@ spec:
           - name: COOKIE_SECRET
             valueFrom:
               secretKeyRef:
-                key: {{ .Values.config.cookieSecretKey }}
+                key: {{ .Values.config.oauth.cookieSecretKey }}
                 name: kube-jit-api-secrets
           - name: COOKIE_SAMESITE
-            value: {{ .Values.config.cookieSameSite | quote }}
+            value: {{ .Values.config.oauth.cookieSameSite | quote }}
+          - name: DEBUG_LOG
+            value: {{ .Values.config.debugLog | quote }}
+          {{- if not .Values.config.debugLog }}
+          - name: GIN_MODE
+            value: release
+          {{- end }}
           - name: API_NAMESPACE
             valueFrom:
               fieldRef:

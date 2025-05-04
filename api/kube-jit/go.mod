@@ -7,7 +7,9 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.0
 	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-contrib/sessions v1.0.3
+	github.com/gin-contrib/zap v1.1.5
 	github.com/gin-gonic/gin v1.10.0
+	go.uber.org/zap v1.27.0
 	golang.org/x/oauth2 v0.29.0
 	google.golang.org/api v0.229.0
 	gorm.io/driver/postgres v1.5.11
@@ -64,6 +66,7 @@ require (
 	go.opentelemetry.io/otel v1.35.0 // indirect
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/sync v0.13.0 // indirect
 	golang.org/x/term v0.31.0 // indirect
 	golang.org/x/time v0.11.0 // indirect

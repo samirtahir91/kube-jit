@@ -16,16 +16,13 @@ fullnameOverride: ""
 
 # Config for the kube-jit-api
 config:
+  # Enable debug logging for the API (zap logger)
+  debugLog: false
 
   # This is the secret key in the kube-jit-api-secrets secret
   # This secret key value will contain the hmac secret key for signing the jwt tokens
   # This is used for the callback flow from downstream clusters
   hmacSecretKey: hmacSecret
-
-  # This is the secret key in the kube-jit-api-secrets secret
-  # This secret key value will contain the cookie secret key for signing the cookies
-  # This is used for the cookie auth flow
-  cookieSecretKey: cookieSecret
 
   # List of allowed origins (CORS), usually the client/frontend url
   cors:
@@ -80,7 +77,19 @@ config:
   
   # Oauth either configure for github or google
   oauth:
-    # TYour Oauth provider, "github" for GithubApp, "azure" for AAD, "google" for Google Oauth
+    # This is the secret key in the kube-jit-api-secrets secret
+    # This secret key value will contain the cookie secret key for signing the cookies
+    # This is used for the cookie auth flow
+    cookieSecretKey: cookieSecret
+
+    # Cookie SameSite policy
+    # This is used for the cookie auth flow
+    # Lax - Cookies are sent with top-level navigations and will be sent along with GET requests initiated by third party websites.
+    # Strict - Cookies will only be sent in a first-party context and not be sent along with requests initiated by third party websites.
+    # None - Cookies will be sent in all contexts, i.e. sending cross-origin is possible. This requires the Secure attribute to be set (https).
+    cookieSameSite: "Lax"   # Options: "Lax", "Strict", "None"
+    # Your Oauth provider, "github" for GithubApp, "azure" for AAD, "google" for Google Oauth
+   
     provider:
     # Your Client ID
     clientID: "your-client-id"
@@ -94,13 +103,6 @@ config:
     #azureAuthUrl: "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize"
     # This is the Azure token URL
     #azureTokenUrl: "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
-
-  # Cookie SameSite policy
-  # This is used for the cookie auth flow
-  # Lax - Cookies are sent with top-level navigations and will be sent along with GET requests initiated by third party websites.
-  # Strict - Cookies will only be sent in a first-party context and not be sent along with requests initiated by third party websites.
-  # None - Cookies will be sent in all contexts, i.e. sending cross-origin is possible. This requires the Secure attribute to be set (https).
-  cookieSameSite: "Lax"   # Options: "Lax", "Strict", "None"
 
 # Postgres database connection details
 db:

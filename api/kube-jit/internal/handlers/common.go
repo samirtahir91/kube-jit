@@ -7,7 +7,6 @@ import (
 	"kube-jit/internal/models"
 	"kube-jit/pkg/k8s"
 	"kube-jit/pkg/utils"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -24,9 +24,14 @@ var (
 	clientSecret  = os.Getenv("OAUTH_CLIENT_SECRET")
 	redirectUri   = os.Getenv("OAUTH_REDIRECT_URI")
 	httpClient    = &http.Client{
-		Timeout: 60 * time.Second, // Set a global timeout for all requests
+		Timeout: 60 * time.Second,
 	}
+	logger *zap.Logger
 )
+
+func InitLogger(l *zap.Logger) {
+	logger = l
+}
 
 // Logout clears all session cookies with the sessionPrefix
 func Logout(c *gin.Context) {
@@ -81,32 +86,34 @@ func K8sCallback(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&callbackData); err != nil {
-		log.Printf("Failed to bind JSON: %v\n", err)
+		logger.Warn("Failed to bind JSON in K8sCallback", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
 		return
 	}
 
-	// Validate the signed URL
 	callbackURL := c.Request.URL
 	if !utils.ValidateSignedURL(callbackURL) {
-		log.Println("Invalid or expired signed URL")
+		logger.Warn("Invalid or expired signed URL in K8sCallback")
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
 	}
 
-	// Update the status of the request in the database
 	if err := db.DB.Model(&models.RequestData{}).Where("id = ?", callbackData.TicketID).Updates(map[string]interface{}{
 		"status": callbackData.Status,
 		"notes":  callbackData.Message,
 	}).Error; err != nil {
-		log.Printf("Error updating request: %v", err)
+		logger.Error("Error updating request in K8sCallback",
+			zap.String("ticketID", callbackData.TicketID),
+			zap.Error(err),
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update request (database error)"})
 		return
 	}
 
-	// Process the callback data (e.g., update the status in your system)
-	log.Printf("Received callback for ticket ID %s with status %s and message %s\n", callbackData.TicketID, callbackData.Status, callbackData.Message)
-
+	logger.Info("Received callback for ticket",
+		zap.String("ticketID", callbackData.TicketID),
+		zap.String("status", callbackData.Status),
+	)
 	c.JSON(http.StatusOK, gin.H{"message": "Success"})
 }
 
@@ -227,7 +234,7 @@ func processApproval(
 	// Fetch namespaces for the request
 	var dbNamespaces []models.RequestNamespace
 	if err := db.DB.Where("request_id = ?", requestID).Find(&dbNamespaces).Error; err != nil {
-		log.Printf("Error fetching namespaces for request ID %d: %v", requestID, err)
+		logger.Error("Error fetching namespaces for request", zap.Uint("requestID", requestID), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch namespaces"})
 		return
 	}
@@ -244,12 +251,16 @@ func processApproval(
 			ns.ApproverID = approverID
 			ns.ApproverName = approverName
 			if err := db.DB.Save(ns).Error; err != nil {
-				log.Printf("Error updating namespace approval: %v", err)
+				logger.Error("Error updating namespace approval", zap.Uint("requestID", requestID), zap.String("namespace", ns.Namespace), zap.Error(err))
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update namespace approval"})
 				return
 			}
 		} else {
-			log.Printf("Skipping namespace %s (GroupID: %s) - approver does not have permissions", ns.Namespace, ns.GroupID)
+			logger.Info("Skipping namespace - approver does not have permissions",
+				zap.String("namespace", ns.Namespace),
+				zap.String("groupID", ns.GroupID),
+				zap.String("approverID", approverID),
+			)
 		}
 	}
 
@@ -268,7 +279,13 @@ func processApproval(
 		finalStatus = "Requested"
 	}
 
-	log.Printf("allApproved=%v, status=%s, finalStatus=%s, dbNamespaces=%v", allApproved, status, finalStatus, dbNamespaces)
+	logger.Debug("Approval status check",
+		zap.Bool("allApproved", allApproved),
+		zap.String("status", status),
+		zap.String("finalStatus", finalStatus),
+		zap.Uint("requestID", requestID),
+	)
+
 	if allApproved && status == "Approved" {
 		var namespacesToSpec []string
 		for _, ns := range dbNamespaces {
@@ -277,7 +294,7 @@ func processApproval(
 		requestData.Namespaces = namespacesToSpec
 		requestData.ID = requestID
 		if err := k8s.CreateK8sObject(requestData, approverName); err != nil {
-			log.Printf("Error creating k8s object for request ID %d: %v", requestID, err)
+			logger.Error("Error creating k8s object for request", zap.Uint("requestID", requestID), zap.Error(err))
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create k8s object"})
 			return
 		}
@@ -286,7 +303,7 @@ func processApproval(
 	// Fetch the request record
 	var req models.RequestData
 	if err := db.DB.First(&req, requestID).Error; err != nil {
-		log.Printf("Error fetching request: %v", err)
+		logger.Error("Error fetching request for update", zap.Uint("requestID", requestID), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch request"})
 		return
 	}
@@ -304,7 +321,7 @@ func processApproval(
 	req.FullyApproved = allApproved
 
 	if err := db.DB.Model(&req).Select("Status", "ApproverIDs", "ApproverNames", "FullyApproved").Updates(req).Error; err != nil {
-		log.Printf("Error updating request: %v", err)
+		logger.Error("Error updating request after approval", zap.Uint("requestID", requestID), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update request"})
 		return
 	}
@@ -329,7 +346,6 @@ func GetRecords(c *gin.Context) {
 		limitInt = 1
 	}
 
-	// Fetch requests as before
 	var requests []models.RequestData
 	query := db.DB.Order("created_at desc").Limit(limitInt)
 	if isAdmin {
@@ -340,7 +356,6 @@ func GetRecords(c *gin.Context) {
 			query = query.Where("username = ?", username)
 		}
 	} else {
-		// Show requests where user is requestor OR approver
 		if userID != "" {
 			query = query.Where("user_id = ? OR approver_ids @> ?", userID, fmt.Sprintf(`["%s"]`, userID))
 		} else if username != "" {
@@ -351,7 +366,8 @@ func GetRecords(c *gin.Context) {
 		query = query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
 	}
 	if err := query.Find(&requests).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Error("Error fetching records in GetRecords", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch records"})
 		return
 	}
 
@@ -367,7 +383,6 @@ func GetRecords(c *gin.Context) {
 		NamespaceApprovals []NamespaceApprovalInfo `json:"namespaceApprovals"`
 	}
 
-	// For each request, fetch its namespace approvals
 	var enriched []RequestWithNamespaceApprovers
 	for _, req := range requests {
 		var nsApprovals []NamespaceApprovalInfo
@@ -376,7 +391,8 @@ func GetRecords(c *gin.Context) {
 			Select("namespace, group_id, approved, approver_id, approver_name").
 			Where("request_id = ?", req.ID).
 			Scan(&nsApprovals).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			logger.Error("Error fetching namespace approvals in GetRecords", zap.Uint("requestID", req.ID), zap.Error(err))
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch namespace approvals"})
 			return
 		}
 		enriched = append(enriched, RequestWithNamespaceApprovers{
@@ -640,7 +656,7 @@ func SubmitRequest(c *gin.Context) {
 
 	// Insert the request data into the database
 	if err := db.DB.Create(&dbRequestData).Error; err != nil {
-		log.Printf("Error inserting data: %v", err)
+		logger.Error("Error inserting data in SubmitRequest", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit request (database error)"})
 		return
 	}
@@ -654,7 +670,7 @@ func SubmitRequest(c *gin.Context) {
 			Approved:  false,
 		}
 		if err := db.DB.Create(&namespaceEntry).Error; err != nil {
-			log.Printf("Error inserting namespace data: %v", err)
+			logger.Error("Error inserting namespace data in SubmitRequest", zap.Error(err))
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit request (namespace error)"})
 			return
 		}
@@ -751,7 +767,7 @@ func CommonPermissions(c *gin.Context) {
 	for _, clusterName := range k8s.ClusterNames {
 		jitGroups, err := k8s.GetJitGroups(clusterName)
 		if err != nil {
-			log.Printf("Error fetching JitGroups for cluster %s: %v", clusterName, err)
+			logger.Error("Error fetching JitGroups for cluster", zap.String("clusterName", clusterName), zap.Error(err))
 			continue
 		}
 		groups, _, _ := unstructured.NestedSlice(jitGroups.Object, "spec", "groups")
