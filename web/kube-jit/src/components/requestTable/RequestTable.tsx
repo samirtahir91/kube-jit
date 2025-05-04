@@ -138,7 +138,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
     return (
         <>
             {/* Controls OUTSIDE the table-container */}
-            <div className="table-controls d-flex justify-content-between align-items-center mb-3">
+            <div className="py-5 table-controls d-flex justify-content-between align-items-center mb-3">
                 <div className="d-flex align-items-center">
                     <div
                         className={`toggle-button ${variant === 'dark' ? 'dark' : ''}`}
@@ -226,7 +226,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                     )}
                                     {mode === 'history' && (
                                         <th className="table-colour th-ns-approvals namespace-approvals-col">
-                                            Namespace Approvals (with owning group ID)
+                                            Namespace Approvals (with owning group name)
                                         </th>
                                     )}
                                     <th className="table-colour th-users">
