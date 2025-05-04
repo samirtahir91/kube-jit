@@ -23,14 +23,17 @@ test
   bdd
   e2e Selenium 
 
-- chache clusters on startup and jitgroups
-- email notifications to requestors (depends if they have email configured in profile)
+## Sprint:
 - nice alert on history and approver pages
 - add to history search records approved by you.
 - nicer looking approve/reject button
-- env var for db debug mode
 - increase select check box area in approve/reject
+- try to cache clusters on startup and jitgroups (but dont fail)
+- email notifications to requestors (depends if they have email configured in profile)
+- env var for db debug mode
 
+
+## Priority:
 - it should show all approvers and for the namespace they approved in history and pending.
 - for multi approver, get all approvers not just last - change approvaers names and ids to string and update
 - if no group found admin only or allowed approvers can approve
