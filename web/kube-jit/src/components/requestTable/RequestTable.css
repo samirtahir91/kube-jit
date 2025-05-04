@@ -48,7 +48,7 @@
 .table-container thead th {
     position: sticky; /* Sticky header */
     top: 0;
-    z-index: 2;
+    /* z-index: 2; */
     background-color: #2073b3 !important; /* Keep your color */
     color: #fff !important;
     text-align: left; /* Align text to the left */
