@@ -25,5 +25,6 @@ test
 - add to history search records approved by you.
 - try to cache clusters on startup and jitgroups (but dont fail)
 - email notifications to requestors (depends if they have email configured in profile)
+- generic 401 redirect to login
 - env var for db debug mode
 
