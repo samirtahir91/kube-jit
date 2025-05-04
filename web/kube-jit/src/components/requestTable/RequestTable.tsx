@@ -199,10 +199,10 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                         >
                             <thead>
                                 <tr>
-                                    {selectable && <th className="table-colour">Select</th>}
-                                    <th className="table-colour">ID</th>
-                                    <th className="table-colour">Period requested</th>
-                                    <th className="table-colour">
+                                    {selectable && <th className="table-colour th-id">Select</th>}
+                                    <th className="table-colour th-id">ID</th>
+                                    <th className="table-colour th-date">Period requested</th>
+                                    <th className="table-colour th-username">
                                         Requestee
                                         <input
                                             type="text"
@@ -213,7 +213,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                         />
                                     </th>
                                     {mode === 'history' && (
-                                        <th className="table-colour">
+                                        <th className="table-colour th-approvers">
                                             Approvers
                                             <input
                                                 type="text"
@@ -225,9 +225,11 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                         </th>
                                     )}
                                     {mode === 'history' && (
-                                        <th className="table-colour namespace-approvals-col">Namespace Approvals (with owning group ID)</th>
+                                        <th className="table-colour th-ns-approvals namespace-approvals-col">
+                                            Namespace Approvals (with owning group ID)
+                                        </th>
                                     )}
-                                    <th className="table-colour">
+                                    <th className="table-colour th-users">
                                         Users
                                         <input
                                             type="text"
@@ -237,7 +239,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                             onChange={(e) => handleFilterChange(e, 'users')}
                                         />
                                     </th>
-                                    <th className="table-colour">
+                                    <th className="table-colour th-cluster">
                                         Cluster
                                         <input
                                             type="text"
@@ -247,7 +249,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                             onChange={(e) => handleFilterChange(e, 'clusterName')}
                                         />
                                     </th>
-                                    <th className="table-colour">
+                                    <th className="table-colour th-namespaces">
                                         Namespaces
                                         <input
                                             type="text"
@@ -257,8 +259,8 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                             onChange={(e) => handleFilterChange(e, 'namespaces')}
                                         />
                                     </th>
-                                    <th className="table-colour">Justification</th>
-                                    <th className="table-colour">
+                                    <th className="table-colour th-just">Justification</th>
+                                    <th className="table-colour th-role">
                                         Role
                                         <input
                                             type="text"
@@ -268,9 +270,9 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                             onChange={(e) => handleFilterChange(e, 'roleName')}
                                         />
                                     </th>
-                                    <th className="table-colour">Created At</th>
+                                    <th className="table-colour th-date">Created At</th>
                                     {mode === 'history' && (
-                                        <th className="table-colour">
+                                        <th className="table-colour th-status">
                                             Status
                                             <select
                                                 className="form-select form-select-sm mt-1"
@@ -287,7 +289,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                         </th>
                                     )}
                                     {mode === 'history' && (
-                                        <th className="table-colour">Notes</th>
+                                        <th className="table-colour th-notes">Notes</th>
                                     )}
                                 </tr>
                             </thead>
