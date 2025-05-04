@@ -154,3 +154,11 @@
     font-size: 1rem; /* Adjust font size for consistency */
     color: #495057; /* Subtle text color */
 }
+
+.namespace-approvals-col {
+    min-width: 340px;
+    max-width: 600px;
+    width: 30vw;
+    word-break: break-word;
+    white-space: normal;
+}

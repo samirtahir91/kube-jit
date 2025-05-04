@@ -166,7 +166,7 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
                     </Button>
                 </Col>
             </Row>
-            {requests.length > 0 ? (
+            {requests && requests.length > 0 ? (
                 <RequestTable
                     variant={variant}
                     setVariant={setVariant}

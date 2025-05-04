@@ -212,7 +212,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                             </th>
                         )}
                         {mode === 'history' && (
-                            <th className="table-colour">Namespace Approvals</th>
+                            <th className="table-colour namespace-approvals-col">Namespace Approvals (with owning group ID)</th>
                         )}
                         <th className="table-colour">
                             Users
@@ -353,7 +353,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                     <td>{historicalRequest.username}</td>
                                     <td>{historicalRequest.approverNames ? historicalRequest.approverNames.join(', ') : 'N/A'}</td>
                                     {mode === 'history' && (
-                                        <td>
+                                        <td className="namespace-approvals-col">
                                             {historicalRequest.namespaceApprovals && historicalRequest.namespaceApprovals.length > 0 ? (
                                                 <ul style={{ paddingLeft: 16, marginBottom: 0 }}>
                                                     {historicalRequest.namespaceApprovals.map((ns, idx) => {

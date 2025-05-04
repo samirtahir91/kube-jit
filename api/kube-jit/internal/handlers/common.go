@@ -235,7 +235,11 @@ func processApproval(
 	for i := range dbNamespaces {
 		ns := &dbNamespaces[i]
 		if approverGroups == nil || contains(approverGroups, ns.GroupID) {
-			ns.Approved = true
+			if status == "Approved" {
+				ns.Approved = true
+			} else if status == "Rejected" {
+				ns.Approved = false
+			}
 			ns.ApproverID = approverID
 			ns.ApproverName = approverName
 			if err := db.DB.Save(ns).Error; err != nil {
