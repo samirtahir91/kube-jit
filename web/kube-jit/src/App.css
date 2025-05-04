@@ -74,3 +74,74 @@
   justify-content: center;
   align-items: center;
 }
+
+
+.success-message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(90deg, #28a745, #218838); /* Green gradient background */
+  color: #ffffff; /* White text */
+  padding: 1rem 1.5rem; /* Add padding for spacing */
+  border-radius: 8px; /* Rounded corners */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  font-size: 1rem; /* Adjust font size */
+  font-weight: 500; /* Medium font weight */
+  margin-top: 1.5rem; /* Add spacing from other elements */
+  animation: fadeIn 0.5s ease-in-out; /* Fade-in animation */
+  position: relative; /* For positioning the close button */
+}
+
+.success-message i {
+  font-size: 1.25rem; /* Slightly larger icon */
+  margin-right: 0.5rem; /* Add spacing after the icon */
+}
+
+.success-message-close {
+  background: none;
+  border: none;
+  color: #ffffff; /* White text for the close button */
+  font-size: 1.5rem; /* Larger font size for the close icon */
+  cursor: pointer; /* Pointer cursor on hover */
+  transition: color 0.3s ease; /* Smooth transition for hover effect */
+  margin-left: 1rem; /* Add spacing from the message text */
+}
+
+.success-message-close:hover {
+  color: #ff4d4d; /* Red color on hover */
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(90deg, #dc3545, #b02a37); /* Red gradient background */
+  color: #ffffff; /* White text */
+  padding: 1rem 1.5rem; /* Add padding for spacing */
+  border-radius: 8px; /* Rounded corners */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  font-size: 1rem; /* Adjust font size */
+  font-weight: 500; /* Medium font weight */
+  margin-top: 1.5rem; /* Add spacing from other elements */
+  animation: fadeIn 0.5s ease-in-out; /* Fade-in animation */
+  position: relative; /* For positioning the close button */
+}
+
+.error-message i {
+  font-size: 1.25rem; /* Slightly larger icon */
+  margin-right: 0.5rem; /* Add spacing after the icon */
+}
+
+.error-message-close {
+  background: none;
+  border: none;
+  color: #ffffff; /* White text for the close button */
+  font-size: 1.5rem; /* Larger font size for the close icon */
+  cursor: pointer; /* Pointer cursor on hover */
+  transition: color 0.3s ease; /* Smooth transition for hover effect */
+  margin-left: 1rem; /* Add spacing from the message text */
+}
+
+.error-message-close:hover {
+  color: #ffcccc; /* Light red color on hover */
+}

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
-import { Alert, Button, Form, Col, Row } from 'react-bootstrap';
+import { Button, Form, Col, Row } from 'react-bootstrap';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import './HistoryTabPane.css';
@@ -69,9 +69,13 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
     return (
         <>
             {errorMessage && (
-                <Alert variant="danger" className="mt-3">
+                <div className="error-message mt-3">
+                    <i className="bi bi-exclamation-circle-fill me-2"></i>
                     {errorMessage}
-                </Alert>
+                    <button className="error-message-close" onClick={() => setErrorMessage('')}>
+                        &times;
+                    </button>
+                </div>
             )}
             <Row className="mt-4">
                 {isAdmin && (
@@ -171,16 +175,20 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
                     variant={variant}
                     setVariant={setVariant}
                     requests={requests}
-                    mode="history" // Specify mode for historical requests
+                    mode="history"
                     selectable={false}
                     selectedRequests={[]}
                     handleSelectRequest={() => {}}
                 />
             ) : (
                 hasSearched && (
-                    <Alert variant="info" className="mt-3">
+                    <div className="success-message mt-3">
+                        <i className="bi bi-info-circle me-2"></i>
                         No records found.
-                    </Alert>
+                        <button className="success-message-close" onClick={() => setHasSearched(false)}>
+                            &times;
+                        </button>
+                    </div>
                 )
             )}
         </>

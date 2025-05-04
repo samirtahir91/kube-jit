@@ -162,3 +162,16 @@
     word-break: break-word;
     white-space: normal;
 }
+
+.action-button.approve {
+    background: linear-gradient(90deg, #28a745, #218838); /* Green gradient */
+}
+.action-button.approve:hover {
+    background: linear-gradient(90deg, #218838, #155724);
+}
+.action-button.reject {
+    background: linear-gradient(90deg, #dc3545, #c82333); /* Red gradient */
+}
+.action-button.reject:hover {
+    background: linear-gradient(90deg, #c82333, #721c24);
+}

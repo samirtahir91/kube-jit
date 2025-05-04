@@ -32,7 +32,3 @@ test
 - email notifications to requestors (depends if they have email configured in profile)
 - env var for db debug mode
 
-
-## Priority:
-- copy changes from azure permissions to google and github
-  - make it common function to call

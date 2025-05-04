@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
-import { Tab, Button, Alert } from 'react-bootstrap';
+import { Tab, Button } from 'react-bootstrap';
 import RequestTable from '../requestTable/RequestTable';
 import refreshLogo from '../../assets/refresh.svg';
 import './ApproveTabPane.css';
@@ -78,9 +78,13 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
     return (
         <Tab.Pane eventKey="approve" className="text-start py-4">
             {errorMessage && (
-                <Alert variant="danger" className="mt-3">
+                <div className="error-message mt-3">
+                    <i className="bi bi-exclamation-circle-fill me-2"></i>
                     {errorMessage}
-                </Alert>
+                    <button className="error-message-close" onClick={() => setErrorMessage('')}>
+                        &times;
+                    </button>
+                </div>
             )}
             <div className="d-flex align-items-center">
                 <p className="mb-0 me-1">Approve or reject one or many access requests.</p>
@@ -110,21 +114,20 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
                         selectedRequests={selectedRequests}
                         handleSelectRequest={handleSelectRequest}
                     />
-                    <Button
-                        variant="success"
-                        onClick={() => handleSelected('Approved')}
-                        disabled={selectedRequests.length === 0}
-                    >
-                        Approve Selected
-                    </Button>
-                    <Button
-                        className="mx-2"
-                        variant="danger"
-                        onClick={() => handleSelected('Rejected')}
-                        disabled={selectedRequests.length === 0}
-                    >
-                        Reject Selected
-                    </Button>
+                <button
+                    className="approver-button approve"
+                    disabled={selectedRequests.length === 0}
+                    onClick={() => handleSelected('Approved')}
+                >
+                    <i className="bi bi-check-circle me-1"></i> Approve
+                </button>
+                <button
+                    className="approver-button reject mx-2"
+                    disabled={selectedRequests.length === 0}
+                    onClick={() => handleSelected('Rejected')}
+                >
+                    <i className="bi bi-x-circle me-1"></i> Reject
+                </button>
                 </>
             )}
         </Tab.Pane>

@@ -44,3 +44,63 @@
         transform: rotate(360deg);
     }
 }
+
+/* Make action buttons same size and visually consistent */
+.approver-button {
+    min-width: 120px;
+    padding: 0.5rem 1.25rem;
+    font-size: 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    color: #fff;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.approver-button.approve {
+    background: linear-gradient(90deg, #28a745, #218838);
+}
+.approver-button.approve:hover {
+    background: linear-gradient(90deg, #218838, #155724);
+}
+.approver-button.reject {
+    background: linear-gradient(90deg, #dc3545, #c82333);
+}
+.approver-button.reject:hover {
+    background: linear-gradient(90deg, #c82333, #721c24);
+}
+
+.approver-button {
+    padding: 8px 16px; /* Add padding for better spacing */
+    border: none; /* Remove default border */
+    border-radius: 6px; /* Rounded corners */
+    font-size: 14px; /* Adjust font size */
+    font-weight: 500; /* Medium font weight */
+    color: #ffffff; /* White text */
+    cursor: pointer; /* Pointer cursor on hover */
+    transition: all 0.3s ease; /* Smooth transition for hover effects */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.approver-button:hover {
+    transform: translateY(-2px); /* Slight lift effect */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+}
+
+.approver-button:active {
+    transform: translateY(0); /* Reset lift effect on click */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Reset shadow on click */
+}
+
+.approver-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    filter: grayscale(0.3);
+    box-shadow: none;
+    transform: none;
+}
