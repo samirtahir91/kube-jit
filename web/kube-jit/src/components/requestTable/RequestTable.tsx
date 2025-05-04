@@ -184,18 +184,18 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                 Showing <strong>{filteredRequests.length}</strong> result{filteredRequests.length !== 1 ? 's' : ''}
             </div>
             {/* Table and results message */}
-            <div className={`table-container py-5${isExpanded ? ' expanded' : ''}`}>
+            <div className={`table-container ${isExpanded ? ' expanded' : ''}`}>
                 <div className="table-outer-scroll-x">
-                    <div className="table-inner-scroll-y" style={{ minWidth: 1200 }}>
+                    <div className="table-inner-scroll-y">
                         <Table
                             variant={variant}
                             size="sm"
                             striped
                             bordered
                             hover
-                            responsive={false} // <--- set to false to avoid Bootstrap's own x-scroll
+                            responsive={false}
                             className="mt-3"
-                            style={{ marginBottom: 0, minWidth: 1200 }}
+                            style={{ marginBottom: 0, minWidth: 1200, width: '100%', tableLayout: 'fixed' }}
                         >
                             <thead>
                                 <tr>

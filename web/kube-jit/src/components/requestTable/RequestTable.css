@@ -15,17 +15,43 @@
     max-height: none; /* Remove height restriction for expanded view */
 }
 
+.table-outer-scroll-x {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.table-inner-scroll-y {
+    max-height: 50vh;
+    overflow-y: auto;
+    width: 100%;
+}
+
+.table-container.expanded .table-inner-scroll-y {
+    max-height: none;
+}
+
 .table-container table {
+    min-width: 1200px;
+    width: 100%;
+    table-layout: fixed;
     border-radius: 8px; /* Rounded corners */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
     border-collapse: separate; /* Ensure rounded corners work */
-    overflow: hidden; /* Clip content within rounded corners */
 }
 
 .table-container th,
 .table-container td {
     padding: 12px 16px; /* Better spacing */
     border: none; /* Remove borders for a clean look */
+}
+
+.table-container thead th {
+    position: sticky; /* Sticky header */
+    top: 0;
+    z-index: 2;
+    background-color: #2073b3 !important; /* Keep your color */
+    color: #fff !important;
+    text-align: left; /* Align text to the left */
 }
 
 .table-container tbody tr:nth-child(odd) {
@@ -39,14 +65,6 @@
 .table-container tbody tr:hover {
     background-color: rgba(0, 123, 255, 0.1); /* Light blue on hover */
     cursor: pointer; /* Pointer cursor on hover */
-}
-
-.table-container thead th {
-    position: sticky; /* Sticky header */
-    top: 0;
-    background-color: #f8f9fa; /* Header background */
-    /*z-index: 2; /* Ensure it stays above other content */
-    text-align: left; /* Align text to the left */
 }
 
 .table-container th {
