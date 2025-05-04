@@ -23,6 +23,8 @@ test
   bdd
   e2e Selenium 
 
+- chache clusters on startup and jitgroups
+- email notifications to requestors (depends if they have email configured in profile)
 - nice alert on history and approver pages
 - add to history search records approved by you.
 - nicer looking approve/reject button
