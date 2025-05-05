@@ -119,17 +119,19 @@ func K8sCallback(c *gin.Context) {
 	// Send status change email to user
 	var req models.RequestData
 	if err := db.DB.Where("id = ?", callbackData.TicketID).First(&req).Error; err == nil && req.Email != "" {
-		subject := fmt.Sprintf("Your JIT request #%s is now %s", callbackData.TicketID, callbackData.Status)
-		body := fmt.Sprintf(
-			"Hello %s,<br>Your request for cluster <b>%s</b>, namespaces <b>%v</b> is now in state: <b>%s</b>.<br><br>Notes: %s",
-			req.Username,
-			req.ClusterName,
-			req.Namespaces,
-			callbackData.Status,
-			callbackData.Message,
-		)
+		body := email.BuildRequestEmail(email.EmailRequestDetails{
+			Username:      req.Username,
+			ClusterName:   req.ClusterName,
+			Namespaces:    req.Namespaces,
+			RoleName:      req.RoleName,
+			Justification: req.Justification,
+			StartDate:     req.StartDate,
+			EndDate:       req.EndDate,
+			Status:        callbackData.Status,
+			Message:       callbackData.Message,
+		})
 		go func() {
-			if err := email.SendMail(req.Email, subject, body); err != nil {
+			if err := email.SendMail(req.Email, fmt.Sprintf("Your JIT request #%s is now %s", callbackData.TicketID, callbackData.Status), body); err != nil {
 				logger.Warn("Failed to send status change email (K8sCallback)", zap.String("email", req.Email), zap.Error(err))
 			}
 		}()
@@ -348,20 +350,19 @@ func processApproval(
 	}
 
 	if req.Email != "" {
-		subject := fmt.Sprintf("Your JIT request #%d is now %s", req.ID, req.Status)
-		body := fmt.Sprintf(
-			"Hello %s,<br>Your request for cluster <b>%s</b>, namespaces <b>%v</b> has been <b>%s</b>.<br><br>Justification: %s<br>Role: %s<br>Start: %s<br>End: %s",
-			req.Username,
-			req.ClusterName,
-			req.Namespaces,
-			req.Status,
-			req.Justification,
-			req.RoleName,
-			req.StartDate.Format("2006-01-02 15:04"),
-			req.EndDate.Format("2006-01-02 15:04"),
-		)
+		body := email.BuildRequestEmail(email.EmailRequestDetails{
+			Username:      req.Username,
+			ClusterName:   req.ClusterName,
+			Namespaces:    req.Namespaces,
+			RoleName:      req.RoleName,
+			Justification: req.Justification,
+			StartDate:     req.StartDate,
+			EndDate:       req.EndDate,
+			Status:        req.Status,
+			Message:       "", // Optionally add approval notes if you have them
+		})
 		go func() {
-			if err := email.SendMail(req.Email, subject, body); err != nil {
+			if err := email.SendMail(req.Email, fmt.Sprintf("Your JIT request #%d is now %s", req.ID, req.Status), body); err != nil {
 				logger.Warn("Failed to send status change email", zap.String("email", req.Email), zap.Error(err))
 			}
 		}()
@@ -692,7 +693,7 @@ func SubmitRequest(c *gin.Context) {
 	if !ok {
 		return
 	}
-	email, _ := sessionData["email"].(string)
+	emailAddress, _ := sessionData["email"].(string)
 
 	// Create a new models.RequestData instance
 	dbRequestData := models.RequestData{
@@ -706,7 +707,7 @@ func SubmitRequest(c *gin.Context) {
 		Justification: requestData.Justification,
 		StartDate:     requestData.StartDate,
 		EndDate:       requestData.EndDate,
-		Email:         email,
+		Email:         emailAddress,
 	}
 
 	// Insert the request data into the database
@@ -730,6 +731,26 @@ func SubmitRequest(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit request (namespace error)"})
 			return
 		}
+	}
+
+	// Send submission email
+	if dbRequestData.Email != "" {
+		body := email.BuildRequestEmail(email.EmailRequestDetails{
+			Username:      dbRequestData.Username,
+			ClusterName:   dbRequestData.ClusterName,
+			Namespaces:    dbRequestData.Namespaces,
+			RoleName:      dbRequestData.RoleName,
+			Justification: dbRequestData.Justification,
+			StartDate:     dbRequestData.StartDate,
+			EndDate:       dbRequestData.EndDate,
+			Status:        "submitted",
+			Message:       "",
+		})
+		go func() {
+			if err := email.SendMail(dbRequestData.Email, fmt.Sprintf("Your JIT request #%d has been submitted", dbRequestData.ID), body); err != nil {
+				logger.Warn("Failed to send submission email", zap.String("email", dbRequestData.Email), zap.Error(err))
+			}
+		}()
 	}
 
 	// Respond with success message
