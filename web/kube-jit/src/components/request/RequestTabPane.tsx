@@ -8,6 +8,8 @@ import { Tag as ReactTag } from 'react-tag-input';
 import DatePicker from 'react-datepicker';
 import config from '../../config/config';
 import yaml from 'js-yaml';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 type Role = {
     name: string;
@@ -445,10 +447,10 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                         ) : (
                             <div className="info-box">
                                 <button className="info-box-close" onClick={() => setShowInfoBox(false)}>
-                                    &times; {/* Close icon */}
+                                    &times;
                                 </button>
                                 <h5 className="info-box-title">
-                                    <i className="bi bi-info-circle me-2"></i> {/* Bootstrap info icon */}
+                                    <i className="bi bi-info-circle me-2"></i>
                                     How to Submit a Request
                                 </h5>
                                 <ul className="info-box-list">
@@ -460,6 +462,30 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                                     <li><strong>Start Date:</strong> Select the date/time you want the access to begin.</li>
                                     <li><strong>End Date:</strong> Select the date/time you want the access to end.</li>
                                 </ul>
+                                <div style={{ marginTop: "1.5rem" }}>
+                                    <h6 className="info-box-sample-title">Sample YAML bulk upload</h6>
+                                    <SyntaxHighlighter language="yaml" style={oneLight} customStyle={{ borderRadius: 8, fontSize: "0.95em" }}>
+{`users:
+  - user1@example.com
+  - user2@example.com
+namespaces:
+  - ns1
+  - ns2
+justification: Access for project
+role: edit
+cluster: dev-cluster`}
+                                    </SyntaxHighlighter>
+                                    <h6 className="info-box-sample-title">Sample JSON bulk upload</h6>
+                                    <SyntaxHighlighter language="json" style={oneLight} customStyle={{ borderRadius: 8, fontSize: "0.95em" }}>
+{`{
+  "users": ["user1@example.com", "user2@example.com"],
+  "namespaces": ["ns1", "ns2"],
+  "justification": "Access for project",
+  "role": "edit",
+  "cluster": "dev-cluster"
+}`}
+                                    </SyntaxHighlighter>
+                                </div>
                             </div>
                         )}
                     </Col>

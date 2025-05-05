@@ -42,6 +42,11 @@
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     position: relative;
     overflow: hidden;
+    text-align: left; /* Ensure left alignment for all content */
+}
+
+.info-box pre {
+    margin-bottom: 0.5rem;
 }
 
 .info-box-close {
@@ -71,6 +76,13 @@
     font-weight: 600;
     margin-bottom: 1rem;
     color: #1b4fa4;
+}
+
+.info-box-sample-title {
+    color: #1b4fa4; /* Same as .info-box-title */
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
 }
 
 .info-box-list {
