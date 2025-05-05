@@ -8,6 +8,7 @@ import { Card, Nav, Tab, Badge } from "react-bootstrap";
 import ApproveTabPane from "./components/approve/ApproveTabPane";
 import HistoryTabPane from "./components/history/HistoryTabPane";
 import AdminTabPane from "./components/admin/AdminTabPane";
+import Footer from "./components/footer/Footer";
 import axios from "axios";
 import { SyncLoader } from "react-spinners";
 import { UserData } from "./types";
@@ -143,20 +144,22 @@ function App() {
 
     if (loading) {
         return (
-            <div className="card-loader-container">
-                <SyncLoader color="#0494ba" size={20} />
+            <div className="app-content">
+                <div className="card-loader-container">
+                    <SyncLoader color="#0494ba" size={20} />
+                </div>
             </div>
         );
     }
 
     if (data && data.userData) {
         return (
-            <div>
+            <div className="app-content">
                 <SyncLoader className="card-loader-container" color="#0494ba" size={20} loading={loadingInCard} />
                 <div className="d-flex justify-content-between align-items-center mb-">
                     <Profile user={data.userData} onSignOut={handleSignOut} />
                 </div>
-                <Card className="d-flex justify-content-center align-items-start">
+                <Card className="main-card d-flex justify-content-center align-items-start">
                     <Card.Body className="container">
                         <Tab.Container
                             id="left-tabs-example"
@@ -234,21 +237,29 @@ function App() {
                         </Tab.Container>
                     </Card.Body>
                 </Card>
+                <Footer />
             </div>
         );
     } else if (login) {
         return (
-            <Login
-                onLoginSuccess={(data) => {
-                    setData(data)
-                    setLogin(false)
-                }}
-                setLoading={setLoading}
-            />
+            <div className="app-content">
+                <Login
+                    onLoginSuccess={(data) => {
+                        setData(data)
+                        setLogin(false)
+                    }}
+                    setLoading={setLoading}
+                />
+                <Footer />
+            </div>
         );
     }
 
-    return null;
+    return (
+        <div className="app-content">
+            <Footer />
+        </div>
+    );
 }
 
 export default App;

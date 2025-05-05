@@ -12,7 +12,6 @@ test
 ## Sprint:
 Test:
 DO:
-- predicatre config cache name
 - cookie dec
 - footer
 - email notifications to requestors (depends if they have email configured in profile)
