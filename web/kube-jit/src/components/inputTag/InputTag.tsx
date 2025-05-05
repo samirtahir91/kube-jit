@@ -24,7 +24,7 @@ import "./InputTag.css";
           const validTags = tagStrings
             .filter(Boolean)
             .filter(text => regexPattern.test(text))
-            .map((text, i) => ({ id: `${i}`, text }));
+            .map((text, i) => ({ id: `${i}`, text, className: "" }));
 
           const invalidTags = tagStrings
             .filter(Boolean)
