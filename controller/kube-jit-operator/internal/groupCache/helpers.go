@@ -10,6 +10,7 @@ import (
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -122,6 +123,8 @@ func (r *JitGroupCacheReconciler) updateJitGroupCache(ctx context.Context, jitGr
 
 // RebuildJitGroupCache rebuilds the JitGroupCache from all namespaces with LabelAdopt and required annotations
 func (r *JitGroupCacheReconciler) RebuildJitGroupCache(ctx context.Context, l logr.Logger) error {
+	l.Info("Rebuilding JitGroupCache from scratch")
+
 	var nsList corev1.NamespaceList
 	if err := r.List(ctx, &nsList, client.MatchingLabels{LabelAdopt: "true"}); err != nil {
 		l.Error(err, "Failed to list namespaces for JitGroupCache rebuild")
@@ -142,35 +145,27 @@ func (r *JitGroupCacheReconciler) RebuildJitGroupCache(ctx context.Context, l lo
 		}
 	}
 
-	// Try to get the existing JitGroupCache object
-	jitGroupCache := &v1.JitGroupCache{}
-	err := r.Get(ctx, client.ObjectKey{Name: JitGroupCacheName}, jitGroupCache)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			// Not found, so create it
-			jitGroupCache = &v1.JitGroupCache{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: JitGroupCacheName,
-				},
-				Spec: v1.JitGroupCacheSpec{
-					Groups: groups,
-				},
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		// Always fetch the latest version before updating
+		jitGroupCache := &v1.JitGroupCache{}
+		err := r.Get(ctx, client.ObjectKey{Name: JitGroupCacheName}, jitGroupCache)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				// Not found, so create it
+				jitGroupCache = &v1.JitGroupCache{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: JitGroupCacheName,
+					},
+					Spec: v1.JitGroupCacheSpec{
+						Groups: groups,
+					},
+				}
+				return r.Create(ctx, jitGroupCache)
 			}
-			if createErr := r.Create(ctx, jitGroupCache); createErr != nil {
-				l.Error(createErr, "Failed to create JitGroupCache")
-				return createErr
-			}
-			return nil
+			return err
 		}
-		l.Error(err, "Failed to get JitGroupCache")
-		return err
-	}
-
-	// Found, so update the spec and call Update
-	jitGroupCache.Spec.Groups = groups
-	if updateErr := r.Update(ctx, jitGroupCache); updateErr != nil {
-		l.Error(updateErr, "Failed to update JitGroupCache")
-		return updateErr
-	}
-	return nil
+		// Found, update the spec and call Update
+		jitGroupCache.Spec.Groups = groups
+		return r.Update(ctx, jitGroupCache)
+	})
 }

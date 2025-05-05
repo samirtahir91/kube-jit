@@ -16,7 +16,8 @@ import (
 func (r *JitRequestReconciler) handleRejected(ctx context.Context, l logr.Logger, jitRequest *jitv1.JitRequest) (ctrl.Result, error) {
 	// Reject ticket
 	if err := r.callbackToApi(ctx, jitRequest); err != nil {
-		l.Error(err, "failed to reject ticket")
+		l.Error(err, "Failed to callback (rejected) to API")
+		r.raiseEvent(jitRequest, "Warning", "FailedCallback", fmt.Sprintf("Error: %s", err))
 	}
 
 	// Delete JitRequest
@@ -47,7 +48,8 @@ func (r *JitRequestReconciler) preApproveRequest(ctx context.Context, l logr.Log
 
 		// callback to api
 		if err := r.callbackToApi(ctx, jitRequest); err != nil {
-			return r.rejectUnauthorisedApiCall(ctx, l, jitRequest)
+			l.Error(err, "Failed to callback (pending) to API, but proceeding with granting access")
+			r.raiseEvent(jitRequest, "Warning", "FailedCallback", fmt.Sprintf("Error: %s", err))
 		}
 
 		// requeue for start time
@@ -119,7 +121,8 @@ func (r *JitRequestReconciler) handlePreApproved(ctx context.Context, l logr.Log
 
 	// callback to api
 	if err := r.callbackToApi(ctx, jitRequest); err != nil {
-		return r.rejectUnauthorisedApiCall(ctx, l, jitRequest)
+		l.Error(err, "Failed to callback (succeeded) to API, but proceeding with granting access")
+		r.raiseEvent(jitRequest, "Warning", "FailedCallback", fmt.Sprintf("Error: %s", err))
 	}
 
 	// Queue for deletion at end time

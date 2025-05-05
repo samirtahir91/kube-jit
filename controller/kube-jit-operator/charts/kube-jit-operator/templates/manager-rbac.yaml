@@ -1,52 +1,4 @@
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: {{ include "kube-jit-operator.fullname" . }}-manager-role
-  labels:
-  {{- include "kube-jit-operator.labels" . | nindent 4 }}
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - namespaces
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - jit.kubejit.io
-  resources:
-  - jitgroupcaches
-  - jitrequests
-  - kubejitconfigs
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - jit.kubejit.io
-  resources:
-  - jitgroupcaches/finalizers
-  - jitrequests/finalizers
-  - kubejitconfigs/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - jit.kubejit.io
-  resources:
-  - jitgroupcaches/status
-  - jitrequests/status
-  - kubejitconfigs/status
-  verbs:
-  - get
-  - patch
-  - update
----
-apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ include "kube-jit-operator.fullname" . }}-manager-rolebinding
@@ -55,7 +7,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: '{{ include "kube-jit-operator.fullname" . }}-manager-role'
+  name: cluster-admin
 subjects:
 - kind: ServiceAccount
   name: '{{ include "kube-jit-operator.fullname" . }}-controller-manager'
