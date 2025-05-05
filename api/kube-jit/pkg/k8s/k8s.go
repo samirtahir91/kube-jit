@@ -30,6 +30,8 @@ import (
 
 var logger *zap.Logger
 
+const jitgroupcacheName = "jitgroupcache"
+
 func InitLogger(l *zap.Logger) {
 	logger = l
 }
@@ -418,7 +420,7 @@ func fetchJitGroupsFromCluster(clusterName string) (*unstructured.Unstructured, 
 		Group:    "jit.kubejit.io",
 		Version:  "v1",
 		Resource: "jitgroupcaches",
-	}).Get(context.TODO(), "jitgroupcache", metav1.GetOptions{}) // Static name for the JitGroupCache object is 'jitgroupcache
+	}).Get(context.TODO(), jitgroupcacheName, metav1.GetOptions{}) // Static name for the JitGroupCache object is 'jitgroupcache
 	if err != nil {
 		logger.Error("Error fetching JitGroups from cluster", zap.String("cluster", clusterName), zap.Error(err))
 		return nil, fmt.Errorf("failed to fetch JitGroups for cluster %s", clusterName)

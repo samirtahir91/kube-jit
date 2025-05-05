@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -97,7 +98,11 @@ func (r *JitGroupCacheReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return r.RebuildJitGroupCache(ctx, l)
 	}))
 
-	// Watch for JitGroupCache delete events and rebuild if deleted
+	// Predicate to only allow events for the JitGroupCache with the correct name
+	onlyJitGroupCacheName := predicate.NewPredicateFuncs(func(obj client.Object) bool {
+		return obj.GetName() == JitGroupCacheName
+	})
+
 	if err := ctrl.NewControllerManagedBy(mgr).
 		For(
 			&corev1.Namespace{},
@@ -113,6 +118,8 @@ func (r *JitGroupCacheReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					q.Add(ctrl.Request{})
 				},
 			},
+			// Only watch for events on the solo named JitGroupCache 'jitgroupcache'
+			builder.WithPredicates(onlyJitGroupCacheName),
 		).
 		Named("JitGroupCache").
 		Complete(r); err != nil {
