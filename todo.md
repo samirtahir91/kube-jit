@@ -1,7 +1,4 @@
 todo
-- must get on required envs
-- https do we need option?
-- fix │ [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you │
 
 
 test
@@ -13,5 +10,8 @@ test
 Test:
 DO:
 - email notifications to requestors (depends if they have email configured in profile)
-- - upload request option
+- upload request option
+- must get on required envs
+- https do we need option?
+- fix │ [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you │
 

@@ -1,6 +1,10 @@
 import "./Footer.css";
 
-function Footer() {
+type FooterProps = {
+    buildSha?: string;
+};
+
+function Footer({ buildSha }: FooterProps) {
     return (
         <footer className="footer">
             <hr className="footer-divider" />
@@ -10,7 +14,7 @@ function Footer() {
                 </span>
                 <span className="footer-separator">|</span>
                 <a
-                    href="https://github.com/YOUR_GITHUB_ORG/kube-jit"
+                    href="https://github.com/samirtahir91/kube-jit"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="footer-link"
@@ -19,6 +23,20 @@ function Footer() {
                 </a>
                 <span className="footer-separator">|</span>
                 <span>Apache 2.0 Licensed</span>
+                {buildSha && (
+                    <>
+                        <span className="footer-separator">|</span>
+                        <a
+                            href={`https://github.com/samirtahir91/kube-jit/commit/${buildSha}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="footer-link"
+                            style={{ fontSize: "0.95em", color: "#888" }}
+                        >
+                            Build: <code>{buildSha.slice(0, 7)}</code>
+                        </a>
+                    </>
+                )}
             </div>
         </footer>
     );

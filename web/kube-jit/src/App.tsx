@@ -48,6 +48,7 @@ function App() {
     const [originTab, setOriginTab] = useState<string>("");
     const [isApprover, setIsApprover] = useState<boolean>(false);
     const [isAdmin, setIsAdmin] = useState<boolean>(false);
+    const [buildSha, setBuildSha] = useState<string | undefined>();
     const navigate = useNavigate();
 
     // Handle sign out
@@ -142,12 +143,20 @@ function App() {
         }
     }, [data]);
 
+    useEffect(() => {
+        // Fetch build SHA once on mount
+        axios.get(`${config.apiBaseUrl}/kube-jit-api/build-sha`)
+            .then(res => setBuildSha(res.data.sha))
+            .catch(() => setBuildSha(undefined));
+    }, []);
+
     if (loading) {
         return (
             <div className="app-content">
                 <div className="card-loader-container">
                     <SyncLoader color="#0494ba" size={20} />
                 </div>
+                <Footer buildSha={buildSha} />
             </div>
         );
     }
@@ -237,7 +246,7 @@ function App() {
                         </Tab.Container>
                     </Card.Body>
                 </Card>
-                <Footer />
+                <Footer buildSha={buildSha} />
             </div>
         );
     } else if (login) {
@@ -250,14 +259,14 @@ function App() {
                     }}
                     setLoading={setLoading}
                 />
-                <Footer />
+                <Footer buildSha={buildSha} />
             </div>
         );
     }
 
     return (
         <div className="app-content">
-            <Footer />
+            <Footer buildSha={buildSha} />
         </div>
     );
 }
