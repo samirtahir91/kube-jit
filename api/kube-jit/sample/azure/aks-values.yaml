@@ -10,8 +10,6 @@ config:
       id: jit-approvers-google@samirtahir.dev
     - name: "jit approvers azure"
       id: 3252cdf5-2db4-413c-b34f-459ea439397e
-    - name: "Team C"
-      id: 123456
 
   adminTeams:
     - name: "kube-jit-admin"

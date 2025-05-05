@@ -17,8 +17,8 @@ func SendMail(to, subject, body string) error {
 	d := gomail.NewDialer(
 		utils.MustGetEnv("SMTP_HOST"),
 		mustAtoi(utils.MustGetEnv("SMTP_PORT")),
-		utils.MustGetEnv("SMTP_USER"),
-		utils.MustGetEnv("SMTP_PASS"),
+		utils.GetEnv("SMTP_USER", ""),
+		utils.GetEnv("SMTP_PASS", ""),
 	)
 	return d.DialAndSend(m)
 }

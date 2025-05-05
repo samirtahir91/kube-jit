@@ -216,6 +216,20 @@ function App() {
                                         Admin
                                     </Badge>
                                 )}
+                                {isPlatformApprover && (
+                                    <Badge
+                                        bg="success"
+                                        className="ms-auto"
+                                        style={{
+                                            fontSize: "0.9rem",
+                                            padding: "0.3em 0.6em",
+                                            borderRadius: "0.5em",
+                                            height: "fit-content",
+                                        }}
+                                    >
+                                        Platform Approver
+                                    </Badge>
+                                )}
                             </Nav>
                             <Tab.Content>
                                 <RequestTabPane
@@ -234,6 +248,7 @@ function App() {
                                 )}
                                 <HistoryTabPane
                                     isAdmin={isAdmin}
+                                    isPlatformApprover={isPlatformApprover}
                                     activeTab={activeTab}
                                     originTab={originTab}
                                     userId={data.userData.id}

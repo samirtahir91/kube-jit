@@ -10,13 +10,14 @@ import config from '../../config/config';
 
 type HistoryTabPaneProps = {
     isAdmin: boolean;
+    isPlatformApprover: boolean;
     activeTab: string;
     originTab: string;
     userId: string;
     setLoadingInCard: (loading: boolean) => void;
 };
 
-const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCard }: HistoryTabPaneProps) => {
+const HistoryTabPane = ({ isAdmin, isPlatformApprover, activeTab, originTab, userId, setLoadingInCard }: HistoryTabPaneProps) => {
     const [requests, setRequests] = useState<Request[]>([]);
     const [errorMessage, setErrorMessage] = useState('');
     const [limit, setLimit] = useState(1);
@@ -33,8 +34,8 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
             const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/history`, {
                 params:
                     {
-                        userID: isAdmin ? searchUserId : userId, // Use searchUserId if admin
-                        username: isAdmin ? searchUsername : undefined, // Use searchUsername if admin
+                        userID: (isAdmin || isPlatformApprover) ? searchUserId : userId, // Use searchUserId if admin/platform approver
+                        username: (isAdmin || isPlatformApprover) ? searchUsername : undefined, // Use searchUsername if admin/platform approver
                         limit: limit,
                         startDate: startDate ? startDate.toISOString() : undefined,
                         endDate: endDate ? endDate.toISOString() : undefined,
@@ -49,7 +50,7 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
         } finally {
             setLoadingInCard(false); // Stop loading
         }
-    }, [userId, isAdmin, searchUserId, searchUsername, setLoadingInCard]);
+    }, [userId, isAdmin, isPlatformApprover, searchUserId, searchUsername, setLoadingInCard]);
 
     useEffect(() => {
         if (activeTab === 'history' && originTab === 'request') {
@@ -78,7 +79,7 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
                 </div>
             )}
             <Row className="mt-4 align-items-end">
-                {isAdmin && (
+                {(isAdmin || isPlatformApprover) && (
                     <>
                         <Col md={3} className="mb-3">
                             <Form.Group controlId="searchUserId" className="text-start">
@@ -136,18 +137,18 @@ const HistoryTabPane = ({ isAdmin, activeTab, originTab, userId, setLoadingInCar
                 </Col>
                 <Col md={2} className="mb-3">
                     <Form.Group controlId="limit" className="text-start">
-                        <Form.Label>Limit (max {isAdmin ? 100 : 20})</Form.Label>
+                        <Form.Label>Limit (max {(isAdmin || isPlatformApprover) ? 100 : 20})</Form.Label>
                         <Form.Control
                             type="number"
                             value={limit}
-                            max={isAdmin ? 100 : 20}
+                            max={(isAdmin || isPlatformApprover) ? 100 : 20}
                             onChange={(e) => {
                                 const value = Number(e.target.value);
-                                if (value <= (isAdmin ? 100 : 20)) {
+                                if (value <= ((isAdmin || isPlatformApprover) ? 100 : 20)) {
                                     setLimit(value);
                                 }
                             }}
-                            placeholder={`Enter Limit (max ${isAdmin ? 100 : 20})`}
+                            placeholder={`Enter Limit (max ${(isAdmin || isPlatformApprover) ? 100 : 20})`}
                         />
                     </Form.Group>
                 </Col>
