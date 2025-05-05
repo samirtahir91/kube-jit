@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/url"
-	"os"
 	"strconv"
 	"time"
 
@@ -14,14 +13,8 @@ import (
 )
 
 var (
-	hmacKey = os.Getenv("HMAC_SECRET")
-	logger  *zap.Logger
+	hmacKey = MustGetEnv("HMAC_SECRET")
 )
-
-// InitLogger sets the zap logger for this package
-func InitLogger(l *zap.Logger) {
-	logger = l
-}
 
 // GenerateSignedURL creates a signed url with hmac key based on expiry
 func GenerateSignedURL(baseURL string, expiryTime time.Time) (string, error) {

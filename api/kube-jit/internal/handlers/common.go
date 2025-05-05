@@ -9,7 +9,6 @@ import (
 	"kube-jit/pkg/k8s"
 	"kube-jit/pkg/utils"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -20,19 +19,14 @@ import (
 )
 
 var (
-	oauthProvider = os.Getenv("OAUTH_PROVIDER")
-	clientID      = os.Getenv("OAUTH_CLIENT_ID")
-	clientSecret  = os.Getenv("OAUTH_CLIENT_SECRET")
-	redirectUri   = os.Getenv("OAUTH_REDIRECT_URI")
+	oauthProvider = utils.MustGetEnv("OAUTH_PROVIDER")
+	clientID      = utils.MustGetEnv("OAUTH_CLIENT_ID")
+	clientSecret  = utils.MustGetEnv("OAUTH_CLIENT_SECRET")
+	redirectUri   = utils.MustGetEnv("OAUTH_REDIRECT_URI")
 	httpClient    = &http.Client{
 		Timeout: 60 * time.Second,
 	}
-	logger *zap.Logger
 )
-
-func InitLogger(l *zap.Logger) {
-	logger = l
-}
 
 // Logout clears all session cookies with the sessionPrefix
 func Logout(c *gin.Context) {
@@ -151,10 +145,12 @@ func ApproveOrRejectRequests(c *gin.Context) {
 		return // The response has already been sent by CheckLoggedIn
 	}
 
+	// Check if the user is an admin or platform approver
 	isAdmin, _ := sessionData["isAdmin"].(bool)
+	isPlatformApprover, _ := sessionData["isPlatformApprover"].(bool)
 
 	var approverGroups []string
-	if !isAdmin {
+	if !isAdmin && !isPlatformApprover {
 		// Only non-admins need approverGroups
 		rawApproverGroups, ok := sessionData["approverGroups"]
 		if !ok {
@@ -176,8 +172,8 @@ func ApproveOrRejectRequests(c *gin.Context) {
 		}
 	}
 
-	if isAdmin {
-		// Admin: expects Namespaces []string
+	if isAdmin || isPlatformApprover {
+		// Admin/Platform Approver: expects Namespaces []string
 		type AdminApproveRequest struct {
 			Requests     []models.RequestData `json:"requests"`
 			ApproverID   string               `json:"approverID"`
@@ -192,7 +188,7 @@ func ApproveOrRejectRequests(c *gin.Context) {
 		for _, r := range req.Requests {
 			processApproval(r.ID, r, req.ApproverID, req.ApproverName, req.Status, nil, c)
 		}
-		c.JSON(http.StatusOK, gin.H{"message": "Admin requests processed successfully"})
+		c.JSON(http.StatusOK, gin.H{"message": "Admin/Platform requests processed successfully"})
 		return
 	} else {
 		// Non-admin: expects Namespace string
@@ -377,6 +373,7 @@ func GetRecords(c *gin.Context) {
 		return
 	}
 	isAdmin, _ := sessionData["isAdmin"].(bool)
+	isPlatformApprover, _ := sessionData["isPlatformApprover"].(bool)
 	userID := c.Query("userID")
 	username := c.Query("username")
 	limit := c.Query("limit")
@@ -390,7 +387,7 @@ func GetRecords(c *gin.Context) {
 
 	var requests []models.RequestData
 	query := db.DB.Order("created_at desc").Limit(limitInt)
-	if isAdmin {
+	if isAdmin || isPlatformApprover {
 		if userID != "" {
 			query = query.Where("user_id = ?", userID)
 		}
@@ -476,7 +473,7 @@ func GetClustersAndRoles(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// GetApprovingGroups returns the list of approving groups
+// GetApprovingGroups returns the list of platform approving groups
 func GetApprovingGroups(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData, ok := checkLoggedIn(c)
@@ -491,8 +488,8 @@ func GetApprovingGroups(c *gin.Context) {
 		return
 	}
 
-	// Return the approving groups (mocked here as k8s.ApproverTeams)
-	c.JSON(http.StatusOK, k8s.ApproverTeams)
+	// Return the platform approving groups
+	c.JSON(http.StatusOK, k8s.PlatformApproverTeams)
 }
 
 // GetPendingApprovals returns the pending requests for the user based on their approver groups
@@ -506,10 +503,11 @@ func GetPendingApprovals(c *gin.Context) {
 		return // The response has already been sent by CheckLoggedIn
 	}
 
-	// Check if the user is an admin
+	// Check if the user is an admin or platform approver
 	isAdmin, isAdminOk := sessionData["isAdmin"].(bool)
-	if isAdminOk && isAdmin {
-		// If the user is an admin, return all pending requests
+	isPlatformApprover, isPlatformApproverOk := sessionData["isPlatformApprover"].(bool)
+	if (isAdminOk && isAdmin) || (isPlatformApproverOk && isPlatformApprover) {
+		// If the user is an admin or platform approver, return all pending requests
 		var pendingRequests []models.RequestData
 
 		// Fetch all pending requests
@@ -790,14 +788,16 @@ func CommonPermissions(c *gin.Context) {
 	// Check if cached in session
 	isApprover, isApproverOk := sessionData["isApprover"].(bool)
 	isAdmin, isAdminOk := sessionData["isAdmin"].(bool)
+	isPlatformApprover, isPlatformApproverOk := sessionData["isPlatformApprover"].(bool)
 	approverGroups, approverGroupsOk := sessionData["approverGroups"]
 	adminGroups, adminGroupsOk := sessionData["adminGroups"]
-	if isApproverOk && isAdminOk && approverGroupsOk && adminGroupsOk {
+	if isApproverOk && isAdminOk && isPlatformApprover && isPlatformApproverOk && approverGroupsOk && adminGroupsOk {
 		c.JSON(http.StatusOK, gin.H{
-			"isApprover":     isApprover,
-			"approverGroups": approverGroups,
-			"isAdmin":        isAdmin,
-			"adminGroups":    adminGroups,
+			"isApprover":         isApprover,
+			"approverGroups":     approverGroups,
+			"isAdmin":            isAdmin,
+			"isPlatformApprover": isPlatformApprover,
+			"adminGroups":        adminGroups,
 		})
 		return
 	}
@@ -834,13 +834,14 @@ func CommonPermissions(c *gin.Context) {
 	}
 
 	// Match user groups to approver/admin teams
-	isAdmin, matchedApproverGroups, matchedAdminGroups := MatchUserGroups(
+	isAdmin, isPlatformApprover, matchedAdminGroups := MatchUserGroups(
 		userGroups,
-		k8s.ApproverTeams,
+		k8s.PlatformApproverTeams,
 		k8s.AdminTeams,
 	)
 
 	// Check and append if user is in any JitGroup for any cluster
+	var matchedApproverGroups []string
 	for _, clusterName := range k8s.ClusterNames {
 		jitGroups, err := k8s.GetJitGroups(clusterName)
 		if err != nil {
@@ -871,15 +872,17 @@ func CommonPermissions(c *gin.Context) {
 	sessionData["isApprover"] = isApprover
 	sessionData["approverGroups"] = matchedApproverGroups
 	sessionData["isAdmin"] = isAdmin
+	sessionData["isPlatformApprover"] = isPlatformApprover
 	sessionData["adminGroups"] = matchedAdminGroups
 	session.Set("data", sessionData)
 	middleware.SplitSessionData(c)
 
 	c.JSON(http.StatusOK, gin.H{
-		"isApprover":     isApprover,
-		"approverGroups": matchedApproverGroups,
-		"isAdmin":        isAdmin,
-		"adminGroups":    matchedAdminGroups,
+		"isApprover":         isApprover,
+		"approverGroups":     matchedApproverGroups,
+		"isAdmin":            isAdmin,
+		"isPlatformApprover": isPlatformApprover,
+		"adminGroups":        matchedAdminGroups,
 	})
 }
 
@@ -888,13 +891,14 @@ func CommonPermissions(c *gin.Context) {
 // along with the matched approver and admin groups
 func MatchUserGroups(
 	userGroups []models.Team,
-	approverTeams []models.Team,
+	platformTeams []models.Team,
 	adminTeams []models.Team,
-) (isAdmin bool, matchedApproverGroups []string, matchedAdminGroups []string) {
+) (isAdmin bool, isPlatformApprover bool, matchedAdminGroups []string) {
+	var matchedPlatformApproverGroups []string
 	for _, group := range userGroups {
-		for _, approverGroup := range approverTeams {
+		for _, approverGroup := range platformTeams {
 			if group.ID == approverGroup.ID && group.Name == approverGroup.Name {
-				matchedApproverGroups = append(matchedApproverGroups, group.ID)
+				matchedPlatformApproverGroups = append(matchedPlatformApproverGroups, group.ID)
 			}
 		}
 		for _, adminGroup := range adminTeams {
@@ -904,5 +908,6 @@ func MatchUserGroups(
 		}
 	}
 	isAdmin = len(matchedAdminGroups) > 0
+	isPlatformApprover = len(matchedPlatformApproverGroups) > 0
 	return
 }

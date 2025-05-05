@@ -1,7 +1,7 @@
 package email
 
 import (
-	"os"
+	"kube-jit/pkg/utils"
 	"strconv"
 
 	"gopkg.in/gomail.v2"
@@ -9,16 +9,16 @@ import (
 
 func SendMail(to, subject, body string) error {
 	m := gomail.NewMessage()
-	m.SetHeader("From", os.Getenv("SMTP_FROM"))
+	m.SetHeader("From", utils.MustGetEnv("SMTP_FROM"))
 	m.SetHeader("To", to)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", body)
 
 	d := gomail.NewDialer(
-		os.Getenv("SMTP_HOST"),
-		mustAtoi(os.Getenv("SMTP_PORT")),
-		os.Getenv("SMTP_USER"),
-		os.Getenv("SMTP_PASS"),
+		utils.MustGetEnv("SMTP_HOST"),
+		mustAtoi(utils.MustGetEnv("SMTP_PORT")),
+		utils.MustGetEnv("SMTP_USER"),
+		utils.MustGetEnv("SMTP_PASS"),
 	)
 	return d.DialAndSend(m)
 }

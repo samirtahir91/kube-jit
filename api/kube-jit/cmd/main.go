@@ -77,7 +77,7 @@ func main() {
 	// Setup routes
 	routes.SetupRoutes(r)
 
-	port := os.Getenv("LISTEN_PORT")
+	port := utils.MustGetEnv("LISTEN_PORT")
 	logger.Info("Starting server", zap.String("port", port))
 	if err := r.Run(":" + port); err != nil {
 		logger.Fatal("Failed to start server", zap.Error(err))

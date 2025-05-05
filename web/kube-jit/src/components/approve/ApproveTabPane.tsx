@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
-import { Tab, Button } from 'react-bootstrap';
+import { Tab } from 'react-bootstrap';
 import RequestTable from '../requestTable/RequestTable';
 import refreshLogo from '../../assets/refresh.svg';
 import './ApproveTabPane.css';

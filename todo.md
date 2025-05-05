@@ -9,5 +9,5 @@ test
 ## Sprint:
 Test:
 DO:
-- must get on required envs
-- https do we need option?
+- https for callback?
+- expose callback only

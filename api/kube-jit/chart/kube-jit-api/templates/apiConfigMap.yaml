@@ -37,9 +37,9 @@ data:
         {{- end }}
       {{- end }}
       {{- toYaml .Values.config.allowedRoles | nindent 4 }}
-    allowedApproverTeams:
+    platformApproverTeams:
       {{- $allowedTeamKeys := include "allowedTeamKeys" . }}
-      {{- range .Values.config.allowedApproverTeams }}
+      {{- range .Values.config.platformApproverTeams }}
         {{- $invalidKeys := list }}
         {{- range $key, $value := . }}
           {{- if not (include "has" (list $allowedTeamKeys $key)) }}
@@ -50,7 +50,7 @@ data:
           {{- fail (printf "Invalid keys found: %v" $invalidKeys) }}
         {{- end }}
       {{- end }}
-      {{- toYaml .Values.config.allowedApproverTeams | nindent 4 }}
+      {{- toYaml .Values.config.platformApproverTeams | nindent 4 }}
     adminTeams:
       {{- $allowedTeamKeys := include "allowedTeamKeys" . }}
       {{- range .Values.config.adminTeams }}

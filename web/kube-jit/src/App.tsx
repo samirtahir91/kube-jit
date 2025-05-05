@@ -48,6 +48,7 @@ function App() {
     const [originTab, setOriginTab] = useState<string>("");
     const [isApprover, setIsApprover] = useState<boolean>(false);
     const [isAdmin, setIsAdmin] = useState<boolean>(false);
+    const [isPlatformApprover, setIsPlatformApprover] = useState<boolean>(false);
     const [buildSha, setBuildSha] = useState<string | undefined>();
     const navigate = useNavigate();
 
@@ -82,6 +83,7 @@ function App() {
             .then(response => {
                 setIsApprover(response.data.isApprover);
                 setIsAdmin(response.data.isAdmin);
+                setIsPlatformApprover(response.data.isPlatformApprover);
             })
             .catch(error => {
                 console.error("Error in permissions request:", error);
@@ -181,7 +183,7 @@ function App() {
                                         Request
                                     </Nav.Link>
                                 </Nav.Item>
-                                {(isApprover || isAdmin) && (
+                                {(isApprover || isAdmin || isPlatformApprover) && (
                                     <Nav.Item>
                                         <Nav.Link href="#approveJit" eventKey="approve">
                                             Approve
@@ -223,7 +225,7 @@ function App() {
                                     setOriginTab={setOriginTab}
                                     setLoadingInCard={setLoadingInCard}
                                 />
-                                {(isApprover || isAdmin) && (
+                                {(isApprover || isAdmin || isPlatformApprover) && (
                                     <ApproveTabPane
                                         username={data.userData.name}
                                         userId={data.userData.id}

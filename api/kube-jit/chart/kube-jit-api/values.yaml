@@ -47,8 +47,10 @@ config:
   #- name: edit
   #- name: admin
 
-  # List of allowed approver teams for jit requests (name and id)
-  allowedApproverTeams: []
+  # List of platform approver teams for jit requests (name and id)
+  # platform teams can approve any request 
+  # opposed to standard access where you can only approve requests for namespaces your team/group owns
+  platformApproverTeams: []
   #- name: "some approver team"
   #  id: 123
   #- name: "some approver team 2"

@@ -3,8 +3,8 @@ package middleware
 import (
 	"encoding/json"
 	"fmt"
+	"kube-jit/pkg/utils"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gin-contrib/sessions"
@@ -101,7 +101,7 @@ func SplitSessionData(c *gin.Context) {
 	for i, chunk := range chunks {
 		cookieName := fmt.Sprintf("%s%d", SessionPrefix, i)
 
-		sameSiteEnv := os.Getenv("COOKIE_SAMESITE")
+		sameSiteEnv := utils.GetEnv("COOKIE_SAMESITE", "Lax")
 		var sameSite http.SameSite
 		switch sameSiteEnv {
 		case "Strict":

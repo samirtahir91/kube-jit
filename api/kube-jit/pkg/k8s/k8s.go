@@ -28,19 +28,13 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var logger *zap.Logger
-
-const jitgroupcacheName = "jitgroupcache"
-
-func InitLogger(l *zap.Logger) {
-	logger = l
-}
+const jitgroupcacheName = "jitgroupcache" // Static name for the JitGroupCache object
 
 type Config struct {
-	Clusters      []ClusterConfig `yaml:"clusters"`
-	AllowedRoles  []models.Roles  `yaml:"allowedRoles"`
-	ApproverTeams []models.Team   `yaml:"allowedApproverTeams"`
-	AdminTeams    []models.Team   `yaml:"adminTeams"`
+	Clusters              []ClusterConfig `yaml:"clusters"`
+	AllowedRoles          []models.Roles  `yaml:"allowedRoles"`
+	PlatformApproverTeams []models.Team   `yaml:"platformApproverTeams"`
+	AdminTeams            []models.Team   `yaml:"adminTeams"`
 }
 
 type ClusterConfig struct {
@@ -71,15 +65,15 @@ type JitGroup struct {
 }
 
 var (
-	ApiConfig      Config
-	AllowedRoles   []models.Roles
-	ApproverTeams  []models.Team
-	AdminTeams     []models.Team
-	ClusterNames   []string
-	ClusterConfigs = make(map[string]ClusterConfig)
-	apiNamespace   = os.Getenv("API_NAMESPACE")
-	localClientset *kubernetes.Clientset
-	gvr            = schema.GroupVersionResource{
+	ApiConfig             Config
+	AllowedRoles          []models.Roles
+	PlatformApproverTeams []models.Team
+	AdminTeams            []models.Team
+	ClusterNames          []string
+	ClusterConfigs        = make(map[string]ClusterConfig)
+	apiNamespace          = utils.MustGetEnv("API_NAMESPACE")
+	localClientset        *kubernetes.Clientset
+	gvr                   = schema.GroupVersionResource{
 		Group:    "jit.kubejit.io",
 		Version:  "v1",
 		Resource: "jitrequests",
@@ -113,7 +107,7 @@ func InitK8sConfig() {
 	}
 
 	// Load ConfigMap of clusters from local file system
-	configPath := os.Getenv("CONFIG_MOUNT_PATH")
+	configPath := utils.MustGetEnv("CONFIG_MOUNT_PATH")
 	configData, err := os.ReadFile(configPath + "/apiConfig.yaml")
 	if err != nil {
 		logger.Fatal("Error reading config file", zap.Error(err))
@@ -139,15 +133,15 @@ func InitK8sConfig() {
 	}
 
 	AllowedRoles = ApiConfig.AllowedRoles
-	ApproverTeams = ApiConfig.ApproverTeams
+	PlatformApproverTeams = ApiConfig.PlatformApproverTeams
 	AdminTeams = ApiConfig.AdminTeams
 
 	logger.Info("Allowed roles loaded", zap.Int("count", len(AllowedRoles)))
 	for _, role := range AllowedRoles {
 		logger.Info("Allowed role", zap.String("name", role.Name))
 	}
-	logger.Info("Approver teams loaded", zap.Int("count", len(ApproverTeams)))
-	for _, team := range ApproverTeams {
+	logger.Info("Approver teams loaded", zap.Int("count", len(PlatformApproverTeams)))
+	for _, team := range PlatformApproverTeams {
 		logger.Info("Approver team", zap.String("name", team.Name), zap.String("id", team.ID))
 	}
 	logger.Info("Admin teams loaded", zap.Int("count", len(AdminTeams)))
@@ -334,7 +328,7 @@ func CreateK8sObject(req models.RequestData, approverName string) error {
 	endTime := metav1.NewTime(req.EndDate)
 
 	// Generate signed URL for callback
-	baseUrl := os.Getenv("CALLBACK_HOST_OVERRIDE")
+	baseUrl := utils.MustGetEnv("CALLBACK_HOST_OVERRIDE")
 	callbackBaseURL := baseUrl + "/kube-jit-api/k8s-callback"
 	signedURL, err := utils.GenerateSignedURL(callbackBaseURL, req.EndDate)
 	if err != nil {

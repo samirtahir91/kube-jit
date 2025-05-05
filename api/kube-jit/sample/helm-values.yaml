@@ -2,7 +2,7 @@ config:
   allowedRoles:
     - name: edit
     - name: admin
-  allowedApproverTeams:
+  platformApproverTeams:
     - name: "jit approvers"
       id: 12769788
     - name: "Team A"

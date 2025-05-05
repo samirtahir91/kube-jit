@@ -3,7 +3,7 @@ package middleware
 import (
 	"encoding/gob"
 	"encoding/json"
-	"os"
+	"kube-jit/pkg/utils"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -15,15 +15,9 @@ import (
 )
 
 var (
-	cookieSecret = os.Getenv("HMAC_SECRET")
+	cookieSecret = utils.MustGetEnv("HMAC_SECRET")
 	secureCookie = securecookie.New([]byte(cookieSecret), nil)
-	logger       *zap.Logger
 )
-
-// InitLogger sets the zap logger for this package
-func InitLogger(l *zap.Logger) {
-	logger = l
-}
 
 func init() {
 	// Register the types for gob encoding
@@ -37,7 +31,7 @@ func init() {
 func SetupMiddleware(r *gin.Engine) {
 	// Get allowed origins from env var ALLOW_ORIGINS
 	var allowOrigins []string
-	allowOriginsStr := os.Getenv("ALLOW_ORIGINS")
+	allowOriginsStr := utils.MustGetEnv("ALLOW_ORIGINS")
 	if err := json.Unmarshal([]byte(allowOriginsStr), &allowOrigins); err != nil {
 		logger.Error("Failed to parse ALLOW_ORIGINS env var", zap.Error(err))
 		panic(err)

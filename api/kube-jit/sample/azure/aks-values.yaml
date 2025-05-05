@@ -3,7 +3,7 @@ config:
     - name: edit
     - name: admin
   
-  allowedApproverTeams:
+  platformApproverTeams:
     - name: "jit approvers"
       id: 12769788
     - name: "jit approvers google"
