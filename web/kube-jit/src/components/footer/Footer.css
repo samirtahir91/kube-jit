@@ -1,6 +1,6 @@
 .footer {
   width: 100%;
-  background: linear-gradient(90deg, #eaf4fc 0%, #dbeafe 100%);
+  background: #ffffff;
   color: #222;
   font-size: 1em;
   padding: 1rem 0 0.5rem 0;
@@ -9,6 +9,7 @@
   text-align: center;
   position: relative;
   z-index: 2;
+  border-radius: 0.75rem; /* Add rounded edges like your card */
 }
 
 .footer-divider {

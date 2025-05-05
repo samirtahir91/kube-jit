@@ -12,8 +12,6 @@ test
 ## Sprint:
 Test:
 DO:
-- cookie dec
-- footer
 - email notifications to requestors (depends if they have email configured in profile)
 - - upload request option
 
