@@ -7,7 +7,7 @@ import InputTag from "../inputTag/InputTag";
 import { Tag as ReactTag } from 'react-tag-input';
 import DatePicker from 'react-datepicker';
 import config from '../../config/config';
-
+import yaml from 'js-yaml';
 
 type Role = {
     name: string;
@@ -25,6 +25,7 @@ type RequestTabPaneProps = {
     userId: string;
     username: string;
 };
+
 
 const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setOriginTab }: RequestTabPaneProps) => {
     const [roles, setRoles] = useState<Role[]>([]);
@@ -150,15 +151,10 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                 let data: any;
                 if (file.name.endsWith(".json")) {
                     data = JSON.parse(event.target?.result as string);
-                } else if (file.name.endsWith(".csv")) {
-                    const [headerLine, ...lines] = (event.target?.result as string).split("\n");
-                    const headers = headerLine.split(",").map(h => h.trim());
-                    data = lines.map(line => {
-                        const values = line.split(",").map(v => v.trim());
-                        return Object.fromEntries(headers.map((h, i) => [h, values[i]]));
-                    })[0];
+                } else if (file.name.endsWith(".yaml") || file.name.endsWith(".yml")) {
+                    data = yaml.load(event.target?.result as string);
                 } else {
-                    throw new Error("Unsupported file type");
+                    throw new Error("Unsupported file type. Please upload a .yaml, .yml, or .json file.");
                 }
 
                 // Users and Namespaces (already validated by InputTag)
@@ -210,6 +206,8 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
             }
         };
         reader.readAsText(file);
+        // Reset the file input so the same file can be uploaded again
+        event.target.value = "";
     };
 
     // Clear form fields
@@ -246,7 +244,7 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                     <p className="form-subtitle">
                         Use this form to request levels of access to specific namespaces.<br />
                         <br></br>Please ensure all required fields are filled out accurately to avoid delays in processing your request.<br></br>
-                        <br></br><strong>Bulk Upload:</strong> You can quickly fill out the form by uploading a JSON file via <b>Upload CSV/JSON</b>. The file should contain fields for user emails, namespaces, justification, cluster, and role. Start Date and End Date must still be selected manually.<br />
+                        <br></br><strong>Bulk Upload:</strong> You can quickly fill out the form by uploading a YAML or JSON file via <b>Upload YAML/JSON</b>. The file should contain fields for user emails, namespaces, justification, cluster, and role. Start Date and End Date must still be selected manually.<br />
                     </p>
                 </div>
 
@@ -265,7 +263,7 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                                 </Button>
                                 <input
                                     type="file"
-                                    accept=".csv,application/json"
+                                    accept=".yaml,.yml,application/json"
                                     style={{ display: "none" }}
                                     id="bulk-upload-input"
                                     onChange={handleBulkUpload}
@@ -276,7 +274,7 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                                     onClick={() => document.getElementById("bulk-upload-input")?.click()}
                                     type="button"
                                 >
-                                    Upload CSV/JSON
+                                    Upload YAML/JSON
                                 </Button>
                             </div>
                             <Form.Group className="mb-3" controlId="users">
