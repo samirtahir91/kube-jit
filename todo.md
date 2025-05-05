@@ -9,6 +9,5 @@ test
 ## Sprint:
 Test:
 DO:
-- email notifications to requestors (depends if they have email configured in profile)
 - must get on required envs
 - https do we need option?
