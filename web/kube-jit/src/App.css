@@ -13,8 +13,13 @@
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
   min-height: 0;
+}
+
+.app-content.login-page {
+  justify-content: center;   /* Center vertically */
+  align-items: center;       /* Center horizontally */
+  min-height: 80vh;          /* Ensures footer is pushed down */
 }
 
 .main-card {
@@ -23,6 +28,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  margin-bottom: 1.5rem; /* Add this line for spacing above the footer */
 }
 
 .logo {

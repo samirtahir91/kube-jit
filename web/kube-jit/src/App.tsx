@@ -242,7 +242,7 @@ function App() {
         );
     } else if (login) {
         return (
-            <div className="app-content">
+            <div className="app-content login-page">
                 <Login
                     onLoginSuccess={(data) => {
                         setData(data)

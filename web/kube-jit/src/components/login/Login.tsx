@@ -202,7 +202,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, setLoading }) => {
                   <img
                     alt="Azure Logo"
                     src={microsoftLoginLogo}
-                    width="20"
+                          width="20"
                     height="20"
                     className="me-2"
                   />
