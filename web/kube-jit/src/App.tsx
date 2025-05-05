@@ -152,6 +152,14 @@ function App() {
             .catch(() => setBuildSha(undefined));
     }, []);
 
+    const badgeTitle = isAdmin
+    ? "Admin"
+    : isPlatformApprover
+    ? "Platform Approver"
+    : isApprover
+    ? "Approver"
+    : null;
+
     if (loading) {
         return (
             <div className="app-content">
@@ -202,7 +210,7 @@ function App() {
                                         </Nav.Link>
                                     </Nav.Item>
                                 )}
-                                {isAdmin && (
+                                {badgeTitle && (
                                     <Badge
                                         bg="success"
                                         className="ms-auto"
@@ -213,21 +221,7 @@ function App() {
                                             height: "fit-content",
                                         }}
                                     >
-                                        Admin
-                                    </Badge>
-                                )}
-                                {isPlatformApprover && (
-                                    <Badge
-                                        bg="success"
-                                        className="ms-auto"
-                                        style={{
-                                            fontSize: "0.9rem",
-                                            padding: "0.3em 0.6em",
-                                            borderRadius: "0.5em",
-                                            height: "fit-content",
-                                        }}
-                                    >
-                                        Platform Approver
+                                        {badgeTitle}
                                     </Badge>
                                 )}
                             </Nav>
