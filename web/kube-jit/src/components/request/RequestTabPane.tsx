@@ -253,13 +253,11 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                         <Form onSubmit={handleSubmit} className="text-start py-4 position-relative">
                             <div className="form-top-buttons d-flex align-items-center mb-3" style={{ gap: "1rem" }}>
                                 <Button
-                                    variant="outline-danger"
-                                    className="top-action-button"
+                                    className="top-action-button clear-form-button"
                                     onClick={handleClearForm}
                                     type="button"
                                 >
-                                    <i className="bi bi-x-circle me-1"></i>
-                                    Clear Form
+                                    <i className="bi bi-x-circle me-1"></i>Clear Form
                                 </Button>
                                 <input
                                     type="file"
@@ -269,7 +267,6 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                                     onChange={handleBulkUpload}
                                 />
                                 <Button
-                                    variant="outline-primary"
                                     className="top-action-button"
                                     onClick={() => document.getElementById("bulk-upload-input")?.click()}
                                     type="button"

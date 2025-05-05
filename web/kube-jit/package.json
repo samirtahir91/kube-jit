@@ -13,6 +13,7 @@
     "@react-oauth/google": "^0.12.1",
     "axios": "^1.8.4",
     "bootstrap": "^5.3.5",
+    "bootstrap-icons": "^1.12.1",
     "js-cookie": "^2.2.1",
     "js-yaml": "^4.1.0",
     "react": "^19.0.0",

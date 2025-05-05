@@ -186,11 +186,12 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
     min-width: 90px;
     height: 2.1rem;
     display: flex;
     align-items: center;
+    justify-content: center; /* <-- Add this line */
     gap: 0.4rem;
 }
 
@@ -198,6 +199,19 @@
     background: linear-gradient(90deg, #0056b3, #003f7f);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.13);
+}
+
+.top-action-button:active {
+    transform: translateY(0); /* Reset lift effect on click */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Reset shadow on click */
+}
+
+.clear-form-button {
+    background: linear-gradient(90deg, #6c757d, #495057); /* Gradient for Clear Filters */
+}
+
+.clear-form-button:hover {
+    background: linear-gradient(90deg, #495057, #343a40); /* Darker gradient on hover */
 }
 
 /* Fade-in animation */

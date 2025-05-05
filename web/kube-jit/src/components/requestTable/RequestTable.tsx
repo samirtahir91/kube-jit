@@ -163,8 +163,8 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                 roleName: '',
                             })
                         }
-                    >
-                        Clear Filters
+                    > 
+                        <i className="bi bi-x-circle me-1"></i>Clear Filters
                     </button>
                     <button
                         className="action-button export-csv-button me-2"
