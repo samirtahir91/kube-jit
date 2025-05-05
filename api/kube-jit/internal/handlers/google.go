@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"kube-jit/internal/middleware"
 	"kube-jit/internal/models"
+	"kube-jit/pkg/sessioncookie"
 	"net/http"
 	"strings"
 	"sync"
@@ -230,7 +230,7 @@ func HandleGoogleLogin(c *gin.Context) {
 	session := sessions.Default(c)
 	session.Set("data", sessionData)
 
-	middleware.SplitSessionData(c)
+	sessioncookie.SplitSessionData(c)
 
 	logger.Info("Session cookies set successfully for Google login", zap.String("email", googleUser.Email))
 

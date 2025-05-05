@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/gob"
 	"flag"
 	"kube-jit/internal/db"
 	"kube-jit/internal/handlers"
@@ -46,6 +47,9 @@ func main() {
 		panic(err)
 	}
 	defer logger.Sync()
+
+	// Register gob types for db
+	gob.Register(map[string]any{})
 
 	// Initialize zap logger in all packages
 	handlers.InitLogger(logger)

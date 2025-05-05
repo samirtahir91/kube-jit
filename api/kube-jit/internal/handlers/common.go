@@ -3,10 +3,10 @@ package handlers
 import (
 	"fmt"
 	"kube-jit/internal/db"
-	"kube-jit/internal/middleware"
 	"kube-jit/internal/models"
 	"kube-jit/pkg/email"
 	"kube-jit/pkg/k8s"
+	"kube-jit/pkg/sessioncookie"
 	"kube-jit/pkg/utils"
 	"net/http"
 	"strconv"
@@ -32,7 +32,7 @@ var (
 func Logout(c *gin.Context) {
 	// Iterate through cookies with the session prefix
 	for i := 0; ; i++ {
-		cookieName := fmt.Sprintf("%s%d", middleware.SessionPrefix, i)
+		cookieName := fmt.Sprintf("%s%d", sessioncookie.SessionPrefix, i)
 		_, err := c.Cookie(cookieName)
 		if err != nil {
 			break // Stop when no more cookies are found
@@ -875,7 +875,7 @@ func CommonPermissions(c *gin.Context) {
 	sessionData["isPlatformApprover"] = isPlatformApprover
 	sessionData["adminGroups"] = matchedAdminGroups
 	session.Set("data", sessionData)
-	middleware.SplitSessionData(c)
+	sessioncookie.SplitSessionData(c)
 
 	c.JSON(http.StatusOK, gin.H{
 		"isApprover":         isApprover,

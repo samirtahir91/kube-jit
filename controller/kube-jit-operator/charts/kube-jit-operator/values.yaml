@@ -10,9 +10,12 @@ controllerManager:
       capabilities:
         drop:
         - ALL
+    env:
+      debugLog: "false"
     image:
       repository: samirtahir91076/kube-jit-operator
       tag: latest
+    imagePullPolicy: IfNotPresent
     resources:
       limits:
         cpu: 500m

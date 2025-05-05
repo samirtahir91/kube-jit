@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"kube-jit/internal/middleware"
 	"kube-jit/internal/models"
+	"kube-jit/pkg/sessioncookie"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -186,7 +186,7 @@ func HandleGitHubLogin(c *gin.Context) {
 	session.Set("data", sessionData)
 
 	// Split the session data into cookies
-	middleware.SplitSessionData(c)
+	sessioncookie.SplitSessionData(c)
 
 	logger.Info("Session cookies set successfully for GitHub login", zap.String("user", githubUser.Login))
 

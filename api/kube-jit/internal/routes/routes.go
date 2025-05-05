@@ -2,7 +2,7 @@ package routes
 
 import (
 	"kube-jit/internal/handlers"
-	"kube-jit/internal/middleware"
+	"kube-jit/pkg/sessioncookie"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -11,7 +11,7 @@ import (
 func SetupRoutes(r *gin.Engine) {
 	// Routes that require session handling
 	apiWithSession := r.Group("/kube-jit-api")
-	apiWithSession.Use(middleware.SplitAndCombineSessionMiddleware())
+	apiWithSession.Use(sessioncookie.SplitAndCombineSessionMiddleware())
 	{
 		apiWithSession.GET("/approving-groups", handlers.GetApprovingGroups)
 		apiWithSession.GET("/roles-and-clusters", handlers.GetClustersAndRoles)

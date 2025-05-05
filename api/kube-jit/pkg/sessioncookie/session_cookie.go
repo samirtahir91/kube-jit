@@ -1,4 +1,4 @@
-package middleware
+package sessioncookie
 
 import (
 	"encoding/json"
@@ -154,7 +154,7 @@ func splitIntoChunks(data string, chunkSize int) []string {
 
 // encodeSessionData encodes session data using securecookie.
 func encodeSessionData(name string, value interface{}) (string, error) {
-	encoded, err := secureCookie.Encode(name, value)
+	encoded, err := utils.SecureCookie().Encode(name, value)
 	if err != nil {
 		logger.Error("Failed to encode session data", zap.Error(err))
 		return "", fmt.Errorf("failed to encode session data: %v", err)
@@ -164,7 +164,7 @@ func encodeSessionData(name string, value interface{}) (string, error) {
 
 // decodeSessionData decodes session data using securecookie.
 func decodeSessionData(name, encodedValue string, dst interface{}) error {
-	err := secureCookie.Decode(name, encodedValue, dst)
+	err := utils.SecureCookie().Decode(name, encodedValue, dst)
 	if err != nil {
 		logger.Error("Failed to decode session data", zap.Error(err))
 		return fmt.Errorf("failed to decode session data: %v", err)

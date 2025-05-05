@@ -51,10 +51,13 @@ spec:
       #             values:
       #               - linux
       securityContext:
-        # Projects are configured by default to adhere to the "restricted" Pod Security Standards.
-        # This ensures that deployments meet the highest security requirements for Kubernetes.
-        # For more details, see: https://kubernetes.io/docs/concepts/security/pod-security-standards/#restricted
+        # Dockerfile user is 65532
         runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        # Please comment the following code if your project DOES have to work on old Kubernetes
+        # versions < 1.19 or on vendors versions which do NOT support this field by default (i.e. Openshift < 4.11 ).
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -63,8 +66,17 @@ spec:
         args:
           - --leader-elect
           - --health-probe-bind-address=:8081
+          - --configuration-name=kube-jit-operator-default
         image: controller:latest
+        imagePullPolicy: Never
         name: manager
+        env:
+          - name: DEBUG_LOG
+            value: "false"
+          - name: OPERATOR_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
         ports: []
         securityContext:
           allowPrivilegeEscalation: false
@@ -92,7 +104,12 @@ spec:
           requests:
             cpu: 10m
             memory: 64Mi
-        volumeMounts: []
-      volumes: []
+        # volume to cache config
+        volumeMounts:
+        - mountPath: /var/run/jit-rbac-configuration
+          name: jit-rbac-config
+      volumes:
+      - emptyDir: {}
+        name: jit-rbac-config
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10

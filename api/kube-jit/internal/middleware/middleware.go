@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"encoding/gob"
 	"encoding/json"
+	"kube-jit/pkg/sessioncookie"
 	"kube-jit/pkg/utils"
 	"time"
 
@@ -10,22 +10,8 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/securecookie"
 	"go.uber.org/zap"
 )
-
-var (
-	cookieSecret = utils.MustGetEnv("HMAC_SECRET")
-	secureCookie = securecookie.New([]byte(cookieSecret), nil)
-)
-
-func init() {
-	// Register the types for gob encoding
-	gob.Register(map[string]any{})
-
-	// Increase the maximum length for securecookie since it is split into multiple cookies
-	secureCookie.MaxLength(16384)
-}
 
 // SetupMiddleware sets up the middleware for the Gin engine
 func SetupMiddleware(r *gin.Engine) {
@@ -48,8 +34,10 @@ func SetupMiddleware(r *gin.Engine) {
 	}))
 
 	// Session middleware with custom logic
+	cookieSecret := utils.MustGetEnv("HMAC_SECRET")
 	store := cookie.NewStore([]byte(cookieSecret))
 	r.Use(sessions.Sessions("mysession", store))
+	r.Use(sessioncookie.SplitAndCombineSessionMiddleware())
 
 	logger.Info("Middleware setup complete", zap.Strings("allowOrigins", allowOrigins))
 }

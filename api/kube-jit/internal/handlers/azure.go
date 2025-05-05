@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"kube-jit/internal/middleware"
 	"kube-jit/internal/models"
+	"kube-jit/pkg/sessioncookie"
 	"net/http"
 	"os"
 	"time"
@@ -98,7 +98,7 @@ func HandleAzureLogin(c *gin.Context) {
 	session.Set("data", sessionData)
 
 	// Split the session data into cookies
-	middleware.SplitSessionData(c)
+	sessioncookie.SplitSessionData(c)
 
 	logger.Info("Session cookies set successfully for Azure login", zap.String("name", azureUser.DisplayName))
 
