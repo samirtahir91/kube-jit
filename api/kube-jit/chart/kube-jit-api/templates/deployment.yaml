@@ -142,6 +142,26 @@ spec:
                   fieldPath: metadata.namespace
           - name: BUILD_SHA
             value: {{ .Values.buildSha | quote }}
+          {{- if .Values.config.smtp.enabled }}
+          - name: SMTP_HOST
+            value: {{ .Values.config.smtp.host | quote }}
+          - name: SMTP_PORT
+            value: {{ .Values.config.smtp.port | quote }}
+          - name: SMTP_USER
+            value: {{ .Values.config.smtp.user | quote }}
+          - name: SMTP_FROM
+            value: {{ .Values.config.smtp.from | quote }}
+          {{- if .Values.config.smtp.passSecretKey }}
+          - name: SMTP_PASS
+            valueFrom:
+              secretKeyRef:
+                name: kube-jit-api-secrets
+                key: {{ .Values.config.smtp.passSecretKey | quote }}
+          {{- else }}
+          - name: SMTP_PASS
+            value: ""
+          {{- end }}
+          {{- end }}
           volumeMounts:
           - name: config
             mountPath: {{ printf "%s/apiConfig.yaml" (.Values.config.configMountPath | default "/etc/config") | quote }}

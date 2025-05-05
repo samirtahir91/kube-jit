@@ -80,6 +80,9 @@ spec:
                 items:
                   type: string
                 type: array
+              requestorEmail:
+                description: The requestor's email to for notification
+                type: string
               startTime:
                 description: |-
                   Start time for the JIT access, i.e. "2024-12-04T21:00:00Z"
@@ -104,6 +107,7 @@ spec:
             - endTime
             - justification
             - namespaces
+            - requestorEmail
             - startTime
             - ticketID
             - user

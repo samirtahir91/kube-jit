@@ -133,10 +133,45 @@ func HandleGitHubLogin(c *gin.Context) {
 		return
 	}
 
+	email := githubUser.Email
+
+	if email == "" {
+		req, err := http.NewRequest("GET", "https://api.github.com/user/emails", nil)
+		if err == nil {
+			req.Header.Set("Authorization", tokenData.TokenType+" "+tokenData.AccessToken)
+			resp, err := httpClient.Do(req)
+			if err == nil && resp.StatusCode == http.StatusOK {
+				defer resp.Body.Close()
+				var emails []struct {
+					Email    string `json:"email"`
+					Primary  bool   `json:"primary"`
+					Verified bool   `json:"verified"`
+				}
+				if err := json.NewDecoder(resp.Body).Decode(&emails); err == nil {
+					for _, e := range emails {
+						if e.Primary && e.Verified {
+							email = e.Email
+							break
+						}
+					}
+					// fallback: use first verified email if no primary found
+					if email == "" {
+						for _, e := range emails {
+							if e.Verified {
+								email = e.Email
+								break
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	normalizedUserData := models.NormalizedUserData{
 		ID:        strconv.Itoa(githubUser.ID),
 		Name:      githubUser.Login,
-		Email:     "", // GitHub API may not return email by default
+		Email:     email,
 		AvatarURL: githubUser.AvatarURL,
 		Provider:  "github",
 	}
@@ -205,10 +240,46 @@ func GetGithubProfile(c *gin.Context) {
 		return
 	}
 
+	// Fetch email from GitHub user profile
+	email := githubUser.Email
+	// If email is not present, fetch it from the emails endpoint
+	if email == "" {
+		req, err := http.NewRequest("GET", "https://api.github.com/user/emails", nil)
+		if err == nil {
+			req.Header.Set("Authorization", "Bearer "+token)
+			resp, err := httpClient.Do(req)
+			if err == nil && resp.StatusCode == http.StatusOK {
+				defer resp.Body.Close()
+				var emails []struct {
+					Email    string `json:"email"`
+					Primary  bool   `json:"primary"`
+					Verified bool   `json:"verified"`
+				}
+				if err := json.NewDecoder(resp.Body).Decode(&emails); err == nil {
+					for _, e := range emails {
+						if e.Primary && e.Verified {
+							email = e.Email
+							break
+						}
+					}
+					// fallback: use first verified email if no primary found
+					if email == "" {
+						for _, e := range emails {
+							if e.Verified {
+								email = e.Email
+								break
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	normalizedUserData := models.NormalizedUserData{
 		ID:        strconv.Itoa(githubUser.ID),
 		Name:      githubUser.Login,
-		Email:     "", // GitHub API may not return email by default
+		Email:     email,
 		AvatarURL: githubUser.AvatarURL,
 		Provider:  "github",
 	}

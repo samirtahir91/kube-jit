@@ -72,18 +72,24 @@ func HandleAzureLogin(c *gin.Context) {
 		return
 	}
 
+	// Use Mail if present, otherwise fallback to UserPrincipalName
+	email := azureUser.Mail
+	if email == "" {
+		email = azureUser.UserPrincipalName
+	}
+
 	// Normalize the user data
 	normalizedUserData := models.NormalizedUserData{
 		ID:        azureUser.ID,
 		Name:      azureUser.DisplayName,
-		Email:     azureUser.Mail,
+		Email:     email,
 		AvatarURL: "", // Azure AD doesn't provide an avatar URL by default
 		Provider:  "azure",
 	}
 
 	// Prepare session data
 	sessionData := map[string]interface{}{
-		"email": azureUser.Mail,
+		"email": email,
 		"token": token.AccessToken,
 	}
 

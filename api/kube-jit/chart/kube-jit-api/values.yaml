@@ -22,6 +22,15 @@ config:
   # Enable debug logging for the API (zap logger)
   debugLog: false
 
+  # Optional email smtp config for sending email notifications
+  smtp:
+    enabled: false
+  #   host: smtp.example.com
+  #   port: 587
+  #   user: your_smtp_user
+  #   passSecretKey: smtpPass # <-- name of the key in the secret kube-jit-api-secrets
+  #   from: jit@example.com
+
   # This is the secret key in the kube-jit-api-secrets secret
   # This secret key value will contain the hmac secret key for signing the jwt tokens
   # This is used for the callback flow from downstream clusters

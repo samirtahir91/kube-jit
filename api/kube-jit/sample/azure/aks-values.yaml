@@ -48,6 +48,13 @@ config:
     # redirectUri: "https://jit-test.samirtahir.dev/"
     # clientSecretKeyRef: googleClientSecret
 
+  smtp:
+    enabled: true
+    host: mailhog.default.svc.cluster.local
+    port: 1025
+    user: ""
+    from: jit@example.com
+
 db:
   passwordSecretKey: azDbPass
   host: my-postgres-postgresql.default.svc.cluster.local

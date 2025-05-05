@@ -39,6 +39,7 @@ type RequestData struct {
 	StartDate     time.Time `json:"startDate"`
 	EndDate       time.Time `json:"endDate"`
 	FullyApproved bool      `gorm:"default:false"`
+	Email         string    `json:"email"`
 }
 
 // RequestNamespace represents the namespace-level approval tracking
@@ -68,6 +69,7 @@ type GitHubUser struct {
 	Login     string `json:"login"`
 	ID        int    `json:"id"`
 	AvatarURL string `json:"avatar_url"`
+	Email     string `json:"email"`
 }
 
 // GoogleUser represents a Google user's profile

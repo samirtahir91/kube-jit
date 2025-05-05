@@ -5,6 +5,7 @@ import (
 	"kube-jit/internal/db"
 	"kube-jit/internal/middleware"
 	"kube-jit/internal/models"
+	"kube-jit/pkg/email"
 	"kube-jit/pkg/k8s"
 	"kube-jit/pkg/utils"
 	"net/http"
@@ -114,6 +115,26 @@ func K8sCallback(c *gin.Context) {
 		zap.String("ticketID", callbackData.TicketID),
 		zap.String("status", callbackData.Status),
 	)
+
+	// Send status change email to user
+	var req models.RequestData
+	if err := db.DB.Where("id = ?", callbackData.TicketID).First(&req).Error; err == nil && req.Email != "" {
+		subject := fmt.Sprintf("Your JIT request #%s is now %s", callbackData.TicketID, callbackData.Status)
+		body := fmt.Sprintf(
+			"Hello %s,<br>Your request for cluster <b>%s</b>, namespaces <b>%v</b> is now in state: <b>%s</b>.<br><br>Notes: %s",
+			req.Username,
+			req.ClusterName,
+			req.Namespaces,
+			callbackData.Status,
+			callbackData.Message,
+		)
+		go func() {
+			if err := email.SendMail(req.Email, subject, body); err != nil {
+				logger.Warn("Failed to send status change email (K8sCallback)", zap.String("email", req.Email), zap.Error(err))
+			}
+		}()
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Success"})
 }
 
@@ -324,6 +345,26 @@ func processApproval(
 		logger.Error("Error updating request after approval", zap.Uint("requestID", requestID), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update request"})
 		return
+	}
+
+	if req.Email != "" {
+		subject := fmt.Sprintf("Your JIT request #%d is now %s", req.ID, req.Status)
+		body := fmt.Sprintf(
+			"Hello %s,<br>Your request for cluster <b>%s</b>, namespaces <b>%v</b> has been <b>%s</b>.<br><br>Justification: %s<br>Role: %s<br>Start: %s<br>End: %s",
+			req.Username,
+			req.ClusterName,
+			req.Namespaces,
+			req.Status,
+			req.Justification,
+			req.RoleName,
+			req.StartDate.Format("2006-01-02 15:04"),
+			req.EndDate.Format("2006-01-02 15:04"),
+		)
+		go func() {
+			if err := email.SendMail(req.Email, subject, body); err != nil {
+				logger.Warn("Failed to send status change email", zap.String("email", req.Email), zap.Error(err))
+			}
+		}()
 	}
 }
 
@@ -646,6 +687,13 @@ func SubmitRequest(c *gin.Context) {
 		return
 	}
 
+	// Get email from session
+	sessionData, ok := checkLoggedIn(c)
+	if !ok {
+		return
+	}
+	email, _ := sessionData["email"].(string)
+
 	// Create a new models.RequestData instance
 	dbRequestData := models.RequestData{
 		ClusterName:   requestData.ClusterName.Name,
@@ -658,6 +706,7 @@ func SubmitRequest(c *gin.Context) {
 		Justification: requestData.Justification,
 		StartDate:     requestData.StartDate,
 		EndDate:       requestData.EndDate,
+		Email:         email,
 	}
 
 	// Insert the request data into the database

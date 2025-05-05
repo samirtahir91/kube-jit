@@ -33,6 +33,8 @@ type JitRequestSpec struct {
 	Justification string `json:"justification"`
 	// User emails to add to the request
 	UserEmails []string `json:"userEmails"`
+	// The requestor's email to for notification
+	Email string `json:"requestorEmail"`
 	// Role to bind
 	ClusterRole string `json:"clusterRole"`
 	// Namespaces to bind role and user
