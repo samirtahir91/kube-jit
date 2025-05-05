@@ -41,8 +41,10 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
     const [errorMessage, setErrorMessage] = useState('');
     const [nsTagError, setNsTagError] = useState('');
     const [userTagError, setUserTagError] = useState('');
-    const nsInputTagRef = useRef<{ resetTags: () => void }>(null);
-    const userInputTagRef = useRef<{ resetTags: () => void }>(null);
+    const [clusterError, setClusterError] = useState('');
+    const [roleError, setRoleError] = useState('');
+    const nsInputTagRef = useRef<{ resetTags: () => void; setTagsFromStrings: (tags: string[]) => void }>(null);
+    const userInputTagRef = useRef<{ resetTags: () => void; setTagsFromStrings: (tags: string[]) => void }>(null);
     const [showInfoBox, setShowInfoBox] = useState(false);
     
     useEffect(() => {
@@ -137,6 +139,104 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
         });
     };
 
+    // Handle bulk upload
+    const handleBulkUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                let data: any;
+                if (file.name.endsWith(".json")) {
+                    data = JSON.parse(event.target?.result as string);
+                } else if (file.name.endsWith(".csv")) {
+                    const [headerLine, ...lines] = (event.target?.result as string).split("\n");
+                    const headers = headerLine.split(",").map(h => h.trim());
+                    data = lines.map(line => {
+                        const values = line.split(",").map(v => v.trim());
+                        return Object.fromEntries(headers.map((h, i) => [h, values[i]]));
+                    })[0];
+                } else {
+                    throw new Error("Unsupported file type");
+                }
+
+                // Users and Namespaces (already validated by InputTag)
+                if (data.users && userInputTagRef.current) {
+                    const userArr = Array.isArray(data.users)
+                        ? data.users
+                        : data.users.split(/[;, ]/).filter(Boolean);
+                    userInputTagRef.current.setTagsFromStrings(userArr);
+                }
+                if (data.namespaces && nsInputTagRef.current) {
+                    const nsArr = Array.isArray(data.namespaces)
+                        ? data.namespaces
+                        : data.namespaces.split(/[;, ]/).filter(Boolean);
+                    nsInputTagRef.current.setTagsFromStrings(nsArr);
+                }
+
+                // Justification: enforce 100 char limit
+                if (data.justification) {
+                    if (data.justification.length <= 100) {
+                        setJustification(data.justification);
+                    } else {
+                        setErrorMessage("Justification exceeds 100 characters.");
+                    }
+                }
+
+                // Cluster: only set if value is in allowed clusters
+                if (data.cluster && clusters.includes(data.cluster)) {
+                    setSelectedCluster({ label: data.cluster, value: data.cluster });
+                    setClusterError('');
+                } else if (data.cluster) {
+                    setClusterError(`Cluster "${data.cluster}" in upload is not a valid option.`);
+                    setSelectedCluster(null);
+                }
+
+                // Role: only set if value is in allowed roles
+                const allowedRole = roles.find(role => role.name === data.role);
+                if (data.role && allowedRole) {
+                    setSelectedRole({ label: data.role, value: data.role });
+                    setRoleError('');
+                } else if (data.role) {
+                    setRoleError(`Role "${data.role}" in upload is not a valid option.`);
+                    setSelectedRole(null);
+                }
+
+                // Do NOT set startDate or endDate from bulk upload
+
+            } catch (err) {
+                setErrorMessage("Failed to parse file: " + (err as Error).message);
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    // Clear form fields
+    const handleClearForm = () => {
+        setSelectedRole(null);
+        setSelectedCluster(null);
+        setNamespaces([]);
+        setUsers([]);
+        setJustification('');
+        setStartDate(null);
+        setEndDate(null);
+        setSuccessMessage('');
+        setErrorMessage('');
+        setNsTagError('');
+        setUserTagError('');
+        setClusterError('');
+        setRoleError('');
+
+        // Reset InputTags
+        if (nsInputTagRef.current) {
+            nsInputTagRef.current.resetTags();
+        }
+        if (userInputTagRef.current) {
+            userInputTagRef.current.resetTags();
+        }
+    };
+
     return (
         <Tab.Pane eventKey="request">
             <div className="request-page-container">
@@ -144,14 +244,41 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                 <div className="form-description">
                     <h2 className="form-title">Submit Access Request</h2>
                     <p className="form-subtitle">
-                        Use this form to request levels of access to specific namespaces. 
-                        Please ensure all required fields are filled out accurately to avoid delays in processing your request.
+                        Use this form to request levels of access to specific namespaces.<br />
+                        <br></br>Please ensure all required fields are filled out accurately to avoid delays in processing your request.<br></br>
+                        <br></br><strong>Bulk Upload:</strong> You can quickly fill out the form by uploading a JSON file via <b>Upload CSV/JSON</b>. The file should contain fields for user emails, namespaces, justification, cluster, and role. Start Date and End Date must still be selected manually.<br />
                     </p>
                 </div>
 
                 <Row>
                     <Col md={6}>
-                        <Form onSubmit={handleSubmit} className="text-start py-4">
+                        <Form onSubmit={handleSubmit} className="text-start py-4 position-relative">
+                            <div className="form-top-buttons d-flex align-items-center mb-3" style={{ gap: "1rem" }}>
+                                <Button
+                                    variant="outline-danger"
+                                    className="top-action-button"
+                                    onClick={handleClearForm}
+                                    type="button"
+                                >
+                                    <i className="bi bi-x-circle me-1"></i>
+                                    Clear Form
+                                </Button>
+                                <input
+                                    type="file"
+                                    accept=".csv,application/json"
+                                    style={{ display: "none" }}
+                                    id="bulk-upload-input"
+                                    onChange={handleBulkUpload}
+                                />
+                                <Button
+                                    variant="outline-primary"
+                                    className="top-action-button"
+                                    onClick={() => document.getElementById("bulk-upload-input")?.click()}
+                                    type="button"
+                                >
+                                    Upload CSV/JSON
+                                </Button>
+                            </div>
                             <Form.Group className="mb-3" controlId="users">
                                 <Form.Label>User Emails</Form.Label>
                                 <InputTag
@@ -165,6 +292,7 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                                 />
                                 {userTagError && <Form.Text className="text-danger">{userTagError}</Form.Text>}
                             </Form.Group>
+                            {/* Cluster field */}
                             <Form.Group controlId="cluster" className="mb-3">
                                 <Form.Label>Cluster</Form.Label>
                                 <Select
@@ -175,9 +303,13 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                                         label: cluster
                                     }))}
                                     isSearchable
-                                    onChange={(selectedOption) => setSelectedCluster(selectedOption)}
+                                    onChange={(selectedOption) => {
+                                        setSelectedCluster(selectedOption);
+                                        setClusterError('');
+                                    }}
                                     value={selectedCluster}
                                 />
+                                {clusterError && <Form.Text className="text-danger">{clusterError}</Form.Text>}
                             </Form.Group>
                             <Form.Group className="mb-3" controlId="namespace">
                                 <Form.Label>Namespace(s)</Form.Label>
@@ -210,6 +342,7 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                                     onChange={(e) => setJustification(e.target.value)}
                                 />
                             </Form.Group>
+                            {/* Role field */}
                             <Form.Group controlId="role" className="mb-3">
                                 <Form.Label>Role</Form.Label>
                                 <Select
@@ -220,9 +353,13 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                                         label: role.name
                                     }))}
                                     isSearchable
-                                    onChange={(selectedOption) => setSelectedRole(selectedOption)}
+                                    onChange={(selectedOption) => {
+                                        setSelectedRole(selectedOption);
+                                        setRoleError('');
+                                    }}
                                     value={selectedRole}
                                 />
+                                {roleError && <Form.Text className="text-danger">{roleError}</Form.Text>}
                             </Form.Group>
                             <Col md={6}>
                                 <Form.Group controlId="startDate" className="mb-3">

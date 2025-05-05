@@ -19,6 +19,27 @@ import "./InputTag.css";
         resetTags() {
           setTags([]);
           onTagsChange([]);
+        },
+        setTagsFromStrings(tagStrings: string[]) {
+          const validTags = tagStrings
+            .filter(Boolean)
+            .filter(text => regexPattern.test(text))
+            .map((text, i) => ({ id: `${i}`, text }));
+
+          const invalidTags = tagStrings
+            .filter(Boolean)
+            .filter(text => !regexPattern.test(text));
+
+          setTags(validTags);
+          onTagsChange(validTags);
+
+          if (invalidTags.length > 0) {
+            setTagError(
+              `${tagError} Invalid: ${invalidTags.join(", ")}`
+            );
+          } else {
+            setTagError('');
+          }
         }
     }));
 

@@ -170,6 +170,36 @@
     box-shadow: none; /* Remove shadow */
 }
 
+.form-top-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.top-action-button {
+    background: linear-gradient(90deg, #007bff, #0056b3);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.3rem 0.9rem;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    min-width: 90px;
+    height: 2.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.top-action-button:hover {
+    background: linear-gradient(90deg, #0056b3, #003f7f);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.13);
+}
+
 /* Fade-in animation */
 @keyframes fadeIn {
     from {
