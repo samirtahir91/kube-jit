@@ -51,7 +51,12 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
             return (
                 (filters.username === '' || historicalRequest.username.toLowerCase().includes(filters.username.toLowerCase())) &&
                 (filters.status === '' || historicalRequest.status.toLowerCase().includes(filters.status.toLowerCase())) &&
-                (filters.approverNames === '' || historicalRequest.approverNames.some(name => name.toLowerCase().includes(filters.approverNames.toLowerCase()))) &&
+                (filters.approverNames === '' ||
+                  (Array.isArray(historicalRequest.approverNames) &&
+                    historicalRequest.approverNames.some(name =>
+                      name.toLowerCase().includes(filters.approverNames.toLowerCase())
+                    ))
+                ) &&
                 (filters.users === '' || historicalRequest.users.some(user => user.toLowerCase().includes(filters.users.toLowerCase()))) &&
                 (filters.clusterName === '' || historicalRequest.clusterName.toLowerCase().includes(filters.clusterName.toLowerCase())) &&
                 (filters.roleName === '' || historicalRequest.roleName.toLowerCase().includes(filters.roleName.toLowerCase())) &&

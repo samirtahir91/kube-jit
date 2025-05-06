@@ -6,10 +6,11 @@ todo
 - ui request end date needs to be on top of footer
 - time in email is mizzing zone, sending utc
 - time in controller is displayed as utc
-- fix bug controller startup race errors
 - test all providers
 - refactor login for providers as duplicated in get profile
 - refactor k8s.go to use structs, include groupName in struct
+
+stretch
 - refresh token
 - max session env var option
 - deprecate tokenExpiry in frontend
