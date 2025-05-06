@@ -18,6 +18,7 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
     const [selectedRequests, setSelectedRequests] = useState<number[]>([]);
     const [variant, setVariant] = useState<'light' | 'dark'>('light');
     const [errorMessage, setErrorMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const fetchPendingRequests = async () => {
@@ -63,9 +64,13 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
             );
             setSelectedRequests([]);
             setErrorMessage('');
-        } catch (error) {
+            setSuccessMessage(`Request(s) ${status === 'Approved' ? 'approved' : 'rejected'} successfully.`);
+            setTimeout(() => setSuccessMessage(''), 5000);
+        } catch (error: any) {
             console.error('Error approving/rejecting requests:', error);
-            setErrorMessage('Error approving/rejecting requests. Please try again.');
+            const apiError = error?.response?.data?.error || error.message || 'Error approving/rejecting requests. Please try again.';
+            setErrorMessage(apiError);
+            setTimeout(() => setErrorMessage(''), 5000);
         } finally {
             setLoadingInCard(false);
         }
@@ -78,13 +83,26 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
     return (
         <Tab.Pane eventKey="approve" className="text-start py-3">
             <div className="request-page-container">
-            {errorMessage && (
-                <div className="error-message mt-3">
-                    <i className="bi bi-exclamation-circle-fill me-2"></i>
-                    {errorMessage}
-                    <button className="error-message-close" onClick={() => setErrorMessage('')}>
-                        &times;
-                    </button>
+            {(errorMessage || successMessage) && (
+                <div className="sticky-message">
+                    {errorMessage && (
+                        <div className="error-message mt-3">
+                            <i className="bi bi-exclamation-circle-fill me-2"></i>
+                            {errorMessage}
+                            <button className="error-message-close" onClick={() => setErrorMessage('')}>
+                                &times;
+                            </button>
+                        </div>
+                    )}
+                    {successMessage && (
+                        <div className="success-message mt-3">
+                            <i className="bi bi-check-circle-fill me-2"></i>
+                            {successMessage}
+                            <button className="success-message-close" onClick={() => setSuccessMessage('')}>
+                                &times;
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
             <div className="d-flex align-items-center">

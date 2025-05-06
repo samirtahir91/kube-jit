@@ -240,7 +240,28 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
     return (
         <Tab.Pane eventKey="request" className="text-start py-3">
             <div className="request-page-container">
-                {/* Description Section */}
+                {(successMessage || errorMessage) && (
+                    <div className="sticky-message">
+                        {successMessage && (
+                            <div className="success-message">
+                                <i className="bi bi-check-circle-fill me-2"></i>
+                                {successMessage}
+                                <button className="success-message-close" onClick={() => setSuccessMessage('')}>
+                                    &times;
+                                </button>
+                            </div>
+                        )}
+                        {errorMessage && (
+                            <div className="error-message">
+                                <i className="bi bi-exclamation-circle-fill me-2"></i>
+                                {errorMessage}
+                                <button className="error-message-close" onClick={() => setErrorMessage('')}>
+                                    &times;
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
                 <div className="form-description">
                     <h2 className="form-title">Submit Access Request</h2>
                     <p className="form-subtitle">
@@ -533,24 +554,6 @@ cluster: dev-cluster`}
                         </Button>
                     </Modal.Footer>
                 </Modal>
-                {successMessage && (
-                    <div className="success-message">
-                        <i className="bi bi-check-circle-fill me-2"></i> {/* Bootstrap success icon */}
-                        {successMessage}
-                        <button className="success-message-close" onClick={() => setSuccessMessage('')}>
-                            &times; {/* Close icon */}
-                        </button>
-                    </div>
-                )}
-                {errorMessage && (
-                    <div className="error-message">
-                        <i className="bi bi-exclamation-circle-fill me-2"></i> {/* Bootstrap error icon */}
-                        {errorMessage}
-                        <button className="error-message-close" onClick={() => setErrorMessage('')}>
-                            &times; {/* Close icon */}
-                        </button>
-                    </div>
-                )}
             </div>
         </Tab.Pane>
     );

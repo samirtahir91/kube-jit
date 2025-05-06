@@ -189,6 +189,20 @@
   color: #ffcccc; /* Light red color on hover */
 }
 
+.sticky-message {
+  position: fixed;
+  top: 70px;
+  left: 0;
+  width: 100vw;
+  z-index: 2000;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.sticky-message > div {
+  pointer-events: auto;
+}
+
 /* ensure the datepicker popup is above the footer */
 .react-datepicker-popper {
   z-index: 1051 !important;
