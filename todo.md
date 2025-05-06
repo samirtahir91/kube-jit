@@ -1,7 +1,4 @@
-todo
-- ui                 (filters.approverNames === '' || historicalRequest.approverNames.some(name => name.toLowerCase().includes(filters.approverNames.toLowerCase()))) &&
-  - handle null approverNames list
-
+Todo:
 - ui card needs to fill width, maybe some padding on bigger screens
 - ui request end date needs to be on top of footer
 - time in email is mizzing zone, sending utc
