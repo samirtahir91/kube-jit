@@ -1,6 +1,5 @@
 Todo:
 - ui card needs to fill width, maybe some padding on bigger screens
-- ui request end date needs to be on top of footer
 - time in email is mizzing zone, sending utc
 - time in controller is displayed as utc
 - test all providers

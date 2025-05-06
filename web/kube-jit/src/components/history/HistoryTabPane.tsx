@@ -78,10 +78,10 @@ const HistoryTabPane = ({ isAdmin, isPlatformApprover, activeTab, originTab, use
                     </button>
                 </div>
             )}
-            <Row className="mt-4 align-items-end">
+            <Row className="mt-4 align-items-end history-search-row">
                 {(isAdmin || isPlatformApprover) && (
                     <>
-                        <Col md={3} className="mb-3">
+                        <Col md={2} xs={6} className="mb-3">
                             <Form.Group controlId="searchUserId" className="text-start">
                                 <Form.Label>User ID</Form.Label>
                                 <Form.Control
@@ -92,7 +92,7 @@ const HistoryTabPane = ({ isAdmin, isPlatformApprover, activeTab, originTab, use
                                 />
                             </Form.Group>
                         </Col>
-                        <Col md={3} className="mb-3">
+                        <Col md={2} xs={6} className="mb-3">
                             <Form.Group controlId="searchUsername" className="text-start">
                                 <Form.Label>Username</Form.Label>
                                 <Form.Control
@@ -105,7 +105,7 @@ const HistoryTabPane = ({ isAdmin, isPlatformApprover, activeTab, originTab, use
                         </Col>
                     </>
                 )}
-                <Col md={3} className="mb-3">
+                <Col md={2} xs={12} className="mb-3">
                     <Form.Group controlId="startDate" className="text-start">
                         <Form.Label>Start Date</Form.Label>
                         <DatePicker
@@ -120,7 +120,7 @@ const HistoryTabPane = ({ isAdmin, isPlatformApprover, activeTab, originTab, use
                         />
                     </Form.Group>
                 </Col>
-                <Col md={3} className="mb-3">
+                <Col md={2} xs={12} className="mb-3">
                     <Form.Group controlId="endDate" className="text-start">
                         <Form.Label>End Date</Form.Label>
                         <DatePicker
@@ -135,7 +135,7 @@ const HistoryTabPane = ({ isAdmin, isPlatformApprover, activeTab, originTab, use
                         />
                     </Form.Group>
                 </Col>
-                <Col md={2} className="mb-3">
+                <Col md={2} xs={6} className="mb-3">
                     <Form.Group controlId="limit" className="text-start">
                         <Form.Label>Limit (max {(isAdmin || isPlatformApprover) ? 100 : 20})</Form.Label>
                         <Form.Control
@@ -152,8 +152,9 @@ const HistoryTabPane = ({ isAdmin, isPlatformApprover, activeTab, originTab, use
                         />
                     </Form.Group>
                 </Col>
-                <Col md="auto" className="mb-3">
+                <Col md="auto" xs={12} className="mb-3">
                     <Button
+                        size="sm"
                         className="search-button"
                         onClick={handleSearch}
                     >

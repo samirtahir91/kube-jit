@@ -31,6 +31,23 @@
   margin-bottom: 1.5rem; /* Add this line for spacing above the footer */
 }
 
+/* Make the card body/container fill more width inside .main-card */
+.main-card .container,
+.main-card .card-body {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+@media (min-width: 900px) {
+  .main-card .container,
+  .main-card .card-body {
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+  }
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -175,4 +192,22 @@
 /* ensure the datepicker popup is above the footer */
 .react-datepicker-popper {
   z-index: 1051 !important;
+}
+
+/* Add this to align navbar content with the card */
+.navbar-inner {
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 900px) {
+  .navbar-inner {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
 }

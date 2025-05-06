@@ -87,18 +87,29 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
                 </div>
             )}
             <div className="d-flex align-items-center">
-                <p className="mb-0 me-1">Approve or reject one or many access requests.</p>
-                <button
-                    className={`refresh-button ${isRefreshing ? 'loading' : ''}`}
-                    onClick={fetchPendingRequests}
-                    disabled={isRefreshing}
-                >
-                    <img
-                        alt="Refresh"
-                        src={refreshLogo}
-                        className="refresh-icon"
-                    />
-                </button>
+                <div className="form-description mx-2 flex-grow-1">
+                    <h2 className="form-title">Approve or reject access request</h2>
+                    <p className="form-subtitle mb-0">
+                        Approve or reject one or many access requests.<br />
+                        <br /><strong>Select requests:</strong> Click on the checkbox next to each request to select it.<br />
+                        <br /><strong>Approve/Reject:</strong> Click the "Approve" or "Reject" button to approve or reject the selected requests.<br />
+                        <br />
+                    </p>
+                    <div className="d-flex align-items-center mt-2">
+                        <p className="mb-0 me-2 form-subtitle"><strong>Refresh:</strong> Click the refresh button to check for new requests.</p>
+                        <button
+                            className={`refresh-button ${isRefreshing ? 'loading' : ''}`}
+                            onClick={fetchPendingRequests}
+                            disabled={isRefreshing}
+                        >
+                            <img
+                                alt="Refresh"
+                                src={refreshLogo}
+                                className="refresh-icon"
+                            />
+                        </button>
+                    </div>
+                </div>
             </div>
             {pendingRequests && pendingRequests.length === 0 && (
                 <p>No pending requests (hit refresh to check again).</p>

@@ -21,3 +21,9 @@
     transform: translateY(0); /* Reset lift effect on click */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Reset shadow on click */
 }
+
+/* Make all form labels in the history search row bold and dark blue */
+.history-search-row .form-label {
+  font-weight: bold;
+  color: #003f7f;
+}
