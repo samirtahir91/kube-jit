@@ -114,6 +114,12 @@ config:
     # This is the secret key in the kube-jit-api-secrets secret
     # This secret key value will contain the client secret for the Oauth
     clientSecretKeyRef: "oauthClientSecret"
+
+    # Google specific config
+    # This is the Google admin email to impersonate for domain wide delegation to work and allow the api to see which groups the user is in
+    # This is required for the google provider to work - https://support.google.com/a/answer/162106?hl=en&src=supportwidget0&authuser=0
+    #googleAdminEmail: "admin@yourdomain.com"
+
     # Azure specific config
     # This is the Azure auth URL
     #azureAuthUrl: "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize"

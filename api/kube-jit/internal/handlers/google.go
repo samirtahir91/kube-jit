@@ -96,7 +96,7 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error
 	now := time.Now()
 	claims := map[string]interface{}{
 		"iss":   serviceAccountEmail,
-		"sub":   userEmail,
+		"sub":   adminEmail, // The email of the admin to impersonate to read a user's groups
 		"aud":   "https://oauth2.googleapis.com/token",
 		"scope": "https://www.googleapis.com/auth/admin.directory.group.readonly",
 		"iat":   now.Unix(),

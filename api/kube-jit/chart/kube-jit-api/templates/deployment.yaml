@@ -162,6 +162,10 @@ spec:
             value: ""
           {{- end }}
           {{- end }}
+          {{- if eq .Values.config.oauth.provider "google" }}
+          - name: GOOGLE_ADMIN_EMAIL
+            value: {{ .Values.config.oauth.googleAdminEmail | quote }}
+          {{- end }}
           volumeMounts:
           - name: config
             mountPath: {{ printf "%s/apiConfig.yaml" (.Values.config.configMountPath | default "/etc/config") | quote }}

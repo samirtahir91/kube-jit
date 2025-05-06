@@ -23,10 +23,19 @@ var (
 	clientID      = utils.MustGetEnv("OAUTH_CLIENT_ID")
 	clientSecret  = utils.MustGetEnv("OAUTH_CLIENT_SECRET")
 	redirectUri   = utils.MustGetEnv("OAUTH_REDIRECT_URI")
+	adminEmail    string
 	httpClient    = &http.Client{
 		Timeout: 60 * time.Second,
 	}
 )
+
+func init() {
+	// Set the admin email for Google OAuth provider
+	// Required for Domain-Wide Delegation and user impersonation vi GSA/Workload Identity
+	if oauthProvider == "google" {
+		adminEmail = utils.MustGetEnv("GOOGLE_ADMIN_EMAIL")
+	}
+}
 
 // Logout clears all session cookies with the sessionPrefix
 func Logout(c *gin.Context) {

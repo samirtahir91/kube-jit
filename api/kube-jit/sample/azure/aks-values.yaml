@@ -41,15 +41,15 @@ config:
     # clientSecretKeyRef: azureClientSecret
     # azureAuthUrl: "https://login.microsoftonline.com/b2d528a4-58f5-4aef-b021-041d1b5378f1/oauth2/v2.0/authorize"
     # azureTokenUrl: "https://login.microsoftonline.com/b2d528a4-58f5-4aef-b021-041d1b5378f1/oauth2/v2.0/token"
-    # provider: "google"
-    # clientID: "630940189304-8uggsmkv6to2vu5sogsjrhge1m57t8cr.apps.googleusercontent.com"
-    # #redirectUri: "https://jit-test.samirtahir.dev/"
-    # redirectUri: "http://localhost:5173/"
-    # clientSecretKeyRef: googleClientSecret
-    provider: "github"
-    clientID: Iv23likSg0AQoOUi18q7
+    provider: "google"
+    clientID: "630940189304-8uggsmkv6to2vu5sogsjrhge1m57t8cr.apps.googleusercontent.com"
+    #redirectUri: "https://jit-test.samirtahir.dev/"
     redirectUri: "http://localhost:5173/"
-    clientSecretKeyRef: ghAppClientSecret
+    clientSecretKeyRef: googleClientSecret
+    # provider: "github"
+    # clientID: Iv23likSg0AQoOUi18q7
+    # redirectUri: "http://localhost:5173/"
+    # clientSecretKeyRef: ghAppClientSecret
 
   smtp:
     enabled: true
