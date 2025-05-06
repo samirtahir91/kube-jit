@@ -247,6 +247,7 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                         Use this form to request levels of access to specific namespaces.<br />
                         <br></br>Please ensure all required fields are filled out accurately to avoid delays in processing your request.<br></br>
                         <br></br><strong>Bulk Upload:</strong> You can quickly fill out the form by uploading a YAML or JSON file via <b>Upload YAML/JSON</b>. The file should contain fields for user emails, namespaces, justification, cluster, and role. Start Date and End Date must still be selected manually.<br />
+                        <br></br>For more information on how to fill out the form, click on the <b>Help</b> button to the bottom right.
                     </p>
                 </div>
 
