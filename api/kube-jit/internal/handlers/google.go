@@ -50,9 +50,28 @@ func init() {
 	}
 }
 
+// Helper to fetch and decode Google user profile
+func fetchGoogleUserProfile(token string) (*models.GoogleUser, error) {
+	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token}))
+	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch Google user info: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("error fetching user profile from Google: %s", string(body))
+	}
+
+	var googleUser models.GoogleUser
+	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
+		return nil, fmt.Errorf("failed to decode Google user info: %w", err)
+	}
+	return &googleUser, nil
+}
+
 // getGSAEmail retrieves the Google Service Account (GSA) email from the metadata server
-// It caches the email to avoid multiple requests
-// It uses a sync.Once to ensure that the email is only fetched once
 func getGSAEmail() (string, error) {
 	gsaEmailOnce.Do(func() {
 		req, err := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email", nil)
@@ -85,9 +104,6 @@ func getGSAEmail() (string, error) {
 }
 
 // GetGoogleGroupsWithWorkloadIdentity retrieves the Google Groups for a user using Workload Identity
-// It uses the Google Service Account (GSA) to impersonate the user and fetch their groups
-// It returns a list of teams (groups) associated with the user
-// It uses the Google Admin SDK to list the groups
 func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error) {
 	ctx := context.Background()
 
@@ -106,7 +122,7 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error
 	now := time.Now()
 	claims := map[string]interface{}{
 		"iss":   serviceAccountEmail,
-		"sub":   adminEmail, // The email of the admin to impersonate to read a user's groups
+		"sub":   adminEmail, // The email of the admin user to impersonate
 		"aud":   "https://oauth2.googleapis.com/token",
 		"scope": "https://www.googleapis.com/auth/admin.directory.group.readonly",
 		"iat":   now.Unix(),
@@ -187,6 +203,9 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error
 	return teams, nil
 }
 
+// HandleGoogleLogin handles the Google login process
+// It exchanges the authorization code for an access token and retrieves the user's profile
+// It also checks if the user is allowed to log in based on their email domain
 func HandleGoogleLogin(c *gin.Context) {
 	code := c.Query("code")
 	if code == "" {
@@ -202,25 +221,10 @@ func HandleGoogleLogin(c *gin.Context) {
 		return
 	}
 
-	client := googleOAuthConfig.Client(context.Background(), token)
-	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	googleUser, err := fetchGoogleUserProfile(token.AccessToken)
 	if err != nil {
 		logger.Error("Failed to get Google user info", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		logger.Warn("Error fetching user profile from Google", zap.Int("status", resp.StatusCode))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user profile from Google"})
-		return
-	}
-
-	var googleUser models.GoogleUser
-	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
-		logger.Error("Failed to decode Google user info", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user info"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -273,35 +277,10 @@ func GetGoogleProfile(c *gin.Context) {
 		return
 	}
 
-	// Fetch the user's profile from Google's API
-	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{
-		AccessToken: token,
-	}))
-	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	googleUser, err := fetchGoogleUserProfile(token)
 	if err != nil {
 		logger.Error("Failed to fetch Google user profile", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user profile"})
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		logger.Warn("Error fetching user profile from Google", zap.String("response", string(body)))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user profile from Google"})
-		return
-	}
-
-	var googleUser struct {
-		ID            string `json:"id"`
-		Name          string `json:"name"`
-		Email         string `json:"email"`
-		Picture       string `json:"picture"`
-		VerifiedEmail bool   `json:"verified_email"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
-		logger.Error("Failed to decode Google user profile", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user profile"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

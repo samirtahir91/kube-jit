@@ -30,6 +30,27 @@ var (
 	}
 )
 
+// Helper to fetch and decode Azure user profile
+func fetchAzureUserProfile(token string) (*models.AzureUser, error) {
+	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token}))
+	resp, err := client.Get("https://graph.microsoft.com/v1.0/me")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch Azure user info: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("error fetching user profile from Azure AD: %s", string(body))
+	}
+
+	var azureUser models.AzureUser
+	if err := json.NewDecoder(resp.Body).Decode(&azureUser); err != nil {
+		return nil, fmt.Errorf("failed to decode Azure user info: %w", err)
+	}
+	return &azureUser, nil
+}
+
 // HandleAzureLogin handles the Azure AD OAuth callback
 func HandleAzureLogin(c *gin.Context) {
 	code := c.Query("code")
@@ -47,28 +68,11 @@ func HandleAzureLogin(c *gin.Context) {
 		return
 	}
 
-	// Use the token to fetch user info
-	client := azureOAuthConfig.Client(context.Background(), token)
-	resp, err := client.Get("https://graph.microsoft.com/v1.0/me")
+	// Fetch user info using the helper
+	azureUser, err := fetchAzureUserProfile(token.AccessToken)
 	if err != nil {
 		logger.Error("Failed to fetch Azure user info", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user info"})
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		logger.Warn("Error fetching user profile from Azure AD", zap.String("response", string(body)))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user profile from Azure AD"})
-		return
-	}
-
-	// Decode the user info into the AzureUser struct
-	var azureUser models.AzureUser
-	if err := json.NewDecoder(resp.Body).Decode(&azureUser); err != nil {
-		logger.Error("Failed to decode Azure user info", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user info"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -118,7 +122,6 @@ func HandleAzureLogin(c *gin.Context) {
 
 // GetAzureProfile retrieves the logged-in user's profile info from Azure
 func GetAzureProfile(c *gin.Context) {
-
 	// Check if the user is logged in
 	sessionData, ok := checkLoggedIn(c)
 	if !ok {
@@ -132,33 +135,11 @@ func GetAzureProfile(c *gin.Context) {
 		return
 	}
 
-	// Use the token to fetch the user's profile from Azure's API
-	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{
-		AccessToken: token,
-	}))
-	resp, err := client.Get("https://graph.microsoft.com/v1.0/me")
+	// Fetch user info using the helper
+	azureUser, err := fetchAzureUserProfile(token)
 	if err != nil {
 		logger.Error("Failed to fetch Azure user profile", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user profile"})
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		logger.Warn("Error fetching user profile from Azure", zap.Int("status", resp.StatusCode))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user profile from Azure"})
-		return
-	}
-
-	var azureUser struct {
-		ID                string `json:"id"`
-		DisplayName       string `json:"displayName"`
-		Mail              string `json:"mail"`
-		UserPrincipalName string `json:"userPrincipalName"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&azureUser); err != nil {
-		logger.Error("Failed to decode Azure user profile", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user profile"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

@@ -17,6 +17,72 @@ import (
 	"go.uber.org/zap"
 )
 
+// Helper to fetch and decode GitHub user profile
+func fetchGitHubUserProfile(token string) (*models.GitHubUser, error) {
+	req, err := http.NewRequest("GET", "https://api.github.com/user", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request for GitHub user: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch GitHub user: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("error fetching user data from GitHub: %s", string(body))
+	}
+
+	var githubUser models.GitHubUser
+	if err := json.NewDecoder(resp.Body).Decode(&githubUser); err != nil {
+		return nil, fmt.Errorf("failed to decode GitHub user: %w", err)
+	}
+	return &githubUser, nil
+}
+
+// Helper to fetch primary/verified email if not present in user profile
+func fetchGitHubPrimaryEmail(token string) (string, error) {
+	req, err := http.NewRequest("GET", "https://api.github.com/user/emails", nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request for GitHub emails: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch GitHub emails: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("error fetching emails from GitHub: %s", string(body))
+	}
+
+	var emails []struct {
+		Email    string `json:"email"`
+		Primary  bool   `json:"primary"`
+		Verified bool   `json:"verified"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&emails); err != nil {
+		return "", fmt.Errorf("failed to decode GitHub emails: %w", err)
+	}
+	for _, e := range emails {
+		if e.Primary && e.Verified {
+			return e.Email, nil
+		}
+	}
+	for _, e := range emails {
+		if e.Verified {
+			return e.Email, nil
+		}
+	}
+	return "", fmt.Errorf("no verified email found")
+}
+
 // Fetch GitHub teams for a user using their OAuth token
 // This function is used to get the teams associated with the authenticated user
 // It sends a GET request to the GitHub API endpoint for user teams
@@ -117,75 +183,20 @@ func HandleGitHubLogin(c *gin.Context) {
 		return
 	}
 
-	// Get the user information using the access token
-	req, err = http.NewRequest("GET", "https://api.github.com/user", nil)
+	// Fetch user profile
+	githubUser, err := fetchGitHubUserProfile(tokenData.AccessToken)
 	if err != nil {
-		logger.Error("Failed to create request for GitHub user", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request for user"})
-		return
-	}
-	req.Header.Set("Authorization", tokenData.TokenType+" "+tokenData.AccessToken)
-
-	userResp, err := httpClient.Do(req)
-	if err != nil {
-		logger.Error("Failed to fetch GitHub user data", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user data"})
-		return
-	}
-	defer userResp.Body.Close()
-
-	// Check if the response status code is OK
-	if userResp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(userResp.Body)
-		logger.Warn("Error fetching user data from GitHub", zap.String("response", string(body)))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user data from GitHub"})
+		logger.Error("Failed to get GitHub user info", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	var githubUser models.GitHubUser
-	if err := json.NewDecoder(userResp.Body).Decode(&githubUser); err != nil {
-		logger.Error("Failed to decode GitHub user", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user data"})
-		return
-	}
-
-	// Fetch email from GitHub user profile
-	// If email is not present, fetch it from the emails endpoint
+	// Fetch email if not present in profile
 	email := githubUser.Email
 	if email == "" {
-		req, err := http.NewRequest("GET", "https://api.github.com/user/emails", nil)
-		if err == nil {
-			req.Header.Set("Authorization", tokenData.TokenType+" "+tokenData.AccessToken)
-			resp, err := httpClient.Do(req)
-			if err == nil && resp.StatusCode == http.StatusOK {
-				defer resp.Body.Close()
-				var emails []struct {
-					Email    string `json:"email"`
-					Primary  bool   `json:"primary"`
-					Verified bool   `json:"verified"`
-				}
-				if err := json.NewDecoder(resp.Body).Decode(&emails); err == nil {
-					for _, e := range emails {
-						if e.Primary && e.Verified {
-							email = e.Email
-							break
-						}
-					}
-					// fallback: use first verified email if no primary found
-					if email == "" {
-						for _, e := range emails {
-							if e.Verified {
-								email = e.Email
-								break
-							}
-						}
-					}
-				}
-			}
-		}
+		email, _ = fetchGitHubPrimaryEmail(tokenData.AccessToken)
 	}
 
-	// Normalize the user data
 	normalizedUserData := models.NormalizedUserData{
 		ID:        strconv.Itoa(githubUser.ID),
 		Name:      githubUser.Login,
@@ -194,7 +205,6 @@ func HandleGitHubLogin(c *gin.Context) {
 		Provider:  "github",
 	}
 
-	// Prepare session data
 	sessionData := map[string]interface{}{
 		"token": tokenData.AccessToken,
 		"email": email,
@@ -203,8 +213,6 @@ func HandleGitHubLogin(c *gin.Context) {
 	// Save the session data in the session
 	session := sessions.Default(c)
 	session.Set("data", sessionData)
-
-	// Split the session data into cookies
 	sessioncookie.SplitSessionData(c)
 
 	logger.Info("Session cookies set successfully for GitHub login", zap.String("user", githubUser.Login))
@@ -251,9 +259,7 @@ func HandleGitHubLogin(c *gin.Context) {
 	}
 }
 
-// GetGithubProfile gets the logged in users profile info
-// from GitHub using the access token stored in the session
-// It returns a JSON response with the user data or an error message if something goes wrong
+// GetGithubProfile gets the logged in user's profile info from GitHub
 func GetGithubProfile(c *gin.Context) {
 	sessionData, ok := checkLoggedIn(c)
 	if !ok {
@@ -267,70 +273,16 @@ func GetGithubProfile(c *gin.Context) {
 		return
 	}
 
-	req, err := http.NewRequest("GET", "https://api.github.com/user", nil)
-	if err != nil {
-		logger.Error("Failed to create request for GitHub user profile", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request for user profile"})
-		return
-	}
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	resp, err := httpClient.Do(req)
+	githubUser, err := fetchGitHubUserProfile(token)
 	if err != nil {
 		logger.Error("Failed to fetch GitHub user profile", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user profile"})
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		logger.Warn("Error fetching user profile from GitHub", zap.String("response", string(body)))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching user data from GitHub"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	var githubUser models.GitHubUser
-	if err := json.NewDecoder(resp.Body).Decode(&githubUser); err != nil {
-		logger.Error("Failed to decode GitHub user profile", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user profile"})
-		return
-	}
-
-	// Fetch email from GitHub user profile
 	email := githubUser.Email
-	// If email is not present, fetch it from the emails endpoint
 	if email == "" {
-		req, err := http.NewRequest("GET", "https://api.github.com/user/emails", nil)
-		if err == nil {
-			req.Header.Set("Authorization", "Bearer "+token)
-			resp, err := httpClient.Do(req)
-			if err == nil && resp.StatusCode == http.StatusOK {
-				defer resp.Body.Close()
-				var emails []struct {
-					Email    string `json:"email"`
-					Primary  bool   `json:"primary"`
-					Verified bool   `json:"verified"`
-				}
-				if err := json.NewDecoder(resp.Body).Decode(&emails); err == nil {
-					for _, e := range emails {
-						if e.Primary && e.Verified {
-							email = e.Email
-							break
-						}
-					}
-					// fallback: use first verified email if no primary found
-					if email == "" {
-						for _, e := range emails {
-							if e.Verified {
-								email = e.Email
-								break
-							}
-						}
-					}
-				}
-			}
-		}
+		email, _ = fetchGitHubPrimaryEmail(token)
 	}
 
 	normalizedUserData := models.NormalizedUserData{
