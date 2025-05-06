@@ -1,6 +1,4 @@
 Todo:
-- refactor login for providers as duplicated in get profile
-- refactor k8s.go to use structs, include groupName in struct
 
 stretch
 - refresh token?
