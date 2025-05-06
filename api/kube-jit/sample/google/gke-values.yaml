@@ -31,9 +31,11 @@ config:
 
   oauth:
     provider: "google"
-    clientID: "630940189304-8uggsmkv6to2vu5sogsjrhge1m57t8cr.apps.googleusercontent.com"
+    #clientID: "630940189304-8uggsmkv6to2vu5sogsjrhge1m57t8cr.apps.googleusercontent.com"
+    clientID: "1092664767459-r6ettji6chf3bp1hilb0dear4f6abbju.apps.googleusercontent.com"
     redirectUri: "http://localhost:5173/"
-    clientSecretKeyRef: googleClientSecret
+    clientSecretKeyRef: googleClientSecretWS
+    #clientSecretKeyRef: googleClientSecret
     googleAdminEmail: "samir@samirtahir.dev"
 
   smtp:
