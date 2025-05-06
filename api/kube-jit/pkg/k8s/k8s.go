@@ -83,8 +83,10 @@ var (
 		Version:  "v1",
 		Resource: "jitrequests",
 	}
-	dynamicClientCache sync.Map
-	jitGroupsCache     sync.Map
+	dynamicClientCache   sync.Map
+	jitGroupsCache       sync.Map
+	callbackHostOverride string // from utils.MustGetEnv("CALLBACK_HOST_OVERRIDE") to be used in CreateK8sObject
+
 )
 
 // InitK8sConfig loads clusters, roles and approver teams from configMap into global vars
@@ -95,6 +97,8 @@ var (
 func InitK8sConfig() {
 	var config *rest.Config
 	var err error
+
+	callbackHostOverride = utils.MustGetEnv("CALLBACK_HOST_OVERRIDE")
 
 	// Load in-cluster kube config
 	config, err = rest.InClusterConfig()
@@ -347,8 +351,7 @@ func CreateK8sObject(req models.RequestData, approverName string) error {
 	endTime := metav1.NewTime(req.EndDate)
 
 	// Generate signed URL for callback
-	baseUrl := utils.MustGetEnv("CALLBACK_HOST_OVERRIDE")
-	callbackBaseURL := baseUrl + "/kube-jit-api/k8s-callback"
+	callbackBaseURL := callbackHostOverride + "/kube-jit-api/k8s-callback"
 	signedURL, err := utils.GenerateSignedURL(callbackBaseURL, req.EndDate)
 	if err != nil {
 		logger.Error("Failed to generate signed URL", zap.Error(err))

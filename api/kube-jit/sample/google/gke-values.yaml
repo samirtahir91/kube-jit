@@ -1,4 +1,6 @@
 config:
+  callbackHostOverride: http://localhost:8589
+
   allowedRoles:
     - name: edit
     - name: admin
