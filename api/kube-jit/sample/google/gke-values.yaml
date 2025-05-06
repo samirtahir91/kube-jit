@@ -52,6 +52,7 @@ config:
     port: 1025
     user: ""
     from: jit-gke@example.com
+    timezone: Europe/London
 
 serviceAccount:
   annotations:

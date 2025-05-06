@@ -28,8 +28,9 @@ config:
   #   host: smtp.example.com
   #   port: 587
   #   user: your_smtp_user
-  #   passSecretKey: smtpPass # <-- name of the key in the secret kube-jit-api-secrets
+  #   passSecretKey: smtpPass # name of the key in the secret kube-jit-api-secrets
   #   from: jit@example.com
+  #   timezone: Europe/London # timezone for email notifications
 
   # This is the secret key in the kube-jit-api-secrets secret
   # This secret key value will contain the hmac secret key for signing the jwt tokens

@@ -2,12 +2,27 @@ package email
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
+
+var emailLoc *time.Location
+
+func init() {
+	locName := os.Getenv("EMAIL_TIMEZONE")
+	if locName == "" {
+		locName = "Europe/London" // default fallback
+	}
+	var err error
+	emailLoc, err = time.LoadLocation(locName)
+	if err != nil {
+		emailLoc = time.UTC // fallback to UTC if invalid
+	}
+}
 
 // EmailRequestDetails holds the details for the email template
 type EmailRequestDetails struct {
@@ -29,6 +44,8 @@ type EmailRequestDetails struct {
 // The function returns the generated HTML string
 func BuildRequestEmail(details EmailRequestDetails) string {
 	caser := cases.Title(language.English)
+	startLocal := details.StartDate.In(emailLoc)
+	endLocal := details.EndDate.In(emailLoc)
 	return fmt.Sprintf(`
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border:1px solid #e0e0e0; border-radius:8px; overflow:hidden;">
             <div style="background: #1b4fa4; color: #fff; padding: 18px 24px;">
@@ -63,8 +80,8 @@ func BuildRequestEmail(details EmailRequestDetails) string {
 		details.RoleName,
 		caser.String(details.Status),
 		details.Justification,
-		details.StartDate.Format("2006-01-02 15:04"),
-		details.EndDate.Format("2006-01-02 15:04"),
+		startLocal.Format("2006-01-02 15:04 MST"),
+		endLocal.Format("2006-01-02 15:04 MST"),
 		func() string {
 			if details.Message != "" {
 				return fmt.Sprintf(`<div style="margin-top: 18px; padding: 12px; background: #fffbe6; border-left: 4px solid #ffe066;"><b>Notes:</b> %s</div>`, details.Message)

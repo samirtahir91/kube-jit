@@ -60,6 +60,7 @@ config:
     port: 1025
     user: ""
     from: jit@example.com
+    timezone: Europe/London
 
 db:
   passwordSecretKey: azDbPass

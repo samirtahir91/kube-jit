@@ -170,6 +170,8 @@ spec:
           - name: GOOGLE_ADMIN_EMAIL
             value: {{ .Values.config.oauth.googleAdminEmail | quote }}
           {{- end }}
+          - name: EMAIL_TIMEZONE
+            value: {{ .Values.config.smtp.timezone | quote }}
           volumeMounts:
           - name: config
             mountPath: {{ printf "%s/apiConfig.yaml" (.Values.config.configMountPath | default "/etc/config") | quote }}
