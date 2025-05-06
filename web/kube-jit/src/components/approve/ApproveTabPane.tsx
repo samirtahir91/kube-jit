@@ -125,20 +125,22 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
                         selectedRequests={selectedRequests}
                         handleSelectRequest={handleSelectRequest}
                     />
-                <button
-                    className="approver-button approve"
-                    disabled={selectedRequests.length === 0}
-                    onClick={() => handleSelected('Approved')}
-                >
-                    <i className="bi bi-check-circle me-1"></i> Approve
-                </button>
-                <button
-                    className="approver-button reject mx-2"
-                    disabled={selectedRequests.length === 0}
-                    onClick={() => handleSelected('Rejected')}
-                >
-                    <i className="bi bi-x-circle me-1"></i> Reject
-                </button>
+                    <div className="mt-3">
+                        <button
+                            className="approver-button approve"
+                            disabled={selectedRequests.length === 0}
+                            onClick={() => handleSelected('Approved')}
+                        >
+                            <i className="bi bi-check-circle me-1"></i> Approve
+                        </button>
+                        <button
+                            className="approver-button reject mx-2"
+                            disabled={selectedRequests.length === 0}
+                            onClick={() => handleSelected('Rejected')}
+                        >
+                            <i className="bi bi-x-circle me-1"></i> Reject
+                        </button>
+                    </div>
                 </>
             )}
         </Tab.Pane>
