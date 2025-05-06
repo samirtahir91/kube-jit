@@ -32,6 +32,9 @@ config:
       region: "test"
 
   callbackHostOverride: http://localhost:8589
+  
+  allowedDomain: "samirtahir91gmail.onmicrosoft.com"         # For Google/Azure
+  allowedGithubOrg: "samirtahir91-org"            # For GitHub
 
   oauth:
     # provider: "azure"

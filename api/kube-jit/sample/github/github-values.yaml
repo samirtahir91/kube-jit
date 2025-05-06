@@ -25,7 +25,10 @@ config:
       region: europe-west2
 
   callbackHostOverride: http://localhost:8589
-
+  
+  allowedDomain: "samirtahir.dev"         # For Google/Azure
+  allowedGithubOrg: "samirtahir91-org"            # For GitHub
+  
   oauth:
     provider: "github"
     clientID: Iv23likSg0AQoOUi18q7

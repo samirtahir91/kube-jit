@@ -29,14 +29,22 @@ config:
       projectID: sacred-entry-304212
       region: europe-west2
 
+  allowedDomain: "samirtahir.dev"         # For Google/Azure
+  allowedGithubOrg: "samirtahir91-org"            # For GitHub
+
   oauth:
     provider: "google"
-    #clientID: "630940189304-8uggsmkv6to2vu5sogsjrhge1m57t8cr.apps.googleusercontent.com"
-    clientID: "1092664767459-r6ettji6chf3bp1hilb0dear4f6abbju.apps.googleusercontent.com"
+    clientID: "630940189304-8uggsmkv6to2vu5sogsjrhge1m57t8cr.apps.googleusercontent.com"
+    #clientID: "1092664767459-r6ettji6chf3bp1hilb0dear4f6abbju.apps.googleusercontent.com"
     redirectUri: "http://localhost:5173/"
-    clientSecretKeyRef: googleClientSecretWS
-    #clientSecretKeyRef: googleClientSecret
+    #clientSecretKeyRef: googleClientSecretWS
+    clientSecretKeyRef: googleClientSecret
     googleAdminEmail: "samir@samirtahir.dev"
+
+    # provider: "github"
+    # clientID: Iv23likSg0AQoOUi18q7
+    # redirectUri: "http://localhost:5173/"
+    # clientSecretKeyRef: ghAppClientSecret
 
   smtp:
     enabled: true

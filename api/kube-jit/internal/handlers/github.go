@@ -213,6 +213,42 @@ func HandleGitHubLogin(c *gin.Context) {
 		"userData":  normalizedUserData,
 		"expiresIn": tokenData.ExpiresIn,
 	})
+
+	// Fetch orgs for the user
+	orgReq, err := http.NewRequest("GET", "https://api.github.com/user/orgs", nil)
+	if err != nil {
+		logger.Error("Failed to create request for GitHub orgs", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request for orgs"})
+		return
+	}
+	orgReq.Header.Set("Authorization", tokenData.TokenType+" "+tokenData.AccessToken)
+	orgResp, err := httpClient.Do(orgReq)
+	if err != nil {
+		logger.Error("Failed to fetch GitHub orgs", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch orgs"})
+		return
+	}
+	defer orgResp.Body.Close()
+
+	var orgs []struct {
+		Login string `json:"login"`
+	}
+	if err := json.NewDecoder(orgResp.Body).Decode(&orgs); err != nil {
+		logger.Error("Failed to decode GitHub orgs", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode orgs"})
+		return
+	}
+	orgNames := []string{}
+	for _, org := range orgs {
+		orgNames = append(orgNames, org.Login)
+	}
+	extraInfo := map[string]any{"orgs": orgNames}
+
+	if !isAllowedUser("github", email, extraInfo) {
+		logger.Warn("Login attempt from unauthorized GitHub org", zap.String("email", email))
+		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized org"})
+		return
+	}
 }
 
 // GetGithubProfile gets the logged in users profile info

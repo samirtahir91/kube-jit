@@ -7,6 +7,7 @@ import (
 	"io"
 	"kube-jit/internal/models"
 	"kube-jit/pkg/sessioncookie"
+	"kube-jit/pkg/utils"
 	"net/http"
 	"strings"
 	"sync"
@@ -38,7 +39,16 @@ var (
 	gsaEmail     string
 	gsaEmailErr  error
 	gsaEmailOnce sync.Once
+	adminEmail   string
 )
+
+func init() {
+	// Set the admin email for Google Workspace
+	// This email is used to impersonate the user to read their groups
+	if oauthProvider == "google" {
+		adminEmail = utils.MustGetEnv("GOOGLE_ADMIN_EMAIL")
+	}
+}
 
 // getGSAEmail retrieves the Google Service Account (GSA) email from the metadata server
 // It caches the email to avoid multiple requests
@@ -211,6 +221,13 @@ func HandleGoogleLogin(c *gin.Context) {
 	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
 		logger.Error("Failed to decode Google user info", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user info"})
+		return
+	}
+
+	// Check if the user is allowed to log in
+	if !isAllowedUser("google", googleUser.Email, nil) {
+		logger.Warn("Login attempt from unauthorized Google domain", zap.String("email", googleUser.Email))
+		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized domain"})
 		return
 	}
 

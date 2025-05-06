@@ -41,6 +41,11 @@ config:
     allowOrigins:
       - "http://example.com:80"
       - "http://localhost:5173"
+
+  # Allowed domain to login with (for google and azure only)
+  allowedDomain: "yourdomain.com"         # For Google/Azure
+  # Allowed org to login with (for github)
+  allowedGithubOrg: "your-org"            # For GitHub
   
   # List of allowed cluster roles to request for jit requests (name as per cluster role)
   allowedRoles: []

@@ -60,6 +60,10 @@ spec:
             value: {{ quote .Values.config.configMountPath | default "/etc/config/" }}
           - name: ALLOW_ORIGINS
             value: '{{ .Values.config.cors.allowOrigins | toJson }}'
+          - name: ALLOWED_DOMAIN
+            value: {{ .Values.config.allowedDomain | quote }}
+          - name: ALLOWED_GITHUB_ORG
+            value: {{ .Values.config.allowedGithubOrg | quote }}
           - name: CALLBACK_HOST_OVERRIDE
             {{- if .Values.ingress.enabled }}
             value: {{ quote .Values.config.callbackHostOverride | default .Values.ingress.hosts }}

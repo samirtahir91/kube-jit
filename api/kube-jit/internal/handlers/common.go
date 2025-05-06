@@ -10,6 +10,7 @@ import (
 	"kube-jit/pkg/utils"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/sessions"
@@ -19,11 +20,13 @@ import (
 )
 
 var (
+	// Get OAuth values environment variables
 	oauthProvider = utils.MustGetEnv("OAUTH_PROVIDER")
 	clientID      = utils.MustGetEnv("OAUTH_CLIENT_ID")
 	clientSecret  = utils.MustGetEnv("OAUTH_CLIENT_SECRET")
 	redirectUri   = utils.MustGetEnv("OAUTH_REDIRECT_URI")
-	adminEmail    string
+	allowedDomain string
+	allowedOrg    string
 	httpClient    = &http.Client{
 		Timeout: 60 * time.Second,
 	}
@@ -31,9 +34,12 @@ var (
 
 func init() {
 	// Set the admin email for Google OAuth provider
-	// Required for Domain-Wide Delegation and user impersonation vi GSA/Workload Identity
 	if oauthProvider == "google" {
-		adminEmail = utils.MustGetEnv("GOOGLE_ADMIN_EMAIL")
+		allowedDomain = utils.MustGetEnv("ALLOWED_DOMAIN")
+	} else if oauthProvider == "github" {
+		allowedOrg = utils.MustGetEnv("ALLOWED_GITHUB_ORG")
+	} else if oauthProvider == "azure" {
+		allowedDomain = utils.MustGetEnv("ALLOWED_DOMAIN")
 	}
 }
 
@@ -925,4 +931,28 @@ func MatchUserGroups(
 	isAdmin = len(matchedAdminGroups) > 0
 	isPlatformApprover = len(matchedPlatformApproverGroups) > 0
 	return
+}
+
+// isAllowedUser checks if the user is allowed to access the api
+// It checks the provider and email domain for Google and Azure
+// and checks the organization membership for GitHub
+// It returns true if the user is allowed, false otherwise
+func isAllowedUser(provider, email string, extraInfo map[string]any) bool {
+	switch provider {
+	case "google", "azure":
+		return strings.HasSuffix(email, "@"+allowedDomain)
+	case "github":
+		orgs, ok := extraInfo["orgs"].([]string)
+		if !ok {
+			return false
+		}
+		for _, org := range orgs {
+			if org == allowedOrg {
+				return true
+			}
+		}
+		return false
+	default:
+		return false
+	}
 }

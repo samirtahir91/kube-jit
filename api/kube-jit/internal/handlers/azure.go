@@ -78,6 +78,13 @@ func HandleAzureLogin(c *gin.Context) {
 		email = azureUser.UserPrincipalName
 	}
 
+	// Check if the user is allowed to log in
+	if !isAllowedUser("azure", email, nil) {
+		logger.Warn("Login attempt from unauthorized Azure domain", zap.String("email", email))
+		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized domain"})
+		return
+	}
+
 	// Normalize the user data
 	normalizedUserData := models.NormalizedUserData{
 		ID:        azureUser.ID,
