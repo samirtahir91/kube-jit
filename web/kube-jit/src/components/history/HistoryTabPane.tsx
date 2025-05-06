@@ -105,38 +105,42 @@ const HistoryTabPane = ({ isAdmin, isPlatformApprover, activeTab, originTab, use
                         </Col>
                     </>
                 )}
-                <Col md={2} xs={12} className="mb-3">
+                <Col md={2} xs={6} className="mb-3">
                     <Form.Group controlId="startDate" className="text-start">
                         <Form.Label>Start Date</Form.Label>
-                        <DatePicker
-                            selected={startDate}
-                            onChange={(date: Date | null) => date && setStartDate(date)}
-                            showTimeSelect
-                            timeFormat="HH:mm"
-                            timeIntervals={15}
-                            dateFormat="yyyy-MM-dd HH:mm"
-                            className="form-control"
-                            placeholderText="Select Start Date"
-                        />
-                    </Form.Group>
-                </Col>
-                <Col md={2} xs={12} className="mb-3">
-                    <Form.Group controlId="endDate" className="text-start">
-                        <Form.Label>End Date</Form.Label>
-                        <DatePicker
-                            selected={endDate}
-                            onChange={(date: Date | null) => date && setEndDate(date)}
-                            showTimeSelect
-                            timeFormat="HH:mm"
-                            timeIntervals={15}
-                            dateFormat="yyyy-MM-dd HH:mm"
-                            className="form-control"
-                            placeholderText="Select End Date"
-                        />
+                        <div>
+                            <DatePicker
+                                selected={startDate}
+                                onChange={(date: Date | null) => date && setStartDate(date)}
+                                showTimeSelect
+                                timeFormat="HH:mm"
+                                timeIntervals={15}
+                                dateFormat="yyyy-MM-dd HH:mm"
+                                className="form-control"
+                                placeholderText="Select Start Date"
+                            />
+                        </div>
                     </Form.Group>
                 </Col>
                 <Col md={2} xs={6} className="mb-3">
-                    <Form.Group controlId="limit" className="text-start">
+                    <Form.Group controlId="endDate" className="text-start">
+                        <Form.Label>End Date</Form.Label>
+                        <div>
+                            <DatePicker
+                                selected={endDate}
+                                onChange={(date: Date | null) => date && setEndDate(date)}
+                                showTimeSelect
+                                timeFormat="HH:mm"
+                                timeIntervals={15}
+                                dateFormat="yyyy-MM-dd HH:mm"
+                                className="form-control"
+                                placeholderText="Select End Date"
+                            />
+                        </div>
+                    </Form.Group>
+                </Col>
+                <Col md={2} xs={6} className="mb-3">
+                    <Form.Group controlId="limit">
                         <Form.Label>Limit (max {(isAdmin || isPlatformApprover) ? 100 : 20})</Form.Label>
                         <Form.Control
                             type="number"

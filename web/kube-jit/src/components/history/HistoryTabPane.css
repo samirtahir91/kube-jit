@@ -22,8 +22,16 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Reset shadow on click */
 }
 
-/* Make all form labels in the history search row bold and dark blue */
+/* Ensure all form labels in the history search row are left-aligned */
 .history-search-row .form-label {
   font-weight: bold;
   color: #003f7f;
+  text-align: left !important;
+  display: block;
+}
+
+/* Limit the width of the limit input field */
+.history-search-row #limit.form-control {
+  max-width: 120px;
+  min-width: 70px;
 }
