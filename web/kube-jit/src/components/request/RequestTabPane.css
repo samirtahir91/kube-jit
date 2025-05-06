@@ -104,29 +104,6 @@
     color: #1b4fa4;
 }
 
-/* Fade-in animation */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px); /* Slightly slide up */
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0); /* Final position */
-    }
-}
-
-@keyframes fadeInList {
-    from {
-        opacity: 0;
-        transform: translateX(-10px); /* Slide in from the left */
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
 .request-page-container {
     padding: 2rem;
 }
@@ -235,6 +212,17 @@
     to {
         opacity: 1;
         transform: translateY(0); /* Final position */
+    }
+}
+
+@keyframes fadeInList {
+    from {
+        opacity: 0;
+        transform: translateX(-10px); /* Slide in from the left */
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
     }
 }
 

@@ -91,7 +91,7 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
 
     const handleConfirmSubmit = () => {
         setLoadingInCard(true);
-        const timeoutDuration: number = 1000; // set timeout
+        const timeoutDuration: number = 2000; // set timeout
         const payload = {
             justification,
             users,
