@@ -5,7 +5,7 @@ config:
   
   platformApproverTeams:
     - name: "jit approvers"
-      id: 12769788
+      id: "12769788"
     - name: "jit approvers google"
       id: jit-approvers-google@samirtahir.dev
     - name: "jit approvers azure"
@@ -34,17 +34,22 @@ config:
   callbackHostOverride: http://localhost:8589
 
   oauth:
-    provider: "azure"
-    clientID: 4752dbc4-0195-4ec9-973e-c68bdc6696c5
-    redirectUri: "http://localhost:5173/"
-    #redirectUri: "https://jit-test.samirtahir.dev/"
-    clientSecretKeyRef: azureClientSecret
-    azureAuthUrl: "https://login.microsoftonline.com/b2d528a4-58f5-4aef-b021-041d1b5378f1/oauth2/v2.0/authorize"
-    azureTokenUrl: "https://login.microsoftonline.com/b2d528a4-58f5-4aef-b021-041d1b5378f1/oauth2/v2.0/token"
+    # provider: "azure"
+    # clientID: 4752dbc4-0195-4ec9-973e-c68bdc6696c5
+    # redirectUri: "http://localhost:5173/"
+    # #redirectUri: "https://jit-test.samirtahir.dev/"
+    # clientSecretKeyRef: azureClientSecret
+    # azureAuthUrl: "https://login.microsoftonline.com/b2d528a4-58f5-4aef-b021-041d1b5378f1/oauth2/v2.0/authorize"
+    # azureTokenUrl: "https://login.microsoftonline.com/b2d528a4-58f5-4aef-b021-041d1b5378f1/oauth2/v2.0/token"
     # provider: "google"
     # clientID: "630940189304-8uggsmkv6to2vu5sogsjrhge1m57t8cr.apps.googleusercontent.com"
-    # redirectUri: "https://jit-test.samirtahir.dev/"
+    # #redirectUri: "https://jit-test.samirtahir.dev/"
+    # redirectUri: "http://localhost:5173/"
     # clientSecretKeyRef: googleClientSecret
+    provider: "github"
+    clientID: Iv23likSg0AQoOUi18q7
+    redirectUri: "http://localhost:5173/"
+    clientSecretKeyRef: ghAppClientSecret
 
   smtp:
     enabled: true

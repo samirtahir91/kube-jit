@@ -89,7 +89,7 @@ config:
   # configMountPath sets the mountPath of the api configMap in the pod, defaults to /etc/config/
   #configMountPath: ""
   
-  # Oauth either configure for github or google
+  # Oauth either configure for github, azure, or google
   oauth:
     # This is the secret key in the kube-jit-api-secrets secret
     # This secret key value will contain the cookie secret key for signing the cookies
@@ -104,10 +104,12 @@ config:
     cookieSameSite: "Lax"   # Options: "Lax", "Strict", "None"
     # Your Oauth provider, "github" for GithubApp, "azure" for AAD, "google" for Google Oauth
    
+    # "github", "azure" or "google"
+    # For google provider, you must run API in GKE with workload identity enabled and domain wide delegation on your google workspace.
     provider:
     # Your Client ID
     clientID: "your-client-id"
-    # Your Google Redirect URL
+    # Your Redirect URL
     redirectUri: "http://localhost:8589/auth/callback"
     # This is the secret key in the kube-jit-api-secrets secret
     # This secret key value will contain the client secret for the Oauth
