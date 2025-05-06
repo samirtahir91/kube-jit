@@ -119,6 +119,7 @@ const HistoryTabPane = ({ isAdmin, isPlatformApprover, activeTab, originTab, use
                             <Form.Label>Start Date</Form.Label>
                             <div>
                                 <DatePicker
+                                    id="startDate"
                                     selected={startDate}
                                     onChange={(date: Date | null) => date && setStartDate(date)}
                                     showTimeSelect
@@ -136,6 +137,7 @@ const HistoryTabPane = ({ isAdmin, isPlatformApprover, activeTab, originTab, use
                             <Form.Label>End Date</Form.Label>
                             <div>
                                 <DatePicker
+                                    id="endDate"                                
                                     selected={endDate}
                                     onChange={(date: Date | null) => date && setEndDate(date)}
                                     showTimeSelect

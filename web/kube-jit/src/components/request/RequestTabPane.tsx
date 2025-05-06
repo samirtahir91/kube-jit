@@ -364,6 +364,7 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                                     <Form.Label>Start Date</Form.Label>
                                     <div>
                                         <DatePicker
+                                            id="startDate"
                                             onKeyDown={(e) => {
                                                 e.preventDefault();
                                             }}
@@ -395,6 +396,7 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                                     <Form.Label>End Date</Form.Label>
                                     <div>
                                         <DatePicker
+                                            id="endDate"
                                             onKeyDown={(e) => {
                                                 e.preventDefault();
                                             }}

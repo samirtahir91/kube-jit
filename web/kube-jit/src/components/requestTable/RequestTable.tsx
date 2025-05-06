@@ -210,6 +210,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                     <th className="table-colour th-username">
                                         Requestee
                                         <input
+                                            id="requestee"
                                             type="text"
                                             placeholder="Filter"
                                             className="form-control form-control-sm mt-1"
@@ -221,6 +222,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                         <th className="table-colour th-approvers">
                                             Approvers
                                             <input
+                                                id="approvers"
                                                 type="text"
                                                 placeholder="Filter"
                                                 className="form-control form-control-sm mt-1"
@@ -237,6 +239,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                     <th className="table-colour th-users">
                                         Users
                                         <input
+                                            id="users"
                                             type="text"
                                             placeholder="Filter"
                                             className="form-control form-control-sm mt-1"
@@ -247,6 +250,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                     <th className="table-colour th-cluster">
                                         Cluster
                                         <input
+                                            id="cluster"
                                             type="text"
                                             placeholder="Filter"
                                             className="form-control form-control-sm mt-1"
@@ -257,6 +261,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                     <th className="table-colour th-namespaces">
                                         Namespaces
                                         <input
+                                            id="namespaces"
                                             type="text"
                                             placeholder="Filter"
                                             className="form-control form-control-sm mt-1"
@@ -268,6 +273,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                     <th className="table-colour th-role">
                                         Role
                                         <input
+                                            id="role"
                                             type="text"
                                             placeholder="Filter"
                                             className="form-control form-control-sm mt-1"
@@ -280,6 +286,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                         <th className="table-colour th-status">
                                             Status
                                             <select
+                                                id="status"
                                                 className="form-select form-select-sm mt-1"
                                                 value={filters.status}
                                                 onChange={(e) => handleFilterChange(e, 'status')}
@@ -308,6 +315,7 @@ const RequestTable: React.FC<RequestTableProps> = ({ mode, requests, selectable,
                                                     <td>
                                                         <label className="select-checkbox-label">
                                                             <input
+                                                                id="select-checkbox"
                                                                 type="checkbox"
                                                                 checked={selectedRequests.includes(pendingRequest.ID)}
                                                                 onChange={() => handleSelectRequest(pendingRequest.ID)}
