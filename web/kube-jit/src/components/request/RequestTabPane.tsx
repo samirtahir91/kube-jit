@@ -238,7 +238,7 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
     };
 
     return (
-        <Tab.Pane eventKey="request">
+        <Tab.Pane eventKey="request" className="text-start py-3">
             <div className="request-page-container">
                 {/* Description Section */}
                 <div className="form-description">

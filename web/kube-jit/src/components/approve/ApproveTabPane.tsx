@@ -76,7 +76,8 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
     }, []);
 
     return (
-        <Tab.Pane eventKey="approve" className="text-start py-4">
+        <Tab.Pane eventKey="approve" className="text-start py-3">
+            <div className="request-page-container">
             {errorMessage && (
                 <div className="error-message mt-3">
                     <i className="bi bi-exclamation-circle-fill me-2"></i>
@@ -143,6 +144,7 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
                     </div>
                 </>
             )}
+            </div>
         </Tab.Pane>
     );
 };
