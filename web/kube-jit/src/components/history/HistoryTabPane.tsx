@@ -5,7 +5,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import './HistoryTabPane.css';
 import RequestTable from '../requestTable/RequestTable';
-import { Request } from '../../types'; // Import the shared Request type
+import { Request } from '../../types';
 import config from '../../config/config';
 
 type HistoryTabPaneProps = {
@@ -23,8 +23,8 @@ const HistoryTabPane = ({ isAdmin, isPlatformApprover, activeTab, originTab, use
     const [limit, setLimit] = useState(1);
     const [startDate, setStartDate] = useState<Date | null>(null);
     const [endDate, setEndDate] = useState<Date | null>(null);
-    const [searchUserId, setSearchUserId] = useState(''); // New state for userID
-    const [searchUsername, setSearchUsername] = useState(''); // New state for username
+    const [searchUserId, setSearchUserId] = useState('');
+    const [searchUsername, setSearchUsername] = useState('');
     const [hasSearched, setHasSearched] = useState(false);
     const [variant, setVariant] = useState<'light' | 'dark'>('light');
 
@@ -34,8 +34,8 @@ const HistoryTabPane = ({ isAdmin, isPlatformApprover, activeTab, originTab, use
             const response = await axios.get(`${config.apiBaseUrl}/kube-jit-api/history`, {
                 params:
                     {
-                        userID: (isAdmin || isPlatformApprover) ? searchUserId : userId, // Use searchUserId if admin/platform approver
-                        username: (isAdmin || isPlatformApprover) ? searchUsername : undefined, // Use searchUsername if admin/platform approver
+                        userID: (isAdmin || isPlatformApprover) ? searchUserId : userId,
+                        username: (isAdmin || isPlatformApprover) ? searchUsername : undefined,
                         limit: limit,
                         startDate: startDate ? startDate.toISOString() : undefined,
                         endDate: endDate ? endDate.toISOString() : undefined,
