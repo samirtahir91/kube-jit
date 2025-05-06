@@ -30,6 +30,7 @@ import (
 
 const jitgroupcacheName = "jitgroupcache" // Static name for the JitGroupCache object
 
+// Config represents the configuration for the API
 type Config struct {
 	Clusters              []ClusterConfig `yaml:"clusters"`
 	AllowedRoles          []models.Roles  `yaml:"allowedRoles"`
@@ -37,6 +38,7 @@ type Config struct {
 	AdminTeams            []models.Team   `yaml:"adminTeams"`
 }
 
+// ClusterConfig represents the configuration for a cluster
 type ClusterConfig struct {
 	Name        string `yaml:"name"`
 	Host        string `yaml:"host"`
@@ -49,16 +51,19 @@ type ClusterConfig struct {
 	Region      string `yaml:"region"`    // Region for GKE clusters
 }
 
+// CachedClient represents a cached dynamic client for a cluster
 type CachedClient struct {
 	Client       *dynamic.DynamicClient
 	TokenExpires int64 // Unix timestamp for token expiration
 }
 
+// JitGroupsCache represents the cache for JitGroups
 type JitGroupsCache struct {
 	JitGroups *unstructured.Unstructured
 	ExpiresAt int64 // Unix timestamp for cache expiration
 }
 
+// JitGroup represents a JitGroup in the JitGroups CRD
 type JitGroup struct {
 	GroupID   string `json:"groupID"`
 	Namespace string `json:"namespace"`
@@ -83,6 +88,10 @@ var (
 )
 
 // InitK8sConfig loads clusters, roles and approver teams from configMap into global vars
+// and creates a dynamic client for each cluster
+// It also loads the kubeconfig from the local file system or in-cluster config
+// and creates a local clientset for the API server
+// It is called during the initialization of the API in main.go
 func InitK8sConfig() {
 	var config *rest.Config
 	var err error
@@ -136,6 +145,7 @@ func InitK8sConfig() {
 	PlatformApproverTeams = ApiConfig.PlatformApproverTeams
 	AdminTeams = ApiConfig.AdminTeams
 
+	// Log loaded config
 	logger.Info("Allowed roles loaded", zap.Int("count", len(AllowedRoles)))
 	for _, role := range AllowedRoles {
 		logger.Info("Allowed role", zap.String("name", role.Name))
@@ -174,6 +184,11 @@ func getTokenFromSecret(secretName string) string {
 }
 
 // createDynamicClient creates and returns a dynamic client based on cluster in request
+// It caches the client and token expiration time to avoid creating a new client for each request
+// It also invalidates the JitGroups cache if the token is expired
+// It uses the cluster type to determine how to create the client (GKE, AKS, or generic)
+// It uses the Google Cloud SDK for GKE and Azure SDK for AKS
+// It uses the Kubernetes client-go library for generic clusters
 func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 	// Check if the dynamic client for the cluster is already cached
 	if cached, exists := dynamicClientCache.Load(req.ClusterName); exists {
@@ -199,7 +214,7 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 
 	// Use a switch statement to handle different cluster types
 	switch selectedCluster.Type {
-	case "gke":
+	case "gke": // Google Kubernetes Engine
 		logger.Info("Using Google Cloud SDK to access GKE cluster", zap.String("cluster", req.ClusterName))
 		// GKE-specific logic
 		ctx := context.Background()
@@ -244,7 +259,7 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 		// Set token expiration time (e.g., 5 minutes before actual expiration)
 		tokenExpires = token.Expiry.Unix() - 300
 
-	case "aks":
+	case "aks": // Azure Kubernetes Service
 		logger.Info("Using Azure SDK to access AKS cluster", zap.String("cluster", req.ClusterName))
 		// AKS-specific logic
 		cred, err := azidentity.NewDefaultAzureCredential(nil)
@@ -285,7 +300,7 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 		// Set token expiration time (e.g., 1 hour)
 		tokenExpires = time.Now().Add(1 * time.Hour).Unix()
 
-	default:
+	default: // Generic Kubernetes cluster
 		logger.Info("Using generic configuration for cluster", zap.String("cluster", req.ClusterName))
 		// Generic cluster logic
 		apiServerURL := selectedCluster.Host
@@ -322,6 +337,10 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 }
 
 // CreateK8sObject creates the k8s JitRequest object on target cluster
+// It uses the dynamic client to create the object
+// It takes the request data and approver name as input
+// It generates a signed URL for the callback and sets the start and end times
+// It returns an error if the creation fails
 func CreateK8sObject(req models.RequestData, approverName string) error {
 	// Convert time.Time to metav1.Time
 	startTime := metav1.NewTime(req.StartDate)
@@ -375,6 +394,9 @@ func CreateK8sObject(req models.RequestData, approverName string) error {
 }
 
 // GetJitGroups retrieves the JitGroups for a cluster, using cache if available
+// It checks if the cache is still valid and refreshes it if expired
+// It fetches the JitGroups from the cluster if not in cache or if expired
+// It returns the JitGroups object or an error if fetching fails
 func GetJitGroups(clusterName string) (*unstructured.Unstructured, error) {
 	// Check if the cache exists
 	if cached, exists := jitGroupsCache.Load(clusterName); exists {
@@ -407,6 +429,9 @@ func GetJitGroups(clusterName string) (*unstructured.Unstructured, error) {
 	return jitGroups, nil
 }
 
+// fetchJitGroupsFromCluster fetches the JitGroups from the cluster using the dynamic client
+// It uses the dynamic client to query the JitGroups CRD
+// It returns the JitGroups object or an error if fetching fails
 func fetchJitGroupsFromCluster(clusterName string) (*unstructured.Unstructured, error) {
 	dynamicClient := createDynamicClient(models.RequestData{ClusterName: clusterName})
 
@@ -430,6 +455,9 @@ func InvalidateJitGroupsCache(clusterName string) {
 }
 
 // ValidateNamespaces checks if the given namespaces are valid for the cluster
+// It fetches the JitGroups for the cluster and checks if the namespaces exist in the JitGroups
+// It returns a map of namespaces with their corresponding group IDs and names
+// or an error if any namespace is invalid
 func ValidateNamespaces(clusterName string, namespaces []string) (map[string]struct{ GroupID, GroupName string }, error) {
 	jitGroups, err := GetJitGroups(clusterName)
 	if err != nil {

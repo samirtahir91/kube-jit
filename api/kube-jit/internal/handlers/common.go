@@ -142,7 +142,7 @@ func ApproveOrRejectRequests(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData, ok := checkLoggedIn(c)
 	if !ok {
-		return // The response has already been sent by CheckLoggedIn
+		return
 	}
 
 	// Check if the user is an admin or platform approver
@@ -241,6 +241,9 @@ func ApproveOrRejectRequests(c *gin.Context) {
 }
 
 // Helper function to process approval logic for each request
+// It updates the request status and approver information in the database
+// It also creates the k8s object if all namespaces are approved
+// It sends an email notification to the user if the request is approved
 func processApproval(
 	requestID uint,
 	requestData models.RequestData,
@@ -355,7 +358,7 @@ func processApproval(
 			StartDate:     req.StartDate,
 			EndDate:       req.EndDate,
 			Status:        req.Status,
-			Message:       "", // Optionally add approval notes if you have them
+			Message:       "", // Reserved for controller messages
 		})
 		go func() {
 			if err := email.SendMail(req.Email, fmt.Sprintf("Your JIT request #%d is now %s", req.ID, req.Status), body); err != nil {
@@ -367,6 +370,7 @@ func processApproval(
 
 // GetRecords returns the latest jit requests for a user with optional limit and date range
 // It fetches the records from the database and returns them as JSON
+// It checks if the user is an admin or platform approver to determine the query parameters
 func GetRecords(c *gin.Context) {
 	sessionData, ok := checkLoggedIn(c)
 	if !ok {
@@ -462,7 +466,7 @@ func GetClustersAndRoles(c *gin.Context) {
 	// Check if the user is logged in
 	_, ok := checkLoggedIn(c)
 	if !ok {
-		return // The response has already been sent by CheckLoggedIn
+		return
 	}
 
 	// Return the clusters and roles
@@ -478,7 +482,7 @@ func GetApprovingGroups(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData, ok := checkLoggedIn(c)
 	if !ok {
-		return // The response has already been sent by CheckLoggedIn
+		return
 	}
 
 	// Retrieve the token from the session data
@@ -500,7 +504,7 @@ func GetPendingApprovals(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData, ok := checkLoggedIn(c)
 	if !ok {
-		return // The response has already been sent by CheckLoggedIn
+		return
 	}
 
 	// Check if the user is an admin or platform approver
@@ -654,14 +658,19 @@ func HealthCheck(c *gin.Context) {
 }
 
 // SubmitRequest creates the new jit record in postgress
+// It validates the request data and checks if the user is logged in
+// It also validates the namespaces and sends an email notification
+// It returns a success message or an error message
 func SubmitRequest(c *gin.Context) {
 	// Check if the user is logged in
-	_, ok := checkLoggedIn(c)
+	sessionData, ok := checkLoggedIn(c)
 	if !ok {
-		return // The response has already been sent by CheckLoggedIn
+		return
 	}
+	// Check if the email is present in the session data
+	emailAddress, _ := sessionData["email"].(string)
 
-	// Process the request as before
+	// Process the request data
 	var requestData struct {
 		Role          models.Roles   `json:"role"`
 		ClusterName   models.Cluster `json:"cluster"`
@@ -686,14 +695,7 @@ func SubmitRequest(c *gin.Context) {
 		return
 	}
 
-	// Get email from session
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
-	emailAddress, _ := sessionData["email"].(string)
-
-	// Create a new models.RequestData instance
+	// Create a new RequestData in database
 	dbRequestData := models.RequestData{
 		ClusterName:   requestData.ClusterName.Name,
 		RoleName:      requestData.Role.Name,
@@ -721,7 +723,7 @@ func SubmitRequest(c *gin.Context) {
 			RequestID: dbRequestData.ID,
 			Namespace: namespace,
 			GroupID:   groupInfo.GroupID,
-			GroupName: groupInfo.GroupName, // <-- Add this field to your model/table if not present
+			GroupName: groupInfo.GroupName,
 			Approved:  false,
 		}
 		if err := db.DB.Create(&namespaceEntry).Error; err != nil {
@@ -766,6 +768,9 @@ func contains(slice []string, item string) bool {
 
 // CommonPermissions checks if the user has common permissions
 // It checks if the user is logged in and retrieves their permissions
+// It fetches the user's groups from the specified provider (GitHub, Google, Azure)
+// It matches the user groups to the approver and admin teams
+// It updates the session with the user's permissions
 // It returns the permissions as JSON
 func CommonPermissions(c *gin.Context) {
 	session := sessions.Default(c)
@@ -808,21 +813,22 @@ func CommonPermissions(c *gin.Context) {
 	var userGroups []models.Team
 	var err error
 
+	// Fetch user groups based on the provider
 	switch payload.Provider {
-	case "github":
+	case "github": // GitHub provider
 		userGroups, err = GetGithubTeams(token)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch GitHub teams"})
 			return
 		}
-	case "google":
+	case "google": // Google provider
 		userEmail, _ := sessionData["email"].(string)
 		userGroups, err = GetGoogleGroupsWithWorkloadIdentity(userEmail)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Google groups"})
 			return
 		}
-	case "azure":
+	case "azure": // Azure provider
 		userGroups, err = GetAzureGroups(token)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Azure groups"})

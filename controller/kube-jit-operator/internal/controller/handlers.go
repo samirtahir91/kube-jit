@@ -28,7 +28,7 @@ func (r *JitRequestReconciler) handleRejected(ctx context.Context, l logr.Logger
 	return ctrl.Result{}, nil
 }
 
-// preApproveRequest pre-approves a JitRequest, updates the Jira ticket and re-queues for start time
+// preApproveRequest pre-approves a JitRequest, updates the ticket and re-queues for start time
 func (r *JitRequestReconciler) preApproveRequest(ctx context.Context, l logr.Logger, jitRequest *jitv1.JitRequest) (ctrl.Result, error) {
 	startTime := jitRequest.Spec.StartTime.Time
 
@@ -97,7 +97,7 @@ func (r *JitRequestReconciler) handleNewRequest(ctx context.Context, l logr.Logg
 	return r.preApproveRequest(ctx, l, jitRequest)
 }
 
-// handlePreApproved creates the role binding for approved JitRequests if the Jira ticket is approved
+// handlePreApproved creates the role binding for approved JitRequests if the ticket is approved
 func (r *JitRequestReconciler) handlePreApproved(ctx context.Context, l logr.Logger, jitRequest *jitv1.JitRequest) (ctrl.Result, error) {
 	// check if it needs to be re-queued
 	startTime := jitRequest.Status.StartTime.Time

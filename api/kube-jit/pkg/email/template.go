@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
+// EmailRequestDetails holds the details for the email template
 type EmailRequestDetails struct {
 	Username      string
 	ClusterName   string
@@ -18,7 +22,13 @@ type EmailRequestDetails struct {
 	Message       string // extra notes or custom message
 }
 
+// BuildRequestEmail generates an HTML email template for a JIT access request
+// It includes details such as the username, cluster name, namespaces, role name,
+// justification, start and end dates, status, and any additional message
+// The email is styled with inline CSS for better compatibility across email clients
+// The function returns the generated HTML string
 func BuildRequestEmail(details EmailRequestDetails) string {
+	caser := cases.Title(language.English)
 	return fmt.Sprintf(`
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border:1px solid #e0e0e0; border-radius:8px; overflow:hidden;">
             <div style="background: #1b4fa4; color: #fff; padding: 18px 24px;">
@@ -46,12 +56,12 @@ func BuildRequestEmail(details EmailRequestDetails) string {
             </div>
         </div>
     `,
-		strings.Title(details.Status),
+		caser.String(details.Status),
 		details.Username,
 		details.ClusterName,
 		strings.Join(details.Namespaces, ", "),
 		details.RoleName,
-		strings.Title(details.Status),
+		caser.String(details.Status),
 		details.Justification,
 		details.StartDate.Format("2006-01-02 15:04"),
 		details.EndDate.Format("2006-01-02 15:04"),

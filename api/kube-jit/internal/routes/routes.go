@@ -10,6 +10,8 @@ import (
 
 func SetupRoutes(r *gin.Engine) {
 	// Routes that require session handling
+	// This middleware will check for the session cookie and handle it accordingly
+	// We are using a custoim middleware to split and combine the session cookie
 	apiWithSession := r.Group("/kube-jit-api")
 	apiWithSession.Use(sessioncookie.SplitAndCombineSessionMiddleware())
 	{

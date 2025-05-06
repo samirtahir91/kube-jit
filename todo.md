@@ -1,4 +1,7 @@
 todo
+- test all providers
+- refactor login for providers as duplicated in get profile
+- refactor k8s.go to use structs, include groupName in struct
 - refresh token
 - max session env var option
 - deprecate tokenExpiry in frontend

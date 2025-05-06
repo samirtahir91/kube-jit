@@ -13,10 +13,12 @@ import (
 )
 
 var (
-	hmacKey = MustGetEnv("HMAC_SECRET")
+	hmacKey = MustGetEnv("HMAC_SECRET") // HMAC key for signing URLs
 )
 
 // GenerateSignedURL creates a signed url with hmac key based on expiry
+// It takes a base URL and an expiry time as input and returns the signed URL
+// or an error if the URL cannot be generated.
 func GenerateSignedURL(baseURL string, expiryTime time.Time) (string, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
@@ -39,6 +41,7 @@ func GenerateSignedURL(baseURL string, expiryTime time.Time) (string, error) {
 }
 
 // GenerateHMAC creates/returns hash string
+// It takes a string as input and returns the HMAC hash as a hexadecimal string.
 func GenerateHMAC(data string) string {
 	key := []byte(hmacKey)
 	h := hmac.New(sha256.New, key)
@@ -47,6 +50,8 @@ func GenerateHMAC(data string) string {
 }
 
 // ValidateSignedURL returns true/false if a url matches the hmac sig
+// It takes a signed URL as input and validates its expiry time and signature.
+// It returns true if the URL is valid and not expired, false otherwise.
 func ValidateSignedURL(u *url.URL) bool {
 	query := u.Query()
 	expiry := query.Get("expiry")

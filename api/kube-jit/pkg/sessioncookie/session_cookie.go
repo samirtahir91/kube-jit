@@ -12,10 +12,13 @@ import (
 	"go.uber.org/zap"
 )
 
-const maxCookieSize = 4000 // Max size for a single cookie
-const SessionPrefix = "kube_jit_session_"
+const maxCookieSize = 4000                // Max size for a single cookie
+const SessionPrefix = "kube_jit_session_" // Prefix for session cookies to handle split into multiple cookies
 
 // SplitAndCombineSessionMiddleware handles splitting and combining session cookies
+// It combines session data from multiple cookies into one session and splits it back into multiple cookies if necessary
+// after processing the request.
+// This is useful for handling large session data that exceeds the cookie size limit.
 func SplitAndCombineSessionMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Combine session data from multiple cookies
@@ -30,6 +33,8 @@ func SplitAndCombineSessionMiddleware() gin.HandlerFunc {
 }
 
 // CombineSessionData combines session data from multiple cookies
+// into a single session object. It reads the cookies with the session prefix,
+// decodes the data, and sets it in the session.
 func CombineSessionData(c *gin.Context) {
 	var combinedData strings.Builder
 
@@ -73,6 +78,8 @@ func CombineSessionData(c *gin.Context) {
 }
 
 // SplitSessionData splits session data into multiple cookies if necessary
+// and sets them in the response. It also deletes any leftover cookies from previous sessions.
+// This is useful for handling large session data that exceeds the cookie size limit.
 func SplitSessionData(c *gin.Context) {
 	session := sessions.Default(c)
 	data := session.Get("data")
@@ -142,6 +149,7 @@ func SplitSessionData(c *gin.Context) {
 }
 
 // splitIntoChunks splits a string into chunks of a specified size
+// and returns a slice of the chunks.
 func splitIntoChunks(data string, chunkSize int) []string {
 	var chunks []string
 	for len(data) > chunkSize {
@@ -153,6 +161,9 @@ func splitIntoChunks(data string, chunkSize int) []string {
 }
 
 // encodeSessionData encodes session data using securecookie.
+// It uses the securecookie library to encode the data into a string format.
+// It returns an error if the encoding fails.
+// The encoded data can be stored in a cookie.
 func encodeSessionData(name string, value interface{}) (string, error) {
 	encoded, err := utils.SecureCookie().Encode(name, value)
 	if err != nil {
@@ -163,6 +174,9 @@ func encodeSessionData(name string, value interface{}) (string, error) {
 }
 
 // decodeSessionData decodes session data using securecookie.
+// It uses the securecookie library to decode the data from a string format.
+// It returns an error if the decoding fails.
+// The decoded data can be used to retrieve the original session data.
 func decodeSessionData(name, encodedValue string, dst interface{}) error {
 	err := utils.SecureCookie().Decode(name, encodedValue, dst)
 	if err != nil {

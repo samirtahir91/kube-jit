@@ -74,7 +74,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, setLoading }) => {
   // Redirect to GitHub OAuth
   const redirectToGitHub = () => {
     if (clientID && redirectUri) {
-      const scope = "read:user";
+      const scope = "read:user user:email";
       const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientID}&redirect_uri=${encodeURIComponent(
         redirectUri
       )}&scope=${scope}&state=github`;

@@ -18,6 +18,11 @@ import (
 )
 
 // Fetch GitHub teams for a user using their OAuth token
+// This function is used to get the teams associated with the authenticated user
+// It sends a GET request to the GitHub API endpoint for user teams
+// and returns a slice of models.Team
+// Each team is represented by its ID and name
+// It returns an error if the request fails or if the response is not as expected
 func GetGithubTeams(token string) ([]models.Team, error) {
 	req, err := http.NewRequest("GET", "https://api.github.com/user/teams", nil)
 	if err != nil {
@@ -59,7 +64,13 @@ func GetGithubTeams(token string) ([]models.Team, error) {
 }
 
 // HandleGitHubLogin handles the GitHub OAuth callback
+// It retrieves the access token and user information from GitHub
+// and sets the session data for the user
+// It also normalizes the user data and returns it in the response
+// It returns a JSON response with the user data and expiration time
+// or an error message if something goes wrong
 func HandleGitHubLogin(c *gin.Context) {
+	// Check for the presence of the 'code' query parameter
 	code := c.Query("code")
 	if code == "" {
 		logger.Warn("Missing 'code' query parameter in GitHub login")
@@ -67,12 +78,14 @@ func HandleGitHubLogin(c *gin.Context) {
 		return
 	}
 
+	// Get the client ID and secret from global variables
 	ctx := context.Background()
 	data := url.Values{
 		"client_id":     {clientID},
 		"client_secret": {clientSecret},
 		"code":          {code},
 	}
+	// Send a POST request to GitHub to exchange the code for an access token
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://github.com/login/oauth/access_token", strings.NewReader(data.Encode()))
 	if err != nil {
 		logger.Error("Failed to create request for GitHub access token", zap.Error(err))
@@ -96,6 +109,7 @@ func HandleGitHubLogin(c *gin.Context) {
 		return
 	}
 
+	// Decode the response body to get the access token
 	var tokenData models.GitHubTokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenData); err != nil {
 		logger.Error("Failed to decode GitHub token response", zap.Error(err))
@@ -103,6 +117,7 @@ func HandleGitHubLogin(c *gin.Context) {
 		return
 	}
 
+	// Get the user information using the access token
 	req, err = http.NewRequest("GET", "https://api.github.com/user", nil)
 	if err != nil {
 		logger.Error("Failed to create request for GitHub user", zap.Error(err))
@@ -119,6 +134,7 @@ func HandleGitHubLogin(c *gin.Context) {
 	}
 	defer userResp.Body.Close()
 
+	// Check if the response status code is OK
 	if userResp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(userResp.Body)
 		logger.Warn("Error fetching user data from GitHub", zap.String("response", string(body)))
@@ -133,8 +149,9 @@ func HandleGitHubLogin(c *gin.Context) {
 		return
 	}
 
+	// Fetch email from GitHub user profile
+	// If email is not present, fetch it from the emails endpoint
 	email := githubUser.Email
-
 	if email == "" {
 		req, err := http.NewRequest("GET", "https://api.github.com/user/emails", nil)
 		if err == nil {
@@ -168,6 +185,7 @@ func HandleGitHubLogin(c *gin.Context) {
 		}
 	}
 
+	// Normalize the user data
 	normalizedUserData := models.NormalizedUserData{
 		ID:        strconv.Itoa(githubUser.ID),
 		Name:      githubUser.Login,
@@ -179,6 +197,7 @@ func HandleGitHubLogin(c *gin.Context) {
 	// Prepare session data
 	sessionData := map[string]interface{}{
 		"token": tokenData.AccessToken,
+		"email": email,
 	}
 
 	// Save the session data in the session
@@ -197,6 +216,8 @@ func HandleGitHubLogin(c *gin.Context) {
 }
 
 // GetGithubProfile gets the logged in users profile info
+// from GitHub using the access token stored in the session
+// It returns a JSON response with the user data or an error message if something goes wrong
 func GetGithubProfile(c *gin.Context) {
 	sessionData, ok := checkLoggedIn(c)
 	if !ok {
