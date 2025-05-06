@@ -1,6 +1,7 @@
 todo
 - refresh token
 - max session env var option
+- deprecate tokenExpiry in frontend
 
 test
   unit
