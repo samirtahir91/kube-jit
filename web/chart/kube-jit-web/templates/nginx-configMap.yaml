@@ -19,7 +19,8 @@ data:
       # API
       location /kube-jit-api {
           resolver {{ .Values.nginx.resolver }} valid={{ .Values.nginx.resolverValid }};
-          proxy_pass {{ .Values.nginx.apiUrl }};
+          set $target {{ .Values.nginx.apiUrl }};
+          proxy_pass $target:{{ .Values.nginx.apiPort }};
           client_max_body_size {{ .Values.nginx.clientMaxBodySize }};
           proxy_connect_timeout   {{ .Values.nginx.proxyConnectTimeout }};
           proxy_send_timeout      {{ .Values.nginx.proxySendTimeout }};
