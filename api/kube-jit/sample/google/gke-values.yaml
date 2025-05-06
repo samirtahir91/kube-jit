@@ -14,8 +14,8 @@ config:
       id: 3252cdf5-2db4-413c-b34f-459ea439397e
 
   adminTeams:
-    - name: "kube-jit-admin"
-      id: efe07971-368d-45bd-b3e4-1a585ea4fe3d
+    - name: "admins"
+      id: admins@samirtahir.dev
   
   cors:
     allowOrigins:
