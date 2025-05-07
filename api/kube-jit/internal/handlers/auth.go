@@ -15,16 +15,10 @@ import (
 )
 
 // GetSessionData retrieves session data from the context or panics
-func GetSessionData(c *gin.Context) (map[string]interface{}, *zap.Logger) {
+func GetSessionData(c *gin.Context) map[string]interface{} {
 	sessionData := c.MustGet("sessionData").(map[string]interface{})
 
-	// Create a zap logger with user fields for this request
-	logger := logger.With(
-		zap.String("userID", sessionData["id"].(string)),
-		zap.String("username", sessionData["name"].(string)),
-	)
-
-	return sessionData, logger
+	return sessionData
 }
 
 // Logout clears all session cookies with the sessionPrefix
@@ -53,7 +47,8 @@ func Logout(c *gin.Context) {
 // It returns the permissions as JSON
 func CommonPermissions(c *gin.Context) {
 	// Check if the user is logged in and get logger
-	sessionData, logger := GetSessionData(c)
+	sessionData := GetSessionData(c)
+	reqLogger := RequestLogger(c)
 
 	// Parse provider from payload
 	var payload struct {
@@ -92,20 +87,20 @@ func CommonPermissions(c *gin.Context) {
 	// Fetch user groups based on the provider
 	switch payload.Provider {
 	case "github": // GitHub provider
-		userGroups, err = GetGithubTeams(token)
+		userGroups, err = GetGithubTeams(token, reqLogger)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch GitHub teams"})
 			return
 		}
 	case "google": // Google provider
 		userEmail, _ := sessionData["email"].(string)
-		userGroups, err = GetGoogleGroupsWithWorkloadIdentity(userEmail)
+		userGroups, err = GetGoogleGroupsWithWorkloadIdentity(userEmail, reqLogger)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Google groups"})
 			return
 		}
 	case "azure": // Azure provider
-		userGroups, err = GetAzureGroups(token)
+		userGroups, err = GetAzureGroups(token, reqLogger)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Azure groups"})
 			return
@@ -127,7 +122,7 @@ func CommonPermissions(c *gin.Context) {
 	for _, clusterName := range k8s.ClusterNames {
 		jitGroups, err := k8s.GetJitGroups(clusterName)
 		if err != nil {
-			logger.Error("Error fetching JitGroups for cluster", zap.String("clusterName", clusterName), zap.Error(err))
+			reqLogger.Error("Error fetching JitGroups for cluster", zap.String("clusterName", clusterName), zap.Error(err))
 			continue
 		}
 		groups, _, _ := unstructured.NestedSlice(jitGroups.Object, "spec", "groups")

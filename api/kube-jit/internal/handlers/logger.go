@@ -11,3 +11,7 @@ var (
 func InitLogger(l *zap.Logger) {
 	logger = l
 }
+
+func Logger() *zap.Logger {
+	return logger
+}

@@ -66,12 +66,12 @@ func main() {
 
 	r := gin.New()
 
-	// Skip logging for /kube-jit-api/healthz
-	rxHealthz := regexp.MustCompile(`^/kube-jit-api/healthz$`)
+	// Skip only authenticated routes and healthz (not oauth, client_id, build-sha, logout)
+	rxAuthenticated := regexp.MustCompile(`^/kube-jit-api/(healthz|approving-groups|roles-and-clusters|github/profile|google/profile|azure/profile|submit-request|history|approvals|approve-reject|permissions|admin/clean-expired)$`)
 	r.Use(ginzap.GinzapWithConfig(logger, &ginzap.Config{
 		UTC:             true,
 		TimeFormat:      time.RFC3339,
-		SkipPathRegexps: []*regexp.Regexp{rxHealthz},
+		SkipPathRegexps: []*regexp.Regexp{rxAuthenticated},
 	}))
 	r.Use(ginzap.RecoveryWithZap(logger, true))
 

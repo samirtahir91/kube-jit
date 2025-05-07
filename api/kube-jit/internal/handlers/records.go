@@ -17,7 +17,8 @@ import (
 // It checks if the user is an admin or platform approver to determine the query parameters
 func GetRecords(c *gin.Context) {
 	// Check if the user is logged in and get logger
-	sessionData, logger := GetSessionData(c)
+	sessionData := GetSessionData(c)
+	reqLogger := RequestLogger(c)
 
 	isAdmin, _ := sessionData["isAdmin"].(bool)
 	isPlatformApprover, _ := sessionData["isPlatformApprover"].(bool)
@@ -52,7 +53,7 @@ func GetRecords(c *gin.Context) {
 		query = query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
 	}
 	if err := query.Find(&requests).Error; err != nil {
-		logger.Error("Error fetching records in GetRecords", zap.Error(err))
+		reqLogger.Error("Error fetching records in GetRecords", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch records"})
 		return
 	}
@@ -78,7 +79,7 @@ func GetRecords(c *gin.Context) {
 			Select("namespace, group_name, group_id, approved, approver_id, approver_name").
 			Where("request_id = ?", req.ID).
 			Scan(&nsApprovals).Error; err != nil {
-			logger.Error("Error fetching namespace approvals in GetRecords", zap.Uint("requestID", req.ID), zap.Error(err))
+			reqLogger.Error("Error fetching namespace approvals in GetRecords", zap.Uint("requestID", req.ID), zap.Error(err))
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch namespace approvals"})
 			return
 		}
@@ -95,8 +96,8 @@ func GetRecords(c *gin.Context) {
 // It uses the session to retrieve the user's approver groups
 // It queries the database for requests with status "Requested" and matching approver groups
 func GetPendingApprovals(c *gin.Context) {
-	// Check if the user is logged in and get logger
-	sessionData, _ := GetSessionData(c)
+	// Check if the user is logged in
+	sessionData := GetSessionData(c)
 
 	// Check if the user is an admin or platform approver
 	isAdmin, isAdminOk := sessionData["isAdmin"].(bool)

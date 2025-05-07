@@ -10,12 +10,14 @@ import (
 )
 
 func SetupRoutes(r *gin.Engine) {
-	// Routes that require session handling
+	// Routes that require session handling - authenticated
 	// This middleware will check for the session cookie and handle it accordingly
 	// We are using a custoim middleware to split and combine the session cookie
 	apiWithSession := r.Group("/kube-jit-api")
 	apiWithSession.Use(sessioncookie.SplitAndCombineSessionMiddleware())
 	apiWithSession.Use(middleware.RequireAuth())
+	// log the user ID and username from the session data
+	apiWithSession.Use(middleware.AccessLogger(handlers.Logger()))
 	{
 		apiWithSession.GET("/approving-groups", handlers.GetApprovingGroups)
 		apiWithSession.GET("/roles-and-clusters", handlers.GetClustersAndRoles)
@@ -30,7 +32,7 @@ func SetupRoutes(r *gin.Engine) {
 		apiWithSession.POST("/admin/clean-expired", handlers.CleanExpiredRequests)
 	}
 
-	// Routes that do NOT require session handling
+	// Routes that do NOT require session handling - unauthenticated
 	r.GET("/kube-jit-api/oauth/github/callback", handlers.HandleGitHubLogin)
 	r.GET("/kube-jit-api/oauth/google/callback", handlers.HandleGoogleLogin)
 	r.GET("/kube-jit-api/oauth/azure/callback", handlers.HandleAzureLogin)

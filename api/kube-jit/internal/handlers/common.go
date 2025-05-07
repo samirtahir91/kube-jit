@@ -128,8 +128,8 @@ func GetClustersAndRoles(c *gin.Context) {
 
 // GetApprovingGroups returns the list of platform approving groups
 func GetApprovingGroups(c *gin.Context) {
-	// Check if the user is logged in and get logger
-	sessionData, _ := GetSessionData(c)
+	// Check if the user is logged in
+	sessionData := GetSessionData(c)
 
 	// Retrieve the token from the session data
 	token, ok := sessionData["token"].(string)
@@ -180,4 +180,14 @@ func MatchUserGroups(
 	isAdmin = len(matchedAdminGroups) > 0
 	isPlatformApprover = len(matchedPlatformGroups) > 0
 	return
+}
+
+func RequestLogger(c *gin.Context) *zap.Logger {
+	sessionData := GetSessionData(c)
+	userID, _ := sessionData["id"].(string)
+	username, _ := sessionData["name"].(string)
+	return logger.With(
+		zap.String("userID", userID),
+		zap.String("username", username),
+	)
 }

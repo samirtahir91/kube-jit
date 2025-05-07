@@ -38,7 +38,7 @@ func GetJitGroups(clusterName string) (*unstructured.Unstructured, error) {
 
 		// Check if the cache is still valid
 		if cache.ExpiresAt > currentTime {
-			logger.Info("Using cached JitGroups for cluster", zap.String("cluster", clusterName))
+			logger.Debug("Using cached JitGroups for cluster", zap.String("cluster", clusterName))
 			return cache.JitGroups, nil
 		}
 

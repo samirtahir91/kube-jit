@@ -124,14 +124,15 @@ func HandleAzureLogin(c *gin.Context) {
 
 // GetAzureProfile retrieves the logged-in user's profile info from Azure
 func GetAzureProfile(c *gin.Context) {
-	// Check if the user is logged in and get logger
-	sessionData, logger := GetSessionData(c)
+	// Check if the user is logged in
+	sessionData := GetSessionData(c)
+	reqLogger := RequestLogger(c)
 
-	logger.Info("User authenticated", zap.String("userID", sessionData["id"].(string)))
+	reqLogger.Debug("User authenticated", zap.String("userID", sessionData["id"].(string)))
 
 	token, ok := sessionData["token"].(string)
 	if !ok || token == "" {
-		logger.Warn("No token in session data for Azure profile")
+		reqLogger.Warn("No token in session data for Azure profile")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
 		return
 	}
@@ -139,7 +140,7 @@ func GetAzureProfile(c *gin.Context) {
 	// Fetch user info using the helper
 	azureUser, err := fetchAzureUserProfile(token)
 	if err != nil {
-		logger.Error("Failed to fetch Azure user profile", zap.Error(err))
+		reqLogger.Error("Failed to fetch Azure user profile", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -157,18 +158,18 @@ func GetAzureProfile(c *gin.Context) {
 }
 
 // Fetch Azure AD groups for a user using their OAuth token
-func GetAzureGroups(token string) ([]models.Team, error) {
+func GetAzureGroups(token string, reqLogger *zap.Logger) ([]models.Team, error) {
 	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token}))
 	resp, err := client.Get("https://graph.microsoft.com/v1.0/me/memberOf")
 	if err != nil {
-		logger.Error("Failed to fetch Azure groups", zap.Error(err))
+		reqLogger.Error("Failed to fetch Azure groups", zap.Error(err))
 		return nil, fmt.Errorf("failed to fetch groups from Azure AD")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		logger.Warn("Error fetching Azure groups", zap.String("response", string(body)))
+		reqLogger.Warn("Error fetching Azure groups", zap.String("response", string(body)))
 		return nil, fmt.Errorf("error fetching groups from Azure AD")
 	}
 
@@ -179,7 +180,7 @@ func GetAzureGroups(token string) ([]models.Team, error) {
 		} `json:"value"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&groupsResponse); err != nil {
-		logger.Error("Failed to decode Azure groups response", zap.Error(err))
+		reqLogger.Error("Failed to decode Azure groups response", zap.Error(err))
 		return nil, fmt.Errorf("failed to decode groups response")
 	}
 
