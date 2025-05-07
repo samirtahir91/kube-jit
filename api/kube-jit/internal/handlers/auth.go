@@ -84,13 +84,15 @@ func CommonPermissions(c *gin.Context) {
 	isPlatformApprover, isPlatformApproverOk := sessionData["isPlatformApprover"].(bool)
 	approverGroups, approverGroupsOk := sessionData["approverGroups"]
 	adminGroups, adminGroupsOk := sessionData["adminGroups"]
-	if isApproverOk && isAdminOk && isPlatformApprover && isPlatformApproverOk && approverGroupsOk && adminGroupsOk {
+	platformApproverGroups, platformApproverGroupsOk := sessionData["platformApproverGroups"]
+	if isApproverOk && isAdminOk && isPlatformApproverOk && approverGroupsOk && adminGroupsOk && platformApproverGroupsOk {
 		c.JSON(http.StatusOK, gin.H{
-			"isApprover":         isApprover,
-			"approverGroups":     approverGroups,
-			"isAdmin":            isAdmin,
-			"isPlatformApprover": isPlatformApprover,
-			"adminGroups":        adminGroups,
+			"isApprover":             isApprover,
+			"approverGroups":         approverGroups,
+			"isAdmin":                isAdmin,
+			"isPlatformApprover":     isPlatformApprover,
+			"adminGroups":            adminGroups,
+			"platformApproverGroups": platformApproverGroups,
 		})
 		return
 	}
@@ -128,14 +130,14 @@ func CommonPermissions(c *gin.Context) {
 	}
 
 	// Match user groups to approver/admin teams
-	isAdmin, isPlatformApprover, matchedAdminGroups := MatchUserGroups(
+	isAdmin, isPlatformApprover, matchedPlatformGroups, matchedAdminGroups := MatchUserGroups(
 		userGroups,
 		k8s.PlatformApproverTeams,
 		k8s.AdminTeams,
 	)
 
 	// Check and append if user is in any JitGroup for any cluster
-	var matchedApproverGroups []string
+	var matchedApproverGroups []models.Team
 	for _, clusterName := range k8s.ClusterNames {
 		jitGroups, err := k8s.GetJitGroups(clusterName)
 		if err != nil {
@@ -149,10 +151,11 @@ func CommonPermissions(c *gin.Context) {
 				continue
 			}
 			groupID, ok := groupMap["groupID"].(string)
+			groupName, _ := groupMap["groupName"].(string)
 			if ok {
 				for _, userGroup := range userGroups {
 					if userGroup.ID == groupID {
-						matchedApproverGroups = append(matchedApproverGroups, groupID)
+						matchedApproverGroups = append(matchedApproverGroups, models.Team{ID: groupID, Name: groupName})
 					}
 				}
 			}
@@ -168,15 +171,17 @@ func CommonPermissions(c *gin.Context) {
 	sessionData["isAdmin"] = isAdmin
 	sessionData["isPlatformApprover"] = isPlatformApprover
 	sessionData["adminGroups"] = matchedAdminGroups
+	sessionData["platformApproverGroups"] = matchedPlatformGroups
 	session.Set("data", sessionData)
 	sessioncookie.SplitSessionData(c)
 
 	c.JSON(http.StatusOK, gin.H{
-		"isApprover":         isApprover,
-		"approverGroups":     matchedApproverGroups,
-		"isAdmin":            isAdmin,
-		"isPlatformApprover": isPlatformApprover,
-		"adminGroups":        matchedAdminGroups,
+		"isApprover":             isApprover,
+		"approverGroups":         matchedApproverGroups,
+		"isAdmin":                isAdmin,
+		"isPlatformApprover":     isPlatformApprover,
+		"adminGroups":            matchedAdminGroups,
+		"platformApproverGroups": matchedPlatformGroups,
 	})
 }
 

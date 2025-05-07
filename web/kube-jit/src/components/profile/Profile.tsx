@@ -12,6 +12,8 @@ import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
 import config from '../../config/config';
 
+type Group = { id: string; name: string };
+
 const Profile = ({ user, onSignOut }: { user: UserData; onSignOut: () => void }) => {
     const [showDropdown, setShowDropdown] = useState(false);
     const [showPermissions, setShowPermissions] = useState(false);
@@ -108,8 +110,10 @@ const Profile = ({ user, onSignOut }: { user: UserData; onSignOut: () => void })
                                     <div>
                                         <strong>Approver Groups:</strong>
                                         <ul>
-                                            {permissions.approverGroups.map((g: string) => (
-                                                <li key={g}>{g}</li>
+                                            {permissions.approverGroups.map((g: Group) => (
+                                                <li key={g.id}>
+                                                    {g.name} <span className="text-muted">({g.id})</span>
+                                                </li>
                                             ))}
                                         </ul>
                                     </div>
@@ -118,8 +122,22 @@ const Profile = ({ user, onSignOut }: { user: UserData; onSignOut: () => void })
                                     <div>
                                         <strong>Admin Groups:</strong>
                                         <ul>
-                                            {permissions.adminGroups.map((g: string) => (
-                                                <li key={g}>{g}</li>
+                                            {permissions.adminGroups.map((g: Group) => (
+                                                <li key={g.id}>
+                                                    {g.name} <span className="text-muted">({g.id})</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                {Array.isArray(permissions.platformApproverGroups) && permissions.platformApproverGroups.length > 0 && (
+                                    <div>
+                                        <strong>Platform Approver Groups:</strong>
+                                        <ul>
+                                            {permissions.platformApproverGroups.map((g: Group) => (
+                                                <li key={g.id}>
+                                                    {g.name} <span className="text-muted">({g.id})</span>
+                                                </li>
                                             ))}
                                         </ul>
                                     </div>

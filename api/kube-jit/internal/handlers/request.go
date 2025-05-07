@@ -136,14 +136,19 @@ func ApproveOrRejectRequests(c *gin.Context) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
 			return
 		}
-		if rawGroups, ok := rawApproverGroups.([]any); ok {
+		// Handle both []models.Team and []interface{} (from session serialization)
+		if rawGroups, ok := rawApproverGroups.([]models.Team); ok {
 			for _, group := range rawGroups {
-				if groupStr, ok := group.(string); ok {
-					approverGroups = append(approverGroups, groupStr)
+				approverGroups = append(approverGroups, group.ID)
+			}
+		} else if rawGroups, ok := rawApproverGroups.([]any); ok {
+			for _, group := range rawGroups {
+				if groupMap, ok := group.(map[string]any); ok {
+					if id, ok := groupMap["id"].(string); ok {
+						approverGroups = append(approverGroups, id)
+					}
 				}
 			}
-		} else if rawGroups, ok := rawApproverGroups.([]string); ok {
-			approverGroups = rawGroups
 		}
 		if len(approverGroups) == 0 {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})

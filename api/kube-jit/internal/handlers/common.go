@@ -57,7 +57,7 @@ func K8sCallback(c *gin.Context) {
 	}
 
 	callbackURL := c.Request.URL
-	if !utils.ValidateSignedURL(callbackURL) {
+	if !utils.ValidateSignedURL(callbackURL, k8s.CallbackHostOverride) {
 		logger.Warn("Invalid or expired signed URL in K8sCallback")
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
@@ -174,21 +174,20 @@ func MatchUserGroups(
 	userGroups []models.Team,
 	platformTeams []models.Team,
 	adminTeams []models.Team,
-) (isAdmin bool, isPlatformApprover bool, matchedAdminGroups []string) {
-	var matchedPlatformApproverGroups []string
+) (isAdmin bool, isPlatformApprover bool, matchedPlatformGroups, matchedAdminGroups []models.Team) {
 	for _, group := range userGroups {
 		for _, approverGroup := range platformTeams {
 			if group.ID == approverGroup.ID && group.Name == approverGroup.Name {
-				matchedPlatformApproverGroups = append(matchedPlatformApproverGroups, group.ID)
+				matchedPlatformGroups = append(matchedPlatformGroups, group)
 			}
 		}
 		for _, adminGroup := range adminTeams {
 			if group.ID == adminGroup.ID && group.Name == adminGroup.Name {
-				matchedAdminGroups = append(matchedAdminGroups, group.ID)
+				matchedAdminGroups = append(matchedAdminGroups, group)
 			}
 		}
 	}
 	isAdmin = len(matchedAdminGroups) > 0
-	isPlatformApprover = len(matchedPlatformApproverGroups) > 0
+	isPlatformApprover = len(matchedPlatformGroups) > 0
 	return
 }

@@ -129,19 +129,23 @@ func GetPendingApprovals(c *gin.Context) {
 		return
 	}
 
-	// Convert approverGroups to a slice of strings
-	approverGroups := []string{}
-	if rawGroups, ok := rawApproverGroups.([]any); ok {
+	// Convert approverGroups to a slice of group IDs
+	approverGroupIDs := []string{}
+	if rawGroups, ok := rawApproverGroups.([]models.Team); ok {
 		for _, group := range rawGroups {
-			if groupStr, ok := group.(string); ok {
-				approverGroups = append(approverGroups, groupStr)
+			approverGroupIDs = append(approverGroupIDs, group.ID)
+		}
+	} else if rawGroups, ok := rawApproverGroups.([]any); ok {
+		for _, group := range rawGroups {
+			if groupMap, ok := group.(map[string]any); ok {
+				if id, ok := groupMap["id"].(string); ok {
+					approverGroupIDs = append(approverGroupIDs, id)
+				}
 			}
 		}
-	} else if rawGroups, ok := rawApproverGroups.([]string); ok {
-		approverGroups = rawGroups
 	}
 
-	if len(approverGroups) == 0 {
+	if len(approverGroupIDs) == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
 		return
 	}
@@ -204,7 +208,7 @@ func GetPendingApprovals(c *gin.Context) {
 				"request_namespaces.approved",
 		).
 		Joins("JOIN request_namespaces ON request_namespaces.request_id = request_data.id").
-		Where("request_namespaces.group_id IN (?) AND request_data.status = ? AND request_namespaces.approved = false", approverGroups, "Requested").
+		Where("request_namespaces.group_id IN (?) AND request_data.status = ? AND request_namespaces.approved = false", approverGroupIDs, "Requested").
 		Scan(&rows).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

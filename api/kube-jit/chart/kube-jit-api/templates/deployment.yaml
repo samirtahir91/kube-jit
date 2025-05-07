@@ -68,7 +68,7 @@ spec:
             {{- if .Values.ingress.enabled }}
             value: {{- if .Values.config.callbackHostOverride }}
               {{ quote .Values.config.callbackHostOverride }}
-            {{- else if isArray .Values.ingress.hosts }}
+            {{- else if (kindIs "array" .Values.ingress.hosts) }}
               {{ quote (first .Values.ingress.hosts | default "default-host.example.com") }}
             {{- else }}
               {{ quote (.Values.ingress.hosts | default "default-host.example.com") }}

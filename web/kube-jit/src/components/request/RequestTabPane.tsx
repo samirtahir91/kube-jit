@@ -124,6 +124,8 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                 userInputTagRef.current.resetTags();
             }
             setJustification('') // Clear justification
+            setStartDate(null); // Clear start date
+            setEndDate(null); // Clear end date
             clearMessagesAfterTimeout(timeoutDuration); // Clear alert after some time
             setTimeout(() => {
                 setOriginTab('request');
