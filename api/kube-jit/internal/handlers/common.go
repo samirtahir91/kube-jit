@@ -128,8 +128,8 @@ func GetClustersAndRoles(c *gin.Context) {
 
 // GetApprovingGroups returns the list of platform approving groups
 func GetApprovingGroups(c *gin.Context) {
-	// Check if the user is logged in
-	sessionData := GetSessionData(c)
+	// Check if the user is logged in and get logger
+	sessionData, _ := GetSessionData(c)
 
 	// Retrieve the token from the session data
 	token, ok := sessionData["token"].(string)

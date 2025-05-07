@@ -263,8 +263,8 @@ func HandleGitHubLogin(c *gin.Context) {
 
 // GetGithubProfile gets the logged in user's profile info from GitHub
 func GetGithubProfile(c *gin.Context) {
-	sessionData := GetSessionData(c)
-	logger := c.MustGet("logger").(*zap.Logger)
+	// Check if the user is logged in and get logger
+	sessionData, logger := GetSessionData(c)
 
 	token, ok := sessionData["token"].(string)
 	if !ok || token == "" {

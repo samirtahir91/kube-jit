@@ -124,9 +124,10 @@ func HandleAzureLogin(c *gin.Context) {
 
 // GetAzureProfile retrieves the logged-in user's profile info from Azure
 func GetAzureProfile(c *gin.Context) {
-	// Check if the user is logged in
-	logger := c.MustGet("logger").(*zap.Logger)
-	sessionData := GetSessionData(c)
+	// Check if the user is logged in and get logger
+	sessionData, logger := GetSessionData(c)
+
+	logger.Info("User authenticated", zap.String("userID", sessionData["id"].(string)))
 
 	token, ok := sessionData["token"].(string)
 	if !ok || token == "" {

@@ -15,8 +15,16 @@ import (
 )
 
 // GetSessionData retrieves session data from the context or panics
-func GetSessionData(c *gin.Context) map[string]interface{} {
-	return c.MustGet("sessionData").(map[string]interface{})
+func GetSessionData(c *gin.Context) (map[string]interface{}, *zap.Logger) {
+	sessionData := c.MustGet("sessionData").(map[string]interface{})
+
+	// Create a zap logger with user fields for this request
+	logger := logger.With(
+		zap.String("userID", sessionData["id"].(string)),
+		zap.String("username", sessionData["name"].(string)),
+	)
+
+	return sessionData, logger
 }
 
 // Logout clears all session cookies with the sessionPrefix
@@ -44,10 +52,8 @@ func Logout(c *gin.Context) {
 // It updates the session with the user's permissions
 // It returns the permissions as JSON
 func CommonPermissions(c *gin.Context) {
-
-	// Check if the user is logged in
-	logger := c.MustGet("logger").(*zap.Logger)
-	sessionData := GetSessionData(c)
+	// Check if the user is logged in and get logger
+	sessionData, logger := GetSessionData(c)
 
 	// Parse provider from payload
 	var payload struct {

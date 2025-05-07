@@ -265,9 +265,8 @@ func HandleGoogleLogin(c *gin.Context) {
 
 // GetGoogleProfile gets the logged in user's profile info from Google
 func GetGoogleProfile(c *gin.Context) {
-	// Check if the user is logged in
-	sessionData := GetSessionData(c)
-	logger := c.MustGet("logger").(*zap.Logger)
+	// Check if the user is logged in and get logger
+	sessionData, logger := GetSessionData(c)
 
 	// Retrieve the token from the session data
 	token, ok := sessionData["token"].(string)

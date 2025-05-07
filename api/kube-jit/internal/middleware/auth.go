@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 // RequireAuth is a middleware that checks if the user is authenticated.
@@ -34,15 +33,6 @@ func RequireAuth() gin.HandlerFunc {
 		if name, ok := sessionData["name"].(string); ok {
 			c.Set("username", name)
 		}
-
-		// Create a zap logger with user fields for this request
-		logger := zap.L().With(
-			zap.String("userID", sessionData["id"].(string)),
-			zap.String("username", sessionData["name"].(string)),
-		)
-		c.Set("logger", logger)
-		logger.Debug("User authenticated", zap.String("userID", sessionData["id"].(string)))
-
 		c.Next()
 	}
 }

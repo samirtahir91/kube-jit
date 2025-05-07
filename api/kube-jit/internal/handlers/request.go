@@ -18,9 +18,8 @@ import (
 // It also validates the namespaces and sends an email notification
 // It returns a success message or an error message
 func SubmitRequest(c *gin.Context) {
-	// Check if the user is logged in
-	logger := c.MustGet("logger").(*zap.Logger)
-	sessionData := GetSessionData(c)
+	// Check if the user is logged in and get logger
+	sessionData, logger := GetSessionData(c)
 
 	// Check if the email is present in the session data
 	emailAddress, _ := sessionData["email"].(string)
@@ -117,8 +116,8 @@ func SubmitRequest(c *gin.Context) {
 // It creates the k8s object for each request if status is Approved
 // It updates the status of the requests in the database
 func ApproveOrRejectRequests(c *gin.Context) {
-	// Check if the user is logged in
-	sessionData := GetSessionData(c)
+	// Check if the user is logged in and get logger
+	sessionData, _ := GetSessionData(c)
 
 	// Check if the user is an admin or platform approver
 	isAdmin, _ := sessionData["isAdmin"].(bool)

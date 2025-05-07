@@ -16,8 +16,8 @@ import (
 // It fetches the records from the database and returns them as JSON
 // It checks if the user is an admin or platform approver to determine the query parameters
 func GetRecords(c *gin.Context) {
-	logger := c.MustGet("logger").(*zap.Logger)
-	sessionData := GetSessionData(c)
+	// Check if the user is logged in and get logger
+	sessionData, logger := GetSessionData(c)
 
 	isAdmin, _ := sessionData["isAdmin"].(bool)
 	isPlatformApprover, _ := sessionData["isPlatformApprover"].(bool)
@@ -95,9 +95,8 @@ func GetRecords(c *gin.Context) {
 // It uses the session to retrieve the user's approver groups
 // It queries the database for requests with status "Requested" and matching approver groups
 func GetPendingApprovals(c *gin.Context) {
-
-	// Check if the user is logged in
-	sessionData := GetSessionData(c)
+	// Check if the user is logged in and get logger
+	sessionData, _ := GetSessionData(c)
 
 	// Check if the user is an admin or platform approver
 	isAdmin, isAdminOk := sessionData["isAdmin"].(bool)
