@@ -238,4 +238,11 @@
     .info-box-list li {
         font-size: 0.85rem; /* Reduce list item size */
     }
+
+    .submit-button,
+    .top-action-button {
+        font-size: 0.7rem;
+        padding: 0.6rem 0.8rem;
+    }
 }
+
