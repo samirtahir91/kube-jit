@@ -1,0 +1,25 @@
+{
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^27.0.0",
+    "@testing-library/react": "^12.0.0",
+    "@testing-library/jest-dom": "^5.0.0"
+  }
+}
+
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import App from './App';
+
+test('renders hello world', () => {
+  render(<App />);
+  const linkElement = screen.getByText(/hello world/i);
+  expect(linkElement).toBeInTheDocument();
+});
+
+module.exports = {
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/src/setupTests.js']
+};
