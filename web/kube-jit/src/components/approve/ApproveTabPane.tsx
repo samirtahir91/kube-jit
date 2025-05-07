@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
-import { Tab } from 'react-bootstrap';
+import { Tab, Modal, Button } from 'react-bootstrap';
 import RequestTable from '../requestTable/RequestTable';
 import refreshLogo from '../../assets/refresh.svg';
 import './ApproveTabPane.css';
@@ -20,6 +20,8 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
     const [errorMessage, setErrorMessage] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<'Approved' | 'Rejected' | null>(null);
 
     const fetchPendingRequests = async () => {
         setLoadingInCard(true);
@@ -148,20 +150,64 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
                         <button
                             className="approver-button approve"
                             disabled={selectedRequests.length === 0}
-                            onClick={() => handleSelected('Approved')}
+                            onClick={() => {
+                                setConfirmAction('Approved');
+                                setShowConfirmModal(true);
+                            }}
                         >
                             <i className="bi bi-check-circle me-1"></i> Approve
                         </button>
                         <button
                             className="approver-button reject mx-2"
                             disabled={selectedRequests.length === 0}
-                            onClick={() => handleSelected('Rejected')}
+                            onClick={() => {
+                                setConfirmAction('Rejected');
+                                setShowConfirmModal(true);
+                            }}
                         >
                             <i className="bi bi-x-circle me-1"></i> Reject
                         </button>
                     </div>
                 </>
             )}
+            <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)}>
+                <Modal.Header closeButton>
+                    <Modal.Title>
+                        Confirm {confirmAction === 'Approved' ? 'Approval' : 'Rejection'}
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <p>
+                        Are you sure you want to <b>
+                            {confirmAction === 'Approved' ? 'approve' : confirmAction === 'Rejected' ? 'reject' : ''}
+                        </b> the following request(s)?
+                    </p>
+                    <ul>
+                        {pendingRequests && pendingRequests.length === 0 && (pendingRequests
+                            .filter(request => selectedRequests.includes(request.ID))
+                            .map(request => (
+                                <li key={request.ID}>
+                                    Request ID: {request.ID}
+                                    {/* Add more details if needed */}
+                                </li>
+                            )))}
+                    </ul>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowConfirmModal(false)}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant={confirmAction === 'Approved' ? 'success' : 'danger'}
+                        onClick={async () => {
+                            setShowConfirmModal(false);
+                            await handleSelected(confirmAction!);
+                        }}
+                    >
+                        Confirm
+                    </Button>
+                </Modal.Footer>
+            </Modal>
             </div>
         </Tab.Pane>
     );

@@ -19,10 +19,9 @@ import (
 // It returns a success message or an error message
 func SubmitRequest(c *gin.Context) {
 	// Check if the user is logged in
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	logger := c.MustGet("logger").(*zap.Logger)
+	sessionData := GetSessionData(c)
+
 	// Check if the email is present in the session data
 	emailAddress, _ := sessionData["email"].(string)
 
@@ -119,10 +118,7 @@ func SubmitRequest(c *gin.Context) {
 // It updates the status of the requests in the database
 func ApproveOrRejectRequests(c *gin.Context) {
 	// Check if the user is logged in
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	sessionData := GetSessionData(c)
 
 	// Check if the user is an admin or platform approver
 	isAdmin, _ := sessionData["isAdmin"].(bool)

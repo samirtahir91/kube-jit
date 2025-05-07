@@ -12,10 +12,9 @@ import (
 
 // CleanExpiredRequests deletes requests where endDate < now and status is Requested (not Approved or Rejected)
 func CleanExpiredRequests(c *gin.Context) {
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	logger := c.MustGet("logger").(*zap.Logger)
+	sessionData := GetSessionData(c)
+
 	isAdmin, _ := sessionData["isAdmin"].(bool)
 	if !isAdmin {
 		logger.Warn("Unauthorized access attempt to CleanExpiredRequests")

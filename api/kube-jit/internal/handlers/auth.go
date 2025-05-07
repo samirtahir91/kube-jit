@@ -14,26 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// checkLoggedIn verifies if the user is logged in by checking session data.
-// Returns the session data if valid, or sends an unauthorized response and aborts the request.
-func checkLoggedIn(c *gin.Context) (map[string]interface{}, bool) {
-	session := sessions.Default(c)
-	combinedData := session.Get("data")
-	if combinedData == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no session data in cookies"})
-		c.Abort() // Stop further processing of the request
-		return nil, false
-	}
-
-	// Ensure the session data is a map[string]interface{}
-	sessionData, ok := combinedData.(map[string]interface{})
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid session data format"})
-		c.Abort() // Stop further processing of the request
-		return nil, false
-	}
-
-	return sessionData, true
+// GetSessionData retrieves session data from the context or panics
+func GetSessionData(c *gin.Context) map[string]interface{} {
+	return c.MustGet("sessionData").(map[string]interface{})
 }
 
 // Logout clears all session cookies with the sessionPrefix
@@ -61,13 +44,10 @@ func Logout(c *gin.Context) {
 // It updates the session with the user's permissions
 // It returns the permissions as JSON
 func CommonPermissions(c *gin.Context) {
-	session := sessions.Default(c)
 
 	// Check if the user is logged in
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	logger := c.MustGet("logger").(*zap.Logger)
+	sessionData := GetSessionData(c)
 
 	// Parse provider from payload
 	var payload struct {
@@ -172,6 +152,8 @@ func CommonPermissions(c *gin.Context) {
 	sessionData["isPlatformApprover"] = isPlatformApprover
 	sessionData["adminGroups"] = matchedAdminGroups
 	sessionData["platformApproverGroups"] = matchedPlatformGroups
+
+	session := sessions.Default(c)
 	session.Set("data", sessionData)
 	sessioncookie.SplitSessionData(c)
 

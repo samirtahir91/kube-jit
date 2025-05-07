@@ -118,13 +118,6 @@ func GetOauthClientId(c *gin.Context) {
 
 // GetClustersAndRoles returns the list of clusters and roles available
 func GetClustersAndRoles(c *gin.Context) {
-
-	// Check if the user is logged in
-	_, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
-
 	// Return the clusters and roles
 	response := map[string]interface{}{
 		"clusters": k8s.ClusterNames,
@@ -136,10 +129,7 @@ func GetClustersAndRoles(c *gin.Context) {
 // GetApprovingGroups returns the list of platform approving groups
 func GetApprovingGroups(c *gin.Context) {
 	// Check if the user is logged in
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	sessionData := GetSessionData(c)
 
 	// Retrieve the token from the session data
 	token, ok := sessionData["token"].(string)

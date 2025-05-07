@@ -243,7 +243,9 @@ func HandleGoogleLogin(c *gin.Context) {
 		Provider:  "google",
 	}
 
-	sessionData := map[string]interface{}{
+	sessionData := map[string]any{
+		"id":    googleUser.ID,
+		"name":  googleUser.Name,
 		"email": googleUser.Email,
 		"token": token.AccessToken,
 	}
@@ -264,10 +266,8 @@ func HandleGoogleLogin(c *gin.Context) {
 // GetGoogleProfile gets the logged in user's profile info from Google
 func GetGoogleProfile(c *gin.Context) {
 	// Check if the user is logged in
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	sessionData := GetSessionData(c)
+	logger := c.MustGet("logger").(*zap.Logger)
 
 	// Retrieve the token from the session data
 	token, ok := sessionData["token"].(string)

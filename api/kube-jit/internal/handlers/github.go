@@ -208,6 +208,8 @@ func HandleGitHubLogin(c *gin.Context) {
 	sessionData := map[string]interface{}{
 		"token": tokenData.AccessToken,
 		"email": email,
+		"id":    normalizedUserData.ID,
+		"name":  normalizedUserData.Name,
 	}
 
 	// Save the session data in the session
@@ -261,10 +263,8 @@ func HandleGitHubLogin(c *gin.Context) {
 
 // GetGithubProfile gets the logged in user's profile info from GitHub
 func GetGithubProfile(c *gin.Context) {
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	sessionData := GetSessionData(c)
+	logger := c.MustGet("logger").(*zap.Logger)
 
 	token, ok := sessionData["token"].(string)
 	if !ok || token == "" {

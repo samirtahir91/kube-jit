@@ -2,6 +2,7 @@ package routes
 
 import (
 	"kube-jit/internal/handlers"
+	"kube-jit/internal/middleware"
 	"kube-jit/pkg/sessioncookie"
 	"os"
 
@@ -14,6 +15,7 @@ func SetupRoutes(r *gin.Engine) {
 	// We are using a custoim middleware to split and combine the session cookie
 	apiWithSession := r.Group("/kube-jit-api")
 	apiWithSession.Use(sessioncookie.SplitAndCombineSessionMiddleware())
+	apiWithSession.Use(middleware.RequireAuth())
 	{
 		apiWithSession.GET("/approving-groups", handlers.GetApprovingGroups)
 		apiWithSession.GET("/roles-and-clusters", handlers.GetClustersAndRoles)

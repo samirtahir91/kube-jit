@@ -102,6 +102,8 @@ func HandleAzureLogin(c *gin.Context) {
 	sessionData := map[string]interface{}{
 		"email": email,
 		"token": token.AccessToken,
+		"id":    azureUser.ID,
+		"name":  azureUser.DisplayName,
 	}
 
 	// Save the session data in the session
@@ -123,10 +125,8 @@ func HandleAzureLogin(c *gin.Context) {
 // GetAzureProfile retrieves the logged-in user's profile info from Azure
 func GetAzureProfile(c *gin.Context) {
 	// Check if the user is logged in
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	logger := c.MustGet("logger").(*zap.Logger)
+	sessionData := GetSessionData(c)
 
 	token, ok := sessionData["token"].(string)
 	if !ok || token == "" {
