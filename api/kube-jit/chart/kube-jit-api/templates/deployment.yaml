@@ -66,9 +66,15 @@ spec:
             value: {{ .Values.config.allowedGithubOrg | quote }}
           - name: CALLBACK_HOST_OVERRIDE
             {{- if .Values.ingress.enabled }}
-            value: {{ quote .Values.config.callbackHostOverride | default .Values.ingress.hosts }}
+            value: {{- if .Values.config.callbackHostOverride }}
+              {{ quote .Values.config.callbackHostOverride }}
+            {{- else if isArray .Values.ingress.hosts }}
+              {{ quote (first .Values.ingress.hosts | default "default-host.example.com") }}
             {{- else }}
-            value: {{ quote .Values.config.callbackHostOverride }}
+              {{ quote (.Values.ingress.hosts | default "default-host.example.com") }}
+            {{- end }}
+            {{- else }}
+            value: {{ quote (.Values.config.callbackHostOverride | default "default-host.example.com") }}
             {{- end }}
           - name: LISTEN_PORT
             value: {{ quote .Values.service.port }}
