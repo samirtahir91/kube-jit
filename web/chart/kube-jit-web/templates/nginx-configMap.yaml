@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kube-jit-web.fullname" . }}
+  labels:
+    {{- include "kube-jit-web.labels" . | nindent 4 }}
+data:
+  default.conf: |
+    server {
+      listen 80;
+
+      # Web
+      location / {
+          root /usr/share/nginx/html;
+          index index.html index.htm;
+          try_files $uri $uri/ /index.html =404;
+      }
+
+      # API
+      location /kube-jit-api {
+          resolver {{ .Values.nginx.resolver }} valid={{ .Values.nginx.resolverValid }};
+          set $target {{ .Values.nginx.apiUrl }};
+          proxy_pass $target:{{ .Values.nginx.apiPort }};
+          client_max_body_size {{ .Values.nginx.clientMaxBodySize }};
+          proxy_connect_timeout   {{ .Values.nginx.proxyConnectTimeout }};
+          proxy_send_timeout      {{ .Values.nginx.proxySendTimeout }};
+          proxy_read_timeout      {{ .Values.nginx.proxyReadTimeout }};
+      }
+
+      # Increase buffer sizes to handle large headers
+      proxy_buffer_size 16k;
+      proxy_buffers 4 32k;
+      proxy_busy_buffers_size 64k;
+
+      include /etc/nginx/extra-conf.d/*.conf;
+    }

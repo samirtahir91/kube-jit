@@ -1,0 +1,250 @@
+# Default values for kube-jit-api.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Build/commit SHA, updated on new release (git rev-parse --short HEAD)
+buildSha: "2df04b0"
+
+replicaCount: 1
+
+image:
+  repository: kube-jit-api
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Config for the kube-jit-api
+config:
+  # Enable debug logging for the API (zap logger)
+  debugLog: false
+
+  # Optional email smtp config for sending email notifications
+  smtp:
+    enabled: false
+  #   host: smtp.example.com
+  #   port: 587
+  #   user: your_smtp_user
+  #   passSecretKey: smtpPass # name of the key in the secret kube-jit-api-secrets
+  #   from: jit@example.com
+  #   timezone: Europe/London # timezone for email notifications
+
+  # This is the secret key in the kube-jit-api-secrets secret
+  # This secret key value will contain the hmac secret key for signing the jwt tokens
+  # This is used for the callback flow from downstream clusters
+  hmacSecretKey: hmacSecret
+
+  # List of allowed origins (CORS), usually the client/frontend url
+  cors:
+    allowOrigins:
+      - "http://example.com:80"
+      - "http://localhost:5173"
+
+  # Allowed domain to login with (for google and azure only)
+  allowedDomain: "yourdomain.com"         # For Google/Azure
+  # Allowed org to login with (for github)
+  allowedGithubOrg: "your-org"            # For GitHub
+  
+  # List of allowed cluster roles to request for jit requests (name as per cluster role)
+  allowedRoles: []
+  #- name: edit
+  #- name: admin
+
+  # List of platform approver teams for jit requests (name and id)
+  # platform teams can approve any request 
+  # opposed to standard access where you can only approve requests for namespaces your team/group owns
+  platformApproverTeams: []
+  #- name: "some approver team"
+  #  id: 123
+  #- name: "some approver team 2"
+  #  id: 1234
+
+  # List of admin teams, they have additional access (name and id)
+  # This is used for the admin teams to have access to the api
+  adminTeams: []
+  # - name: "some admin team"
+  #   id: 123
+  # - name: "some admin team 2"
+  #   id: 1234
+
+  # Cluster connector config for external clusters
+  # name - the name of the cluster (can be any string you want to identify your cluster)
+  # host - the api endpoint
+  # ca - optional ca cert
+  # insecure - optional bool for https
+  # tokenSecret - the name of the secret in the same namespace as this api, to get the service account token for auth.
+  clusters: []
+  # - name: cluster1
+  #   host: https://cluster1.example.com
+  #   ca: base64-encoded-ca-cert
+  #   insecure: false
+  #   tokenSecret: cluster1-token-secret
+  # - name: cluster2
+  #   host: https://cluster2.example.com
+  #   ca: base64-encoded-ca-cert
+  #   insecure: true
+  #   tokenSecret: cluster2-token-secret
+
+  # callbackHostOverride sets the callback base url for external clusters running the kube-jit operator to callback to the api for status updates.
+  # defaults to the ingress host
+  #callbackHostOverride: http://callback-example.com:8589
+
+  # configMountPath sets the mountPath of the api configMap in the pod, defaults to /etc/config/
+  #configMountPath: ""
+  
+  # Oauth either configure for github, azure, or google
+  oauth:
+    # This is the secret key in the kube-jit-api-secrets secret
+    # This secret key value will contain the cookie secret key for signing the cookies
+    # This is used for the cookie auth flow
+    cookieSecretKey: cookieSecret
+
+    # Cookie SameSite policy
+    # This is used for the cookie auth flow
+    # Lax - Cookies are sent with top-level navigations and will be sent along with GET requests initiated by third party websites.
+    # Strict - Cookies will only be sent in a first-party context and not be sent along with requests initiated by third party websites.
+    # None - Cookies will be sent in all contexts, i.e. sending cross-origin is possible. This requires the Secure attribute to be set (https).
+    cookieSameSite: "Lax"   # Options: "Lax", "Strict", "None"
+    # Your Oauth provider, "github" for GithubApp, "azure" for AAD, "google" for Google Oauth
+   
+    # "github", "azure" or "google"
+    # For google provider, you must run API in GKE with workload identity enabled and domain wide delegation on your google workspace.
+    provider:
+    # Your Client ID
+    clientID: "your-client-id"
+    # Your Redirect URL
+    redirectUri: "http://localhost:8589/auth/callback"
+    # This is the secret key in the kube-jit-api-secrets secret
+    # This secret key value will contain the client secret for the Oauth
+    clientSecretKeyRef: "oauthClientSecret"
+
+    # Google specific config
+    # This is the Google admin email to impersonate for domain wide delegation to work and allow the api to see which groups the user is in
+    # This is required for the google provider to work - https://support.google.com/a/answer/162106?hl=en&src=supportwidget0&authuser=0
+    #googleAdminEmail: "admin@yourdomain.com"
+
+    # Azure specific config
+    # This is the Azure auth URL
+    #azureAuthUrl: "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize"
+    # This is the Azure token URL
+    #azureTokenUrl: "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
+
+# Postgres database connection details
+db:
+  # If using GCP Cloud SQL Proxy with GKE workload identity, set the cloudSqlProxy.enabled to true
+  # and provide the cloudSqlInstance name.
+  # If using a different database, set cloudSqlProxy.enabled to false
+  # and provide the database connection details.
+  cloudSqlProxy:
+    enabled: false
+  #   image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.15.2
+  #   cloudSqlInstance: "project-id:region:instance-name"
+  #   usePrivateIp: false # Set to true to enable the --private-ip flag
+  #   resources:
+  #     limits:
+  #       cpu: "100m"
+  #       memory: "128Mi"
+  #     requests:
+  #       cpu: "50m"
+  #       memory: "64Mi"
+  # Your Postgres hostname, ignored if using Cloud SQL Proxy - sets to 127.0.0.1
+  host: "your-db-host"
+  # Your Postgres connection timeout
+  connTimeout: "10"
+  # Your Postgres database name
+  name: "your-db-name"
+  # Your Postgres database user secret key
+  # This is the secret key in the kube-jit-api-secrets secret
+  userSecretKey: dbUser
+  # Your Postgres database password/token secret key
+  # This is the secret key in the kube-jit-api-secrets secret
+  passwordSecretKey: dbPassword
+  # Your Postgres database port, ignored if using Cloud SQL Proxy - sets to 5432
+  port: "5432"
+  # Your Postgres database ssl mode, disabled if using Cloud SQL Proxy
+  sslMode: "prefer" # Likely need to use "require" for azure hosted postgres
+  # Your Postgres database time zone
+  timezone: "Europe/London"
+  # Connection pool settings
+  maxOpenConns: "50"
+  maxIdleConns: "20"
+  connMaxLifetime: "10m"
+  connMaxIdleTime: "15m"
+  # Enable debug logging for the database - true or false
+  debug: false
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account (i.e. GKE workload identity or Azure workload identity)
+  # If using GKE workload identity, set the service account to the GCP service account
+  #iam.gke.io/gcp-service-account:
+  # If using Azure workload identity, set the service account to the Azure managed identity client id
+  #azure.workload.identity/client-id:
+  # The required additional pod label is automatically added for azure workload identity if annotations is set
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8589
+
+ingress:
+  enabled: false
+  # Recommended to expose the k8s-callback endpoint for external clusters to callback to the api for status updates for status updates
+  # All other traffic should flow through the Frontend Nginx proxy pass directive for the api.
+  className: ""
+  annotations: {}
+  hosts:
+    - host: api.example.com
+      paths:
+        - path: /k8s-callback
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - api.example.com
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+

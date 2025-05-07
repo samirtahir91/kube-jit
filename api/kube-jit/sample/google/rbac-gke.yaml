@@ -1,0 +1,23 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: api-kube-jit
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: jitrequest-editor-role
+subjects:
+- kind: User
+  name: kube-jit-api@sacred-entry-304212.iam.gserviceaccount.com
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: api-kube-jit-cache
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kube-jit-kube-jit-operator-jitgroupcache-viewer-role
+subjects:
+- kind: User
+  name: kube-jit-api@sacred-entry-304212.iam.gserviceaccount.com

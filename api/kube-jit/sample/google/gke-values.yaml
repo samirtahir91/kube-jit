@@ -1,0 +1,88 @@
+config:
+  callbackHostOverride: http://localhost:8589
+
+  allowedRoles:
+    - name: edit
+    - name: admin
+  
+  platformApproverTeams:
+    - name: "jit approvers"
+      id: "12769788"
+    - name: "jit approvers google"
+      id: jit-approvers-google@samirtahir.dev
+    - name: "jit approvers azure"
+      id: 3252cdf5-2db4-413c-b34f-459ea439397e
+
+  adminTeams:
+    - name: "admins"
+      id: admins@samirtahir.dev
+  
+  cors:
+    allowOrigins:
+      - "http://host.docker.internal:5173"
+      - "http://localhost:5173"
+      - "https://jit-test.samirtahir.dev"
+  
+  clusters:
+    - name: autopilot-cluster-2
+      type: gke
+      projectID: sacred-entry-304212
+      region: europe-west2
+
+  allowedDomain: "samirtahir.dev"         # For Google/Azure
+  allowedGithubOrg: "samirtahir91-org"            # For GitHub
+
+  oauth:
+    provider: "google"
+    clientID: "630940189304-8uggsmkv6to2vu5sogsjrhge1m57t8cr.apps.googleusercontent.com"
+    #clientID: "1092664767459-r6ettji6chf3bp1hilb0dear4f6abbju.apps.googleusercontent.com"
+    redirectUri: "http://localhost:5173/"
+    #clientSecretKeyRef: googleClientSecretWS
+    clientSecretKeyRef: googleClientSecret
+    googleAdminEmail: "samir@samirtahir.dev"
+
+    # provider: "github"
+    # clientID: Iv23likSg0AQoOUi18q7
+    # redirectUri: "http://localhost:5173/"
+    # clientSecretKeyRef: ghAppClientSecret
+
+  smtp:
+    enabled: true
+    host: 51.8.244.176
+    port: 1025
+    user: ""
+    from: jit-gke@example.com
+    timezone: Europe/London
+
+serviceAccount:
+  annotations:
+    iam.gke.io/gcp-service-account: kube-jit-api@sacred-entry-304212.iam.gserviceaccount.com
+
+db:
+  # cloudSqlProxy:
+  #   enabled: true
+  #   image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.15.2
+  #   cloudSqlInstance: sacred-entry-304212:europe-west2:kube-jit
+  #   usePrivateIp: true
+  #   resources:
+  #     limits:
+  #       cpu: "100m"
+  #       memory: "128Mi"
+  #     requests:
+  #       cpu: "50m"
+  #       memory: "64Mi"
+  host: my-postgres-postgresql.default.svc.cluster.local
+  connTimeout: "10"
+  name: postgres
+  port: "5432"
+  sslMode: "prefer"
+  timezone: "Europe/London"
+  maxOpenConns: "50"
+  maxIdleConns: "20"
+  connMaxLifetime: "10m"
+  connMaxIdleTime: "15m"
+
+image:
+  repository: samirtahir91076/kube-jit-api
+  tag: v1.1.8
+  imagePullPolicy: Always

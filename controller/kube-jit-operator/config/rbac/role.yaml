@@ -1,0 +1,46 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - jit.kubejit.io
+  resources:
+  - jitgroupcaches
+  - jitrequests
+  - kubejitconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - jit.kubejit.io
+  resources:
+  - jitgroupcaches/finalizers
+  - jitrequests/finalizers
+  - kubejitconfigs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - jit.kubejit.io
+  resources:
+  - jitgroupcaches/status
+  - jitrequests/status
+  - kubejitconfigs/status
+  verbs:
+  - get
+  - patch
+  - update

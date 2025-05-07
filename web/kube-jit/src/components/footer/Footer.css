@@ -1,0 +1,45 @@
+.footer {
+  width: 100%;
+  background: #ffffff;
+  color: #222;
+  font-size: 1em;
+  padding: 1rem 0 0.5rem 0;
+  margin-top: auto;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.03);
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  border-radius: 0.75rem; /* Add rounded edges like your card */
+}
+
+.footer-divider {
+  border: none;
+  border-top: 1px solid #cfd8dc;
+  margin: 0 0 0.5rem 0;
+  width: 90%;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  color: #088ec8;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.footer-link:hover {
+  color: #0a1e39;
+  text-decoration: underline;
+}
+
+.footer-separator {
+  color: #b0b0b0;
+  font-size: 1.1em;
+}

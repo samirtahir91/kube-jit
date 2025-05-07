@@ -1,0 +1,45 @@
+## On external cluster
+### Create a KSA token
+kubectl create ns kube-jit
+kubectl create sa kube-jit -n kube-jit  
+
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kube-jit-sa-token
+  namespace: kube-jit
+  annotations:
+    kubernetes.io/service-account.name: kube-jit
+type: kubernetes.io/service-account-token
+EOF
+
+### Create rbac for the ksa
+kubectl create -f ../../controller/kube-jit-operator/config/rbac/jitrequest_editor_role.yaml
+kubectl create -f rbac.yaml
+
+## On internal cluster (where api is running)
+- Add cluster detail to `cluter-config` configMap, i.e.
+- either insecure true with no ca or false with ca (base64 string)
+    - you can get the ca.crt from the secret created on the ext cluster for the sa token.
+- tokenSecret - the secret containing the JWT, in the same namespace as the api.
+```yaml
+    - name: kind-jit-ext
+      host: 'https://127.0.0.1:53166'
+      tokenSecret: kind-jit-ext-sa-token
+      insecure: false
+      ca: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURCVENDQWUyZ0F3SUJBZ0lJTDFZbEtMbWVQOUV3RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TlRBME1qRXhOVEV4TkRWYUZ3MHpOVEEwTVRreE5URTJORFZhTUJVeApFekFSQmdOVkJBTVRDbXQxWW1WeWJtVjBaWE13Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUURpVXQzZ3UzSTVrNS9vcXJRT2RvRFdMdHZyQXplaUtKZ2tMLy9OcGJPZXRNdzI0V2g2Ym16eHRKaDMKZDBFejIyTEp0V25RMm5RQjlWVjlsR3M3MUFWd1MwaGtSbU8rL21aTE9GaUJsYndwYzRTQTR1NVNHYmd4OVQxVQprV3kzNEl2REFCMW5hVzZBZFBZNTdQKytQS0VSYmRzQTVWS2RFMkNRVk9lakYxdGthczZCREx2bXp2MHlwTFZ5CnZFdEwyMW8vNGxEY3Q3R0ZtMTJJRDErM3h2VHdaWXRhVk5zbllSZVBPbHJBTUJlZ1ZIeFVkR3pvUjRuclY5NTIKd3E3SGV1K0gvSlVBZk53dDFlbVpsMmtEekpld3hDenNRSHRWMFl5T3o3SEMzTm9wNU9hYUw1d0J3TlBXb3JsRwpIUkVQRGJHR3hIUkpvRDlRcXBXMXlyVXJHbDlUQWdNQkFBR2pXVEJYTUE0R0ExVWREd0VCL3dRRUF3SUNwREFQCkJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJUcWtVYTJZSmo1ZFliZmxtSFM2UFB4d2dVUFR6QVYKQmdOVkhSRUVEakFNZ2dwcmRXSmxjbTVsZEdWek1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQUdRREVxbVp6dgpKK1k5cU5OWngwUC9WVjZTRTRXMEJCZlBPblhrbjYzU3BJVk5WR3I0OHU4UHdDY05VQ244MEpzZjlwdUlFNmtvCmxNRnJYdnp0ekx3bU5KblZObXVySjJoT3Bjd0UyWTkvQThQdFpwK0d6MHFSRmdZTVp0RDV6TWNSWldnbjJzRFAKVlFLc2RRQURadERubXRoVThLelZtR2lnMmVvMzRsdlRmbXlYcFVJRjNHZ1NTNnJFWVR0VmhUWUd0MTVCTlBnSApDTzdjRjM3dGxqMEhtVEEyc01mbGNsMnBNbVlHN1NIejJBcEl2ZmJ4bENHbTRMUmpVVE1HVGQzakkvbm9TK0h3CkQ4Z2FjWE0vdTJYMFhReFZHOEVKWGJzT0JrYWM4Z3FmMXJuT3dIRXd4ci9iSEN3UlNOL2VTc1c0cWtCNGwrUzIKbEdGVDRZUFZ5alpRCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+```
+- Create the matching tokenSecret with the sa token from the external cluster, i.e.
+```sh
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kind-jit-ext-sa-token
+  namespace: kube-jit
+type: Opaque
+data:
+    token: ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNkluQkNZMjlxVG5JNVdISXdjMGg1VGxSR2VUTnRkVUpUZWxKV1ZsOHRZVmxXVW5scFFteFpXVEpQT0VraWZRLmV5SnBjM01pT2lKcmRXSmxjbTVsZEdWekwzTmxjblpwWTJWaFkyTnZkVzUwSWl3aWEzVmlaWEp1WlhSbGN5NXBieTl6WlhKMmFXTmxZV05qYjNWdWRDOXVZVzFsYzNCaFkyVWlPaUpyZFdKbExXcHBkQ0lzSW10MVltVnlibVYwWlhNdWFXOHZjMlZ5ZG1salpXRmpZMjkxYm5RdmMyVmpjbVYwTG01aGJXVWlPaUpyZFdKbExXcHBkQzF6WVMxMGIydGxiaUlzSW10MVltVnlibVYwWlhNdWFXOHZjMlZ5ZG1salpXRmpZMjkxYm5RdmMyVnlkbWxqWlMxaFkyTnZkVzUwTG01aGJXVWlPaUpyZFdKbExXcHBkQ0lzSW10MVltVnlibVYwWlhNdWFXOHZjMlZ5ZG1salpXRmpZMjkxYm5RdmMyVnlkbWxqWlMxaFkyTnZkVzUwTG5WcFpDSTZJakEwWVRrd016azRMVEF4T1RndE5EWmhZUzFpTURkakxURTVPVEF5TkRaaVptSTBPQ0lzSW5OMVlpSTZJbk41YzNSbGJUcHpaWEoyYVdObFlXTmpiM1Z1ZERwcmRXSmxMV3BwZERwcmRXSmxMV3BwZENKOS5acVFlajFJQ2luY3lTV2JTakhvUTk1LUh5RVRnakJwTnVjQ1ZJeFQ4RWtjVlBDYV9BYkwwYXFDbDRGOGZUUldwQjlGWWJYRm9Tb1piSnlUTXZZM01OUXJWOXFSd3R2YlpfZktmR1AzMEpYSzZqQ3A2aW5sTVlvVHN0NG1sTzF4RkpQaHlqXzVoLVRVUF9nQmtwcE5rZnFJN2R1NVNIZ0toYWh1QlZzZ2M4anQxM0dOTzMzWFRYZ29WcE94UGFHeTBZd1JBMF9vVXB3bkVOTWxCMnIyXzdueHpLb2FtZ1hWanFPNl90MzB5c3ZFb2RiM2doRlpZX0QyeGt4SFlhdWRlbVhSV2hmc1g2LVpGRjRzRTlWa2M3aDRxa2NubUNUSkktV1U1eFpxUDRVUkdpLXFad0s1TW5VWjNEYVFQQnNDNWxwT0Q4aDZTNWxUdWZ1OUxuUnJfcUE=
+EOF
+```

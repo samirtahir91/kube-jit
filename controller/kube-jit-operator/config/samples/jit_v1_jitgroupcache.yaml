@@ -1,0 +1,13 @@
+apiVersion: jit.kubejit.io/v1
+kind: JitGroupCache
+metadata:
+  labels:
+    app.kubernetes.io/name: kube-jit-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: jitgroupcache
+spec:
+  jitGroups:
+    - groupID: group1
+      namespace: namespace1
+    - groupID: group2
+      namespace: namespace2

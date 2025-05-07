@@ -1,0 +1,119 @@
+# Default values for kube-jit-web.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+
+# Nginx configuration
+# apiUrl: Configurable API URL for the backend service. Defaults to "kube-jit-api.default.svc.cluster.local".
+# resolver: Configurable DNS resolver. Defaults to the Kubernetes DNS service (kube-dns.kube-system.svc.cluster.local).
+# resolverValid: Configurable DNS cache validity period. Defaults to 30s.
+# clientMaxBodySize: Configurable maximum body size for requests. Defaults to 20m.
+# proxyConnectTimeout: Configurable timeout for establishing a connection to the upstream server. Defaults to 10s.
+# proxySendTimeout: Configurable timeout for sending requests to the upstream server. Defaults to 15s.
+# proxyReadTimeout: Configurable timeout for reading responses from the upstream server. Defaults to 20s.
+nginx:
+  apiUrl: "kube-jit-api.kube-jit-api.svc.cluster.local" # Default Kubernetes service name
+  resolver: "kube-dns.kube-system.svc.cluster.local" # Default Kubernetes DNS resolver
+  resolverValid: "10s" # DNS resolution refresh interval
+  clientMaxBodySize: "20m" # Default max body size
+  proxyConnectTimeout: "10s" # Default proxy connect timeout
+  proxySendTimeout: "15s" # Default proxy send timeout
+  proxyReadTimeout: "20s" # Default proxy read timeout
+
+replicaCount: 1
+
+image:
+  repository: kube-jit-web
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    #kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    ingress.kubernetes.io/proxy-body-size: "1024m"
+    nginx.ingress.kubernetes.io/proxy-body-size: "1024m"
+    # oauth
+    # nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
+    # required for cross domain
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    # get auth headers
+    # nginx.ingress.kubernetes.io/auth-response-headers: "Authorization, x-auth-request-user, x-auth-request-email, x-auth-request-access-token"
+    # ensure oauth cookie (split)
+    # nginx.ingress.kubernetes.io/configuration-snippet: |
+    #   auth_request_set $name_upstream_1 $upstream_cookie_name_1;
+
+    #   access_by_lua_block {
+    #     if ngx.var.name_upstream_1 ~= "" then
+    #       ngx.header["Set-Cookie"] = "name_1=" .. ngx.var.name_upstream_1 .. ngx.var.auth_cookie:match("(; Path=.*)")
+    #     end
+    #   }
+  hosts:
+    - host: kube-jit-web.localtest.me
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  labels:
+    {{- include "kube-jit-api.labels" . | nindent 4 }}
+data:
+  apiConfig: |
+    clusters:
+      {{- $allowedClusterKeys := include "allowedClusterKeys" . }}
+      {{- range .Values.config.clusters }}
+        {{- $invalidKeys := list }}
+        {{- range $key, $value := . }}
+          {{- if not (include "has" (list $allowedClusterKeys $key)) }}
+            {{- $invalidKeys = append $invalidKeys $key }}
+          {{- end }}
+        {{- end }}
+        {{- if gt (len $invalidKeys) 0 }}
+          {{- fail (printf "Invalid keys found: %v" $invalidKeys) }}
+        {{- end }}
+        {{- if not (include "isValidType" .type) }}
+          {{- fail (printf "Invalid cluster type '%s'. Allowed types are: gke, generic" .type) }}
+        {{- end }}
+      {{- end }}
+      {{- toYaml .Values.config.clusters | nindent 4 }}
+    allowedRoles:
+      {{- $allowedRoleKeys := include "allowedRoleKeys" . }}
+      {{- range .Values.config.allowedRoles }}
+        {{- $invalidKeys := list }}
+        {{- range $key, $value := . }}
+          {{- if not (include "has" (list $allowedRoleKeys $key)) }}
+            {{- $invalidKeys = append $invalidKeys $key }}
+          {{- end }}
+        {{- end }}
+        {{- if gt (len $invalidKeys) 0 }}
+          {{- fail (printf "Invalid keys found: %v" $invalidKeys) }}
+        {{- end }}
+      {{- end }}
+      {{- toYaml .Values.config.allowedRoles | nindent 4 }}
+    platformApproverTeams:
+      {{- $allowedTeamKeys := include "allowedTeamKeys" . }}
+      {{- range .Values.config.platformApproverTeams }}
+        {{- $invalidKeys := list }}
+        {{- range $key, $value := . }}
+          {{- if not (include "has" (list $allowedTeamKeys $key)) }}
+            {{- $invalidKeys = append $invalidKeys $key }}
+          {{- end }}
+        {{- end }}
+        {{- if gt (len $invalidKeys) 0 }}
+          {{- fail (printf "Invalid keys found: %v" $invalidKeys) }}
+        {{- end }}
+      {{- end }}
+      {{- toYaml .Values.config.platformApproverTeams | nindent 4 }}
+    adminTeams:
+      {{- $allowedTeamKeys := include "allowedTeamKeys" . }}
+      {{- range .Values.config.adminTeams }}
+        {{- $invalidKeys := list }}
+        {{- range $key, $value := . }}
+          {{- if not (include "has" (list $allowedTeamKeys $key)) }}
+            {{- $invalidKeys = append $invalidKeys $key }}
+          {{- end }}
+        {{- end }}
+        {{- if gt (len $invalidKeys) 0 }}
+          {{- fail (printf "Invalid keys found: %v" $invalidKeys) }}
+        {{- end }}
+      {{- end }}
+      {{- toYaml .Values.config.adminTeams | nindent 4 }}

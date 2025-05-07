@@ -1,0 +1,5 @@
+controllerManager:
+  manager:
+    image:
+      repository: samirtahir91076/kube-jit-operator
+      tag: v2.1.4

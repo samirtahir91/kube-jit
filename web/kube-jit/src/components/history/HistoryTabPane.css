@@ -1,0 +1,37 @@
+.search-button {
+    width: auto; /* Allow the button to fit its content */
+    background: linear-gradient(90deg, #007bff, #0056b3); /* Gradient background */
+    color: #ffffff; /* White text */
+    border: none; /* Remove border */
+    border-radius: 6px; /* Rounded corners */
+    padding: 8px 16px; /* Standard padding for a normal-sized button */
+    font-size: 16px; /* Standard font size */
+    font-weight: 500; /* Medium font weight */
+    transition: all 0.3s ease; /* Smooth transition for hover effects */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.search-button:hover {
+    background: linear-gradient(90deg, #0056b3, #003f7f); /* Darker gradient on hover */
+    transform: translateY(-2px); /* Slight lift effect */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+}
+
+.search-button:active {
+    transform: translateY(0); /* Reset lift effect on click */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Reset shadow on click */
+}
+
+/* Ensure all form labels in the history search row are left-aligned */
+.history-search-row .form-label {
+  font-weight: bold;
+  color: #003f7f;
+  text-align: left !important;
+  display: block;
+}
+
+/* Limit the width of the limit input field */
+.history-search-row #limit.form-control {
+  max-width: 120px;
+  min-width: 70px;
+}

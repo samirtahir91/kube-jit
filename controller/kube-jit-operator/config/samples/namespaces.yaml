@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    jit.kubejit.io/group_id: "jit-approvers-google@samirtahir.dev"
+    jit.kubejit.io/group_name: "jit approvers google"
+  labels:
+    jit.kubejit.io/adopt: "true" 
+  name: foo

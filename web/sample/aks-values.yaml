@@ -1,0 +1,18 @@
+nginx:
+  apiUrl: "http://kube-jit-api.kube-jit-api.svc.cluster.local" # Default Kubernetes service name
+  apiPort: "8589" # Default Kubernetes service port
+  resolver: "kube-dns.kube-system.svc.cluster.local" # Default Kubernetes DNS resolver
+  resolverValid: "10s" # DNS resolution refresh interval
+  clientMaxBodySize: "20m" # Default max body size
+  proxyConnectTimeout: "10s" # Default proxy connect timeout
+  proxySendTimeout: "15s" # Default proxy send timeout
+  proxyReadTimeout: "20s" # Default proxy read timeout
+image:
+  repository: samirtahir91076/kube-jit-web
+  tag: v1.1.1
+
+service:
+  type: LoadBalancer
+  port: 80
+  containerPort: 80
+  annotations:

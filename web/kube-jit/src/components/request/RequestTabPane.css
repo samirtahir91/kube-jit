@@ -1,0 +1,241 @@
+.help-button {
+    position: fixed; /* Fix the button to the viewport */
+    bottom: 20px; /* Distance from the bottom of the viewport */
+    right: 20px; /* Distance from the right of the viewport */
+    background: linear-gradient(135deg, #0a74da, #084c8d); /* Gradient blue background */
+    color: #ffffff; /* White text */
+    border: none;
+    border-radius: 50px; /* Fully rounded corners */
+    padding: 0.75rem 1.5rem; /* Larger padding for a prominent look */
+    font-size: 1.1rem; /* Slightly larger font size */
+    font-weight: 600; /* Bold text */
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    z-index: 1000; /* Ensure it stays above other elements */
+}
+
+.help-button:hover {
+    background: linear-gradient(135deg, #084c8d, #062f5a); /* Darker gradient on hover */
+    transform: scale(1.1); /* Slightly enlarge on hover */
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15); /* Enhance shadow on hover */
+}
+
+.help-button:active {
+    transform: scale(0.95); /* Slightly shrink on click */
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1); /* Reduce shadow on click */
+}
+
+.help-button:focus {
+    outline: none; /* Remove default focus outline */
+    box-shadow: 0 0 0 3px rgba(10, 116, 218, 0.5); /* Add a focus ring */
+}
+
+.info-box {
+    background: linear-gradient(135deg, #eaf4fc, #d4e9fa); /* Light blue gradient */
+    border: 2px solid #2e73b4;
+    border-radius: 5px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    color: #0a1e39;
+    animation: fadeIn 0.8s ease-in-out;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    text-align: left; /* Ensure left alignment for all content */
+}
+
+.info-box pre {
+    margin-bottom: 0.5rem;
+}
+
+.info-box-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #0a74da;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.info-box-close:hover {
+    color: #ff4d4d; /* Change color on hover */
+}
+
+.info-box:hover {
+    transform: scale(1.01);
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15), 0 0 7px #0a75da66; /* Add blue glow */
+}
+
+.info-box-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #1b4fa4;
+}
+
+.info-box-sample-title {
+    color: #1b4fa4; /* Same as .info-box-title */
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.info-box-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.info-box-list li {
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+    color: #0a1e39;
+    opacity: 0;
+    animation: fadeInList 0.5s ease-in-out forwards;
+    animation-delay: calc(var(--i) * 0.1s); /* Delay based on index */
+}
+
+.info-box-list li strong {
+    color: #1b4fa4;
+}
+
+.request-page-container {
+    padding: 2rem;
+}
+
+.form-description {
+    text-align: left; /* Align text to the left */
+    margin-bottom: 2rem;
+}
+
+.form-title {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: #003f7f;
+    margin-bottom: 0.5rem;
+}
+
+.form-subtitle {
+    font-size: 1rem;
+    color: #6c757d;
+    line-height: 1.5;
+    max-width: 600px;
+    margin: 0; /* Remove auto margin for left alignment */
+}
+
+.submit-button {
+    background: linear-gradient(90deg, #007bff, #0056b3); /* Gradient background */
+    color: #ffffff; /* White text */
+    border: none; /* Remove border */
+    border-radius: 6px; /* Rounded corners */
+    padding: 0.75rem 1.5rem; /* Add padding */
+    font-size: 1rem; /* Adjust font size */
+    font-weight: bold; /* Bold text */
+    cursor: pointer; /* Pointer cursor on hover */
+    transition: all 0.3s ease; /* Smooth transition for hover effects */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.submit-button:hover {
+    background: linear-gradient(90deg, #0056b3, #003f7f); /* Darker gradient on hover */
+    transform: translateY(-2px); /* Slight lift effect */
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+}
+
+.submit-button:active {
+    transform: translateY(0); /* Reset lift effect on click */
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1); /* Reset shadow on click */
+}
+
+.submit-button:disabled {
+    background: #d6d6d6; /* Gray background for disabled state */
+    color: #a1a1a1; /* Light gray text */
+    cursor: not-allowed; /* Disabled cursor */
+    box-shadow: none; /* Remove shadow */
+}
+
+.form-top-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.top-action-button {
+    background: linear-gradient(90deg, #007bff, #0056b3);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.3rem 0.9rem;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    min-width: 90px;
+    height: 2.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center; /* <-- Add this line */
+    gap: 0.4rem;
+}
+
+.top-action-button:hover {
+    background: linear-gradient(90deg, #0056b3, #003f7f);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.13);
+}
+
+.top-action-button:active {
+    transform: translateY(0); /* Reset lift effect on click */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Reset shadow on click */
+}
+
+.clear-form-button {
+    background: linear-gradient(90deg, #6c757d, #495057); /* Gradient for Clear Filters */
+}
+
+.clear-form-button:hover {
+    background: linear-gradient(90deg, #495057, #343a40); /* Darker gradient on hover */
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px); /* Slide in from above */
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0); /* Final position */
+    }
+}
+
+@keyframes fadeInList {
+    from {
+        opacity: 0;
+        transform: translateX(-10px); /* Slide in from the left */
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .info-box {
+        padding: 1rem; /* Reduce padding on smaller screens */
+    }
+
+    .info-box-title {
+        font-size: 1rem; /* Reduce title size */
+    }
+
+    .info-box-list li {
+        font-size: 0.85rem; /* Reduce list item size */
+    }
+}

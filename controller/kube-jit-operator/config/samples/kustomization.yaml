@@ -1,0 +1,6 @@
+## Append samples of your project ##
+resources:
+- jit_v1_jitrequest.yaml
+- jit_v1_kubejitconfig.yaml
+- jit_v1_jitgroupcache.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

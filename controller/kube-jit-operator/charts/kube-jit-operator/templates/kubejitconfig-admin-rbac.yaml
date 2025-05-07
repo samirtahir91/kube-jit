@@ -1,0 +1,19 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "kube-jit-operator.fullname" . }}-kubejitconfig-admin-role
+  labels:
+  {{- include "kube-jit-operator.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - jit.kubejit.io
+  resources:
+  - kubejitconfigs
+  verbs:
+  - '*'
+- apiGroups:
+  - jit.kubejit.io
+  resources:
+  - kubejitconfigs/status
+  verbs:
+  - get
