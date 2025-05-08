@@ -247,7 +247,7 @@ func ApproveOrRejectRequests(c *gin.Context) {
 			}
 			processApproval(reqLogger, r.ID, requestData, req.ApproverID, req.ApproverName, req.Status, approverGroups, c)
 		}
-		c.JSON(http.StatusOK, models.SimpleMessageResponse{Error: "User requests processed successfully"})
+		c.JSON(http.StatusOK, models.SimpleMessageResponse{Message: "User requests processed successfully"})
 		return
 	}
 }
