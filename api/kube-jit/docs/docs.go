@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/history": {
             "get": {
-                "description": "Returns the latest JIT requests for a user with optional limit and date range",
+                "description": "Returns the latest JIT requests for a user with optional limit and date range.\nRequires one or more cookies named kube_jit_session_\u003cnumber\u003e (e.g., kube_jit_session_0, kube_jit_session_1).\nPass split cookies in the Cookie header, for example:\n-H \"Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}\"",
                 "consumes": [
                     "application/json"
                 ],
@@ -29,6 +29,13 @@ const docTemplate = `{
                 ],
                 "summary": "Get JIT requests for a user",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)",
+                        "name": "Cookie",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -54,10 +61,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "array",
-                                "items": {
-                                    "$ref": "#/definitions/models.RequestWithNamespaceApprovers"
-                                }
+                                "$ref": "#/definitions/models.RequestWithNamespaceApprovers"
                             }
                         }
                     },
@@ -188,7 +192,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/kube-jit-api",
 	Schemes:          []string{},
 	Title:            "Kube-JIT API",
-	Description:      "Self-service Kubernetes RBAC with GitHub Teams.",
+	Description:      "Self-service Kubernetes RBAC JIT Requests with Google/Azure/Github Oauth.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

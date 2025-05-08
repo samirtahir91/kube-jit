@@ -14,14 +14,20 @@ import (
 
 // GetRecords godoc
 // @Summary Get JIT requests for a user
-// @Description Returns the latest JIT requests for a user with optional limit and date range
+// @Description Returns the latest JIT requests for a user with optional limit and date range.
+// @Description Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+// @Description Pass split cookies in the Cookie header, for example:
+// @Description     -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+// @Description Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies:
+// @Description Login required to test via browser, else test via curl
 // @Tags records
 // @Accept  json
 // @Produce  json
+// @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
 // @Param   userID     query    string  false  "User ID"
 // @Param   username   query    string  false  "Username"
 // @Param   limit      query    int     false  "Limit"
-// @Success 200 {array} []models.RequestWithNamespaceApprovers
+// @Success 200 {array} models.RequestWithNamespaceApprovers
 // @Failure 500 {object} map[string]string
 // @Router /history [get]
 func GetRecords(c *gin.Context) {

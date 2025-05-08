@@ -6,7 +6,11 @@ import (
 	"kube-jit/pkg/sessioncookie"
 	"os"
 
+	_ "kube-jit/docs"
+
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func SetupRoutes(r *gin.Engine) {
@@ -33,6 +37,7 @@ func SetupRoutes(r *gin.Engine) {
 	}
 
 	// Routes that do NOT require session handling - unauthenticated
+	r.GET("/kube-jit-api/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.GET("/kube-jit-api/oauth/github/callback", handlers.HandleGitHubLogin)
 	r.GET("/kube-jit-api/oauth/google/callback", handlers.HandleGoogleLogin)
 	r.GET("/kube-jit-api/oauth/azure/callback", handlers.HandleAzureLogin)
