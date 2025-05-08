@@ -146,7 +146,10 @@ describe('App', () => {
         });
 
         render(<App />);
-        await waitFor(() => expect(screen.getByTestId('profile')).toHaveTextContent('Admin User'));
+        await waitFor(() => {
+            screen.debug(); // This will print the DOM at this point
+            expect(screen.getByTestId('profile')).toHaveTextContent('Admin User');
+        }, { timeout: 3000 });
         expect(screen.getByTestId('admin-tab')).toBeInTheDocument();
         expect(screen.getByText('Admin')).toBeInTheDocument();
     });
