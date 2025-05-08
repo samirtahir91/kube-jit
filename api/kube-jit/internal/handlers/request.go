@@ -154,7 +154,7 @@ func SubmitRequest(c *gin.Context) {
 	}
 
 	// Respond with success message
-	c.JSON(http.StatusOK, models.SimpleMessageResponse{Error: "Request submitted successfully"})
+	c.JSON(http.StatusOK, models.SimpleMessageResponse{Message: "Request submitted successfully"})
 }
 
 // ApproveOrRejectRequests godoc
@@ -221,7 +221,7 @@ func ApproveOrRejectRequests(c *gin.Context) {
 		for _, r := range req.Requests {
 			processApproval(reqLogger, r.ID, r, req.ApproverID, req.ApproverName, req.Status, nil, c)
 		}
-		c.JSON(http.StatusOK, models.SimpleMessageResponse{Error: "Admin/Platform requests processed successfully"})
+		c.JSON(http.StatusOK, models.SimpleMessageResponse{Message: "Admin/Platform requests processed successfully"})
 		return
 	} else {
 		var req UserApproveRequest
