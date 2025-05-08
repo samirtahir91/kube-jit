@@ -204,36 +204,45 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string, reqLogger *zap.Logger
 	return teams, nil
 }
 
-// HandleGoogleLogin handles the Google login process
-// It exchanges the authorization code for an access token and retrieves the user's profile
-// It also checks if the user is allowed to log in based on their email domain
+// HandleGoogleLogin godoc
+// @Summary Google OAuth callback
+// @Description Handles the Google OAuth callback, exchanges the code for an access token, fetches user info, sets session data, and returns normalized user data and expiration time.
+// @Tags google
+// @Accept  json
+// @Produce  json
+// @Param   code query string true "Google OAuth authorization code"
+// @Success 200 {object} models.LoginResponse "Normalized user data and expiration time"
+// @Failure 400 {object} models.SimpleMessageResponse "Missing or invalid code"
+// @Failure 403 {object} models.SimpleMessageResponse "Unauthorized domain"
+// @Failure 500 {object} models.SimpleMessageResponse "Internal server error"
+// @Router /oauth/google/callback [get]
 func HandleGoogleLogin(c *gin.Context) {
 	code := c.Query("code")
 
 	if code == "" {
 		logger.Warn("Missing 'code' query parameter in Google login")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Code query parameter is required"})
+		c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: "Code query parameter is required"})
 		return
 	}
 
 	token, err := googleOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		logger.Error("Failed to exchange Google token", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to exchange token"})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to exchange token"})
 		return
 	}
 
 	googleUser, err := fetchGoogleUserProfile(token.AccessToken)
 	if err != nil {
 		logger.Error("Failed to get Google user info", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: err.Error()})
 		return
 	}
 
 	// Check if the user is allowed to log in
 	if !isAllowedUser("google", googleUser.Email, nil) {
 		logger.Warn("Login attempt from unauthorized Google domain", zap.String("email", googleUser.Email))
-		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized domain"})
+		c.JSON(http.StatusForbidden, models.SimpleMessageResponse{Error: "Unauthorized domain"})
 		return
 	}
 
@@ -257,15 +266,29 @@ func HandleGoogleLogin(c *gin.Context) {
 
 	sessioncookie.SplitSessionData(c)
 
-	logger.Info("Session cookies set successfully for Google login", zap.String("email", googleUser.Email))
+	logger.Debug("Session cookies set successfully for Google login", zap.String("email", googleUser.Email))
 
-	c.JSON(http.StatusOK, gin.H{
-		"userData":  normalizedUserData,
-		"expiresIn": int(time.Until(token.Expiry).Seconds()),
+	c.JSON(http.StatusOK, models.LoginResponse{
+		UserData:  normalizedUserData,
+		ExpiresIn: int(time.Until(token.Expiry).Seconds()),
 	})
 }
 
-// GetGoogleProfile gets the logged in user's profile info from Google
+// GetGoogleProfile godoc
+// @Summary Get the logged in user's Google profile
+// @Description Returns the normalized Google user profile for the authenticated user.
+// @Description Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+// @Description Pass split cookies in the Cookie header, for example:
+// @Description     -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+// @Description Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+// @Tags google
+// @Accept  json
+// @Produce  json
+// @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
+// @Success 200 {object} models.NormalizedUserData
+// @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
+// @Failure 500 {object} models.SimpleMessageResponse "Internal server error"
+// @Router /google/profile [get]
 func GetGoogleProfile(c *gin.Context) {
 	// Check if the user is logged
 	sessionData := GetSessionData(c)
@@ -275,14 +298,14 @@ func GetGoogleProfile(c *gin.Context) {
 	token, ok := sessionData["token"].(string)
 	if !ok || token == "" {
 		reqLogger.Warn("No token in session data for Google profile")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
+		c.JSON(http.StatusUnauthorized, models.SimpleMessageResponse{Error: "Unauthorized: no token in session data"})
 		return
 	}
 
 	googleUser, err := fetchGoogleUserProfile(token)
 	if err != nil {
 		reqLogger.Error("Failed to fetch Google user profile", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: err.Error()})
 		return
 	}
 

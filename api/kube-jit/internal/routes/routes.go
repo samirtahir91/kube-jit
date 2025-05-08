@@ -4,9 +4,12 @@ import (
 	"kube-jit/internal/handlers"
 	"kube-jit/internal/middleware"
 	"kube-jit/pkg/sessioncookie"
-	"os"
+
+	_ "kube-jit/docs"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func SetupRoutes(r *gin.Engine) {
@@ -33,6 +36,7 @@ func SetupRoutes(r *gin.Engine) {
 	}
 
 	// Routes that do NOT require session handling - unauthenticated
+	r.GET("/kube-jit-api/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.GET("/kube-jit-api/oauth/github/callback", handlers.HandleGitHubLogin)
 	r.GET("/kube-jit-api/oauth/google/callback", handlers.HandleGoogleLogin)
 	r.GET("/kube-jit-api/oauth/azure/callback", handlers.HandleAzureLogin)
@@ -40,7 +44,5 @@ func SetupRoutes(r *gin.Engine) {
 	r.GET("/kube-jit-api/client_id", handlers.GetOauthClientId)
 	r.POST("/k8s-callback", handlers.K8sCallback)
 	r.POST("/kube-jit-api/logout", handlers.Logout)
-	r.GET("/kube-jit-api/build-sha", func(c *gin.Context) {
-		c.JSON(200, gin.H{"sha": os.Getenv("BUILD_SHA")})
-	})
+	r.GET("/kube-jit-api/build-sha", handlers.GetBuildSha)
 }

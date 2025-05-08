@@ -129,18 +129,24 @@ func GetGithubTeams(token string, reqLogger *zap.Logger) ([]models.Team, error) 
 	return teams, nil
 }
 
-// HandleGitHubLogin handles the GitHub OAuth callback
-// It retrieves the access token and user information from GitHub
-// and sets the session data for the user
-// It also normalizes the user data and returns it in the response
-// It returns a JSON response with the user data and expiration time
-// or an error message if something goes wrong
+// HandleGitHubLogin godoc
+// @Summary GitHub OAuth callback
+// @Description Handles the GitHub OAuth callback, exchanges the code for an access token, fetches user info, sets session data, and returns normalized user data and expiration time.
+// @Tags github
+// @Accept  json
+// @Produce  json
+// @Param   code query string true "GitHub OAuth authorization code"
+// @Success 200 {object} models.LoginResponse "Normalized user data and expiration time"
+// @Failure 400 {object} models.SimpleMessageResponse "Missing or invalid code"
+// @Failure 403 {object} models.SimpleMessageResponse "Unauthorized org"
+// @Failure 500 {object} models.SimpleMessageResponse "Internal server error"
+// @Router /oauth/github/callback [get]
 func HandleGitHubLogin(c *gin.Context) {
 	// Check for the presence of the 'code' query parameter
 	code := c.Query("code")
 	if code == "" {
 		logger.Warn("Missing 'code' query parameter in GitHub login")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Code query parameter is required"})
+		c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: "Code query parameter is required"})
 		return
 	}
 
@@ -155,7 +161,7 @@ func HandleGitHubLogin(c *gin.Context) {
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://github.com/login/oauth/access_token", strings.NewReader(data.Encode()))
 	if err != nil {
 		logger.Error("Failed to create request for GitHub access token", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request for access token"})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to create request for access token"})
 		return
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -164,14 +170,14 @@ func HandleGitHubLogin(c *gin.Context) {
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		logger.Error("Failed to fetch GitHub access token", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch access token"})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to fetch access token"})
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		logger.Warn("Error fetching access token from GitHub", zap.Int("status", resp.StatusCode))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error fetching access token from GitHub"})
+		c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: "Error fetching access token from GitHub"})
 		return
 	}
 
@@ -179,7 +185,7 @@ func HandleGitHubLogin(c *gin.Context) {
 	var tokenData models.GitHubTokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenData); err != nil {
 		logger.Error("Failed to decode GitHub token response", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode access token"})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to decode access token"})
 		return
 	}
 
@@ -187,7 +193,7 @@ func HandleGitHubLogin(c *gin.Context) {
 	githubUser, err := fetchGitHubUserProfile(tokenData.AccessToken)
 	if err != nil {
 		logger.Error("Failed to get GitHub user info", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: err.Error()})
 		return
 	}
 
@@ -217,25 +223,20 @@ func HandleGitHubLogin(c *gin.Context) {
 	session.Set("data", sessionData)
 	sessioncookie.SplitSessionData(c)
 
-	logger.Info("Session cookies set successfully for GitHub login", zap.String("user", githubUser.Login))
-
-	c.JSON(http.StatusOK, gin.H{
-		"userData":  normalizedUserData,
-		"expiresIn": tokenData.ExpiresIn,
-	})
+	logger.Debug("Session cookies set successfully for GitHub login", zap.String("user", githubUser.Login))
 
 	// Fetch orgs for the user
 	orgReq, err := http.NewRequest("GET", "https://api.github.com/user/orgs", nil)
 	if err != nil {
 		logger.Error("Failed to create request for GitHub orgs", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request for orgs"})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to create request for orgs"})
 		return
 	}
 	orgReq.Header.Set("Authorization", tokenData.TokenType+" "+tokenData.AccessToken)
 	orgResp, err := httpClient.Do(orgReq)
 	if err != nil {
 		logger.Error("Failed to fetch GitHub orgs", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch orgs"})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to fetch orgs"})
 		return
 	}
 	defer orgResp.Body.Close()
@@ -245,7 +246,7 @@ func HandleGitHubLogin(c *gin.Context) {
 	}
 	if err := json.NewDecoder(orgResp.Body).Decode(&orgs); err != nil {
 		logger.Error("Failed to decode GitHub orgs", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode orgs"})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to decode orgs"})
 		return
 	}
 	orgNames := []string{}
@@ -256,12 +257,32 @@ func HandleGitHubLogin(c *gin.Context) {
 
 	if !isAllowedUser("github", email, extraInfo) {
 		logger.Warn("Login attempt from unauthorized GitHub org", zap.String("email", email))
-		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized org"})
+		c.JSON(http.StatusForbidden, models.SimpleMessageResponse{Error: "Unauthorized org"})
 		return
 	}
+
+	// return the normalized user data and expiration time
+	c.JSON(http.StatusOK, models.LoginResponse{
+		UserData:  normalizedUserData,
+		ExpiresIn: tokenData.ExpiresIn,
+	})
 }
 
-// GetGithubProfile gets the logged in user's profile info from GitHub
+// GetGithubProfile godoc
+// @Summary Get the logged in user's GitHub profile
+// @Description Returns the normalized GitHub user profile for the authenticated user.
+// @Description Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+// @Description Pass split cookies in the Cookie header, for example:
+// @Description     -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+// @Description Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+// @Tags github
+// @Accept  json
+// @Produce  json
+// @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
+// @Success 200 {object} models.NormalizedUserData
+// @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
+// @Failure 500 {object} models.SimpleMessageResponse "Internal server error"
+// @Router /github/profile [get]
 func GetGithubProfile(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData := GetSessionData(c)
@@ -270,14 +291,14 @@ func GetGithubProfile(c *gin.Context) {
 	token, ok := sessionData["token"].(string)
 	if !ok || token == "" {
 		reqLogger.Warn("No token in session data for GitHub profile")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
+		c.JSON(http.StatusUnauthorized, models.SimpleMessageResponse{Error: "Unauthorized: no token in session data"})
 		return
 	}
 
 	githubUser, err := fetchGitHubUserProfile(token)
 	if err != nil {
 		reqLogger.Error("Failed to fetch GitHub user profile", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: err.Error()})
 		return
 	}
 

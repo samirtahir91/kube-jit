@@ -8,6 +8,7 @@ import (
 	"kube-jit/pkg/k8s"
 	"kube-jit/pkg/utils"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -27,6 +28,19 @@ var (
 	}
 )
 
+// OauthClientIdResponse represents the response for GetOauthClientId
+type OauthClientIdResponse struct {
+	ClientID    string `json:"client_id"`
+	Provider    string `json:"provider"`
+	RedirectURI string `json:"redirect_uri"`
+	AuthURL     string `json:"auth_url"`
+}
+
+// BuildShaResponse represents the response for GetBuildSha
+type BuildShaResponse struct {
+	Sha string `json:"sha"`
+}
+
 func init() {
 	// Set the admin email for Google OAuth provider
 	if oauthProvider == "google" {
@@ -38,11 +52,24 @@ func init() {
 	}
 }
 
-// K8sCallback is used by downstream controller to callback for status update
-// It validates the signed URL and updates the request status in the database
-// It also processes the callback data and returns a success message
-// It is called by the K8s controller when the request is completed
-// It is used to update the status of the request in the database
+// ClustersAndRolesResponse represents the response for clusters and roles
+type ClustersAndRolesResponse struct {
+	Clusters []string       `json:"clusters"`
+	Roles    []models.Roles `json:"roles"`
+}
+
+// K8sCallback godoc
+// @Summary Kubernetes controller callback for status update
+// @Description Used by the downstream Kubernetes controller to callback for status update. Validates the signed URL and updates the request status in the database. Returns a success message.
+// @Tags k8s
+// @Accept  json
+// @Produce  json
+// @Param   request body object true "Callback payload (ticketID, status, message)"
+// @Success 200 {object} models.SimpleMessageResponse "Status updated successfully"
+// @Failure 400 {object} models.SimpleMessageResponse "Invalid request"
+// @Failure 401 {object} models.SimpleMessageResponse "Unauthorized"
+// @Failure 500 {object} models.SimpleMessageResponse "Failed to update request"
+// @Router /k8s-callback [post]
 func K8sCallback(c *gin.Context) {
 	var callbackData struct {
 		TicketID string `json:"ticketID"`
@@ -52,14 +79,14 @@ func K8sCallback(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&callbackData); err != nil {
 		logger.Warn("Failed to bind JSON in K8sCallback", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
+		c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: "Invalid request"})
 		return
 	}
 
 	callbackURL := c.Request.URL
 	if !utils.ValidateSignedURL(callbackURL, k8s.CallbackHostOverride) {
 		logger.Warn("Invalid or expired signed URL in K8sCallback")
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, models.SimpleMessageResponse{Error: "Unauthorized"})
 		return
 	}
 
@@ -71,7 +98,7 @@ func K8sCallback(c *gin.Context) {
 			zap.String("ticketID", callbackData.TicketID),
 			zap.Error(err),
 		)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update request (database error)"})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to update request (database error)"})
 		return
 	}
 
@@ -101,32 +128,76 @@ func K8sCallback(c *gin.Context) {
 		}()
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Success"})
+	c.JSON(http.StatusOK, models.SimpleMessageResponse{Error: "Success"})
 }
 
-// GetOauthClientId checks the oauthProvider and returns the appropriate client_id, provider and redirect url
+// GetOauthClientId godoc
+// @Summary Get OAuth client configuration
+// @Description Returns the OAuth client_id, provider, redirect URI, and auth URL for the frontend to initiate login.
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} handlers.OauthClientIdResponse "OAuth client configuration"
+// @Router /client_id [get]
 func GetOauthClientId(c *gin.Context) {
-	response := map[string]interface{}{
-		"client_id":    clientID,
-		"provider":     oauthProvider,
-		"redirect_uri": redirectUri,
-		"auth_url":     azureOAuthConfig.Endpoint.AuthURL,
+	response := OauthClientIdResponse{
+		ClientID:    clientID,
+		Provider:    oauthProvider,
+		RedirectURI: redirectUri,
+		AuthURL:     azureOAuthConfig.Endpoint.AuthURL,
 	}
 
 	c.JSON(http.StatusOK, response)
 }
 
-// GetClustersAndRoles returns the list of clusters and roles available
+// GetClustersAndRoles godoc
+// @Summary Get available clusters and roles
+// @Description Returns the list of clusters and roles available to the user.
+// @Description Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+// @Description Pass split cookies in the Cookie header, for example:
+// @Description     -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+// @Description Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+// @Tags records
+// @Accept  json
+// @Produce  json
+// @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
+// @Success 200 {object} ClustersAndRolesResponse "clusters and roles"
+// @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
+// @Router /roles-and-clusters [get]
 func GetClustersAndRoles(c *gin.Context) {
-	// Return the clusters and roles
-	response := map[string]interface{}{
-		"clusters": k8s.ClusterNames,
-		"roles":    k8s.AllowedRoles,
+	response := ClustersAndRolesResponse{
+		Clusters: k8s.ClusterNames,
+		Roles:    k8s.AllowedRoles,
 	}
 	c.JSON(http.StatusOK, response)
 }
 
-// GetApprovingGroups returns the list of platform approving groups
+// GetBuildSha godoc
+// @Summary Get build SHA
+// @Description Returns the current build SHA for the running API.
+// @Tags health
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} handlers.BuildShaResponse "Current build SHA"
+// @Router /build-sha [get]
+func GetBuildSha(c *gin.Context) {
+	c.JSON(http.StatusOK, BuildShaResponse{Sha: os.Getenv("BUILD_SHA")})
+}
+
+// GetApprovingGroups godoc
+// @Summary Get platform approving groups
+// @Description Returns the list of platform approving groups for the authenticated user.
+// @Description Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+// @Description Pass split cookies in the Cookie header, for example:
+// @Description     -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+// @Description Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+// @Tags records
+// @Accept  json
+// @Produce  json
+// @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
+// @Success 200 {array} models.Team
+// @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
+// @Router /approving-groups [get]
 func GetApprovingGroups(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData := GetSessionData(c)
@@ -134,7 +205,7 @@ func GetApprovingGroups(c *gin.Context) {
 	// Retrieve the token from the session data
 	token, ok := sessionData["token"].(string)
 	if !ok || token == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
+		c.JSON(http.StatusUnauthorized, models.SimpleMessageResponse{Error: "Unauthorized: no token in session data"})
 		return
 	}
 
@@ -142,9 +213,16 @@ func GetApprovingGroups(c *gin.Context) {
 	c.JSON(http.StatusOK, k8s.PlatformApproverTeams)
 }
 
-// HealthCheck used for status checking the api
+// HealthCheck godoc
+// @Summary Health check endpoint
+// @Description Returns a simple status message to verify the API is running.
+// @Tags health
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} models.SimpleMessageResponse "API is healthy"
+// @Router /healthz [get]
 func HealthCheck(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"status": "healthy"})
+	c.JSON(http.StatusOK, models.SimpleMessageResponse{Status: "healthy"})
 }
 
 // contains checks if a string is present in a slice of strings

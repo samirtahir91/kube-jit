@@ -67,6 +67,7 @@ lint-config: golangci-lint ## Verify golangci-lint linter configuration
 .PHONY: build
 build: fmt vet ## Build manager binary.
 	go build -o bin/api cmd/main.go
+	swag init -g cmd/main.go
 
 .PHONY: run
 run: fmt vet ## Run from your host.
