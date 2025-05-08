@@ -221,43 +221,7 @@ info:
   title: Kube-JIT API
   version: "1.0"
 paths:
-  /k8s-callback:
-    post:
-      consumes:
-      - application/json
-      description: Used by the downstream Kubernetes controller to callback for status
-        update. Validates the signed URL and updates the request status in the database.
-        Returns a success message.
-      parameters:
-      - description: Callback payload (ticketID, status, message)
-        in: body
-        name: request
-        required: true
-        schema:
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Status updated successfully
-          schema:
-            $ref: '#/definitions/models.SimpleMessageResponse'
-        "400":
-          description: Invalid request
-          schema:
-            $ref: '#/definitions/models.SimpleMessageResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.SimpleMessageResponse'
-        "500":
-          description: Failed to update request
-          schema:
-            $ref: '#/definitions/models.SimpleMessageResponse'
-      summary: Kubernetes controller callback for status update
-      tags:
-      - k8s
-  /kube-jit-api/admin/clean-expired:
+  /admin/clean-expired:
     post:
       consumes:
       - application/json
@@ -292,7 +256,7 @@ paths:
       summary: Clean up expired non-approved JIT requests
       tags:
       - admin
-  /kube-jit-api/approvals:
+  /approvals:
     get:
       consumes:
       - application/json
@@ -327,7 +291,7 @@ paths:
       summary: Get pending JIT requests for approver groups
       tags:
       - records
-  /kube-jit-api/approve-reject:
+  /approve-reject:
     post:
       consumes:
       - application/json
@@ -372,7 +336,7 @@ paths:
       summary: Approve or reject JIT access requests
       tags:
       - request
-  /kube-jit-api/approving-groups:
+  /approving-groups:
     get:
       consumes:
       - application/json
@@ -405,7 +369,7 @@ paths:
       summary: Get platform approving groups
       tags:
       - records
-  /kube-jit-api/azure/profile:
+  /azure/profile:
     get:
       consumes:
       - application/json
@@ -440,7 +404,7 @@ paths:
       summary: Get the logged in user's Azure profile
       tags:
       - azure
-  /kube-jit-api/build-sha:
+  /build-sha:
     get:
       consumes:
       - application/json
@@ -455,7 +419,7 @@ paths:
       summary: Get build SHA
       tags:
       - health
-  /kube-jit-api/client_id:
+  /client_id:
     get:
       consumes:
       - application/json
@@ -471,7 +435,7 @@ paths:
       summary: Get OAuth client configuration
       tags:
       - auth
-  /kube-jit-api/clusters-and-roles:
+  /clusters-and-roles:
     get:
       consumes:
       - application/json
@@ -502,7 +466,7 @@ paths:
       summary: Get available clusters and roles
       tags:
       - records
-  /kube-jit-api/github/profile:
+  /github/profile:
     get:
       consumes:
       - application/json
@@ -537,7 +501,7 @@ paths:
       summary: Get the logged in user's GitHub profile
       tags:
       - github
-  /kube-jit-api/google/profile:
+  /google/profile:
     get:
       consumes:
       - application/json
@@ -572,7 +536,7 @@ paths:
       summary: Get the logged in user's Google profile
       tags:
       - google
-  /kube-jit-api/healthz:
+  /healthz:
     get:
       consumes:
       - application/json
@@ -587,7 +551,7 @@ paths:
       summary: Health check endpoint
       tags:
       - health
-  /kube-jit-api/history:
+  /history:
     get:
       consumes:
       - application/json
@@ -633,7 +597,43 @@ paths:
       summary: Get JIT requests for a user
       tags:
       - records
-  /kube-jit-api/logout:
+  /k8s-callback:
+    post:
+      consumes:
+      - application/json
+      description: Used by the downstream Kubernetes controller to callback for status
+        update. Validates the signed URL and updates the request status in the database.
+        Returns a success message.
+      parameters:
+      - description: Callback payload (ticketID, status, message)
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Status updated successfully
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "500":
+          description: Failed to update request
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Kubernetes controller callback for status update
+      tags:
+      - k8s
+  /logout:
     post:
       consumes:
       - application/json
@@ -649,7 +649,7 @@ paths:
       summary: Log out and clear all session cookies
       tags:
       - auth
-  /kube-jit-api/oauth/azure/callback:
+  /oauth/azure/callback:
     get:
       consumes:
       - application/json
@@ -684,7 +684,7 @@ paths:
       summary: Azure OAuth callback
       tags:
       - azure
-  /kube-jit-api/oauth/github/callback:
+  /oauth/github/callback:
     get:
       consumes:
       - application/json
@@ -719,7 +719,7 @@ paths:
       summary: GitHub OAuth callback
       tags:
       - github
-  /kube-jit-api/oauth/google/callback:
+  /oauth/google/callback:
     get:
       consumes:
       - application/json
@@ -754,7 +754,7 @@ paths:
       summary: Google OAuth callback
       tags:
       - google
-  /kube-jit-api/permissions:
+  /permissions:
     post:
       consumes:
       - application/json
@@ -799,7 +799,7 @@ paths:
       summary: Get common permissions for the logged in user
       tags:
       - auth
-  /kube-jit-api/submit-request:
+  /submit-request:
     post:
       consumes:
       - application/json

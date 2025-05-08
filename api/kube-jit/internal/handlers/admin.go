@@ -30,7 +30,7 @@ type CleanExpiredResponse struct {
 // @Success 200 {object} handlers.CleanExpiredResponse "Expired non-approved requests cleaned"
 // @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: admin only"
 // @Failure 500 {object} models.SimpleMessageResponse "Failed to clean expired requests"
-// @Router /kube-jit-api/admin/clean-expired [post]
+// @Router /admin/clean-expired [post]
 func CleanExpiredRequests(c *gin.Context) {
 	// Check if the user is logged in and get logger
 	sessionData := GetSessionData(c)

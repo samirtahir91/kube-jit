@@ -15,59 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/k8s-callback": {
-            "post": {
-                "description": "Used by the downstream Kubernetes controller to callback for status update. Validates the signed URL and updates the request status in the database. Returns a success message.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "k8s"
-                ],
-                "summary": "Kubernetes controller callback for status update",
-                "parameters": [
-                    {
-                        "description": "Callback payload (ticketID, status, message)",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Status updated successfully",
-                        "schema": {
-                            "$ref": "#/definitions/models.SimpleMessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "$ref": "#/definitions/models.SimpleMessageResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/models.SimpleMessageResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to update request",
-                        "schema": {
-                            "$ref": "#/definitions/models.SimpleMessageResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/kube-jit-api/admin/clean-expired": {
+        "/admin/clean-expired": {
             "post": {
                 "description": "Deletes JIT requests where endDate is in the past and status is \"Requested\" (not Approved or Rejected). Admin only.\nRequires one or more cookies named kube_jit_session_\u003cnumber\u003e (e.g., kube_jit_session_0, kube_jit_session_1).\nPass split cookies in the Cookie header, for example:\n-H \"Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}\"\nNote: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.",
                 "consumes": [
@@ -111,7 +59,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/approvals": {
+        "/approvals": {
             "get": {
                 "description": "Returns the pending JIT requests for the authenticated user's approver groups.\nRequires one or more cookies named kube_jit_session_\u003cnumber\u003e (e.g., kube_jit_session_0, kube_jit_session_1).\nPass split cookies in the Cookie header, for example:\n-H \"Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}\"\nNote: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.",
                 "consumes": [
@@ -155,7 +103,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/approve-reject": {
+        "/approve-reject": {
             "post": {
                 "description": "Approves or rejects pending JIT access requests. Admins and platform approvers can approve/reject multiple requests at once. Non-admins can approve/reject individual namespaces.\nRequires one or more cookies named kube_jit_session_\u003cnumber\u003e (e.g., kube_jit_session_0, kube_jit_session_1).\nPass split cookies in the Cookie header, for example:\n-H \"Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}\"\nNote: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.",
                 "consumes": [
@@ -214,7 +162,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/approving-groups": {
+        "/approving-groups": {
             "get": {
                 "description": "Returns the list of platform approving groups for the authenticated user.\nRequires one or more cookies named kube_jit_session_\u003cnumber\u003e (e.g., kube_jit_session_0, kube_jit_session_1).\nPass split cookies in the Cookie header, for example:\n-H \"Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}\"\nNote: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.",
                 "consumes": [
@@ -255,7 +203,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/azure/profile": {
+        "/azure/profile": {
             "get": {
                 "description": "Returns the normalized Azure user profile for the authenticated user.\nRequires one or more cookies named kube_jit_session_\u003cnumber\u003e (e.g., kube_jit_session_0, kube_jit_session_1).\nPass split cookies in the Cookie header, for example:\n-H \"Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}\"\nNote: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.",
                 "consumes": [
@@ -299,7 +247,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/build-sha": {
+        "/build-sha": {
             "get": {
                 "description": "Returns the current build SHA for the running API.",
                 "consumes": [
@@ -322,7 +270,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/client_id": {
+        "/client_id": {
             "get": {
                 "description": "Returns the OAuth client_id, provider, redirect URI, and auth URL for the frontend to initiate login.",
                 "consumes": [
@@ -345,7 +293,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/clusters-and-roles": {
+        "/clusters-and-roles": {
             "get": {
                 "description": "Returns the list of clusters and roles available to the user.\nRequires one or more cookies named kube_jit_session_\u003cnumber\u003e (e.g., kube_jit_session_0, kube_jit_session_1).\nPass split cookies in the Cookie header, for example:\n-H \"Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}\"\nNote: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.",
                 "consumes": [
@@ -383,7 +331,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/github/profile": {
+        "/github/profile": {
             "get": {
                 "description": "Returns the normalized GitHub user profile for the authenticated user.\nRequires one or more cookies named kube_jit_session_\u003cnumber\u003e (e.g., kube_jit_session_0, kube_jit_session_1).\nPass split cookies in the Cookie header, for example:\n-H \"Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}\"\nNote: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.",
                 "consumes": [
@@ -427,7 +375,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/google/profile": {
+        "/google/profile": {
             "get": {
                 "description": "Returns the normalized Google user profile for the authenticated user.\nRequires one or more cookies named kube_jit_session_\u003cnumber\u003e (e.g., kube_jit_session_0, kube_jit_session_1).\nPass split cookies in the Cookie header, for example:\n-H \"Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}\"\nNote: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.",
                 "consumes": [
@@ -471,7 +419,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/healthz": {
+        "/healthz": {
             "get": {
                 "description": "Returns a simple status message to verify the API is running.",
                 "consumes": [
@@ -494,7 +442,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/history": {
+        "/history": {
             "get": {
                 "description": "Returns the latest JIT requests for a user with optional limit and date range.\nRequires one or more cookies named kube_jit_session_\u003cnumber\u003e (e.g., kube_jit_session_0, kube_jit_session_1).\nPass split cookies in the Cookie header, for example:\n-H \"Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}\"\nNote: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies:\nLogin required to test via browser, else test via curl",
                 "consumes": [
@@ -553,7 +501,59 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/logout": {
+        "/k8s-callback": {
+            "post": {
+                "description": "Used by the downstream Kubernetes controller to callback for status update. Validates the signed URL and updates the request status in the database. Returns a success message.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "k8s"
+                ],
+                "summary": "Kubernetes controller callback for status update",
+                "parameters": [
+                    {
+                        "description": "Callback payload (ticketID, status, message)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Status updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.SimpleMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/models.SimpleMessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.SimpleMessageResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update request",
+                        "schema": {
+                            "$ref": "#/definitions/models.SimpleMessageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/logout": {
             "post": {
                 "description": "Clears all session cookies with the session prefix and logs the user out.",
                 "consumes": [
@@ -576,7 +576,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/oauth/azure/callback": {
+        "/oauth/azure/callback": {
             "get": {
                 "description": "Handles the Azure OAuth callback, exchanges the code for an access token, fetches user info, sets session data, and returns normalized user data and expiration time.",
                 "consumes": [
@@ -626,7 +626,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/oauth/github/callback": {
+        "/oauth/github/callback": {
             "get": {
                 "description": "Handles the GitHub OAuth callback, exchanges the code for an access token, fetches user info, sets session data, and returns normalized user data and expiration time.",
                 "consumes": [
@@ -676,7 +676,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/oauth/google/callback": {
+        "/oauth/google/callback": {
             "get": {
                 "description": "Handles the Google OAuth callback, exchanges the code for an access token, fetches user info, sets session data, and returns normalized user data and expiration time.",
                 "consumes": [
@@ -726,7 +726,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/permissions": {
+        "/permissions": {
             "post": {
                 "description": "Returns the user's permissions and group memberships for the specified provider (GitHub, Google, Azure).\nRequires one or more cookies named kube_jit_session_\u003cnumber\u003e (e.g., kube_jit_session_0, kube_jit_session_1).\nPass split cookies in the Cookie header, for example:\n-H \"Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}\"\nNote: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.",
                 "consumes": [
@@ -785,7 +785,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/kube-jit-api/submit-request": {
+        "/submit-request": {
             "post": {
                 "description": "Creates a new JIT access request for the authenticated user.\nRequires one or more cookies named kube_jit_session_\u003cnumber\u003e (e.g., kube_jit_session_0, kube_jit_session_1).\nPass split cookies in the Cookie header, for example:\n-H \"Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}\"\nNote: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.",
                 "consumes": [

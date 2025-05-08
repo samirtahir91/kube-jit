@@ -62,7 +62,7 @@ func fetchAzureUserProfile(token string) (*models.AzureUser, error) {
 // @Failure 400 {object} models.SimpleMessageResponse "Missing or invalid code"
 // @Failure 403 {object} models.SimpleMessageResponse "Unauthorized domain"
 // @Failure 500 {object} models.SimpleMessageResponse "Internal server error"
-// @Router /kube-jit-api/oauth/azure/callback [get]
+// @Router /oauth/azure/callback [get]
 func HandleAzureLogin(c *gin.Context) {
 	code := c.Query("code")
 	if code == "" {
@@ -147,7 +147,7 @@ func HandleAzureLogin(c *gin.Context) {
 // @Success 200 {object} models.NormalizedUserData
 // @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
 // @Failure 500 {object} models.SimpleMessageResponse "Internal server error"
-// @Router /kube-jit-api/azure/profile [get]
+// @Router /azure/profile [get]
 func GetAzureProfile(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData := GetSessionData(c)

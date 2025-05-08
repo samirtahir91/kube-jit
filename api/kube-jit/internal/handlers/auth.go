@@ -28,7 +28,7 @@ func GetSessionData(c *gin.Context) map[string]interface{} {
 // @Accept  json
 // @Produce  json
 // @Success 200 {object} models.SimpleMessageResponse "Logged out successfully"
-// @Router /kube-jit-api/logout [post]
+// @Router /logout [post]
 func Logout(c *gin.Context) {
 	// Iterate through cookies with the session prefix
 	for i := 0; ; i++ {
@@ -72,7 +72,7 @@ type CommonPermissionsResponse struct {
 // @Failure 400 {object} models.SimpleMessageResponse "Missing or invalid provider"
 // @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
 // @Failure 500 {object} models.SimpleMessageResponse "Failed to fetch user groups"
-// @Router /kube-jit-api/permissions [post]
+// @Router /permissions [post]
 // CommonPermissions checks if the user has common permissions
 func CommonPermissions(c *gin.Context) {
 	// Check if the user is logged in and get logger

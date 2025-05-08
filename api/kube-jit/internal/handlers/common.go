@@ -138,7 +138,7 @@ func K8sCallback(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Success 200 {object} handlers.OauthClientIdResponse "OAuth client configuration"
-// @Router /kube-jit-api/client_id [get]
+// @Router /client_id [get]
 func GetOauthClientId(c *gin.Context) {
 	response := OauthClientIdResponse{
 		ClientID:    clientID,
@@ -163,7 +163,7 @@ func GetOauthClientId(c *gin.Context) {
 // @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
 // @Success 200 {object} ClustersAndRolesResponse "clusters and roles"
 // @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
-// @Router /kube-jit-api/clusters-and-roles [get]
+// @Router /clusters-and-roles [get]
 func GetClustersAndRoles(c *gin.Context) {
 	response := ClustersAndRolesResponse{
 		Clusters: k8s.ClusterNames,
@@ -179,7 +179,7 @@ func GetClustersAndRoles(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Success 200 {object} handlers.BuildShaResponse "Current build SHA"
-// @Router /kube-jit-api/build-sha [get]
+// @Router /build-sha [get]
 func GetBuildSha(c *gin.Context) {
 	c.JSON(http.StatusOK, BuildShaResponse{Sha: os.Getenv("BUILD_SHA")})
 }
@@ -197,7 +197,7 @@ func GetBuildSha(c *gin.Context) {
 // @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
 // @Success 200 {array} models.Team
 // @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
-// @Router /kube-jit-api/approving-groups [get]
+// @Router /approving-groups [get]
 func GetApprovingGroups(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData := GetSessionData(c)
@@ -220,7 +220,7 @@ func GetApprovingGroups(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Success 200 {object} models.SimpleMessageResponse "API is healthy"
-// @Router /kube-jit-api/healthz [get]
+// @Router /healthz [get]
 func HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, models.SimpleMessageResponse{Status: "healthy"})
 }

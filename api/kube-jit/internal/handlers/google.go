@@ -215,7 +215,7 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string, reqLogger *zap.Logger
 // @Failure 400 {object} models.SimpleMessageResponse "Missing or invalid code"
 // @Failure 403 {object} models.SimpleMessageResponse "Unauthorized domain"
 // @Failure 500 {object} models.SimpleMessageResponse "Internal server error"
-// @Router /kube-jit-api/oauth/google/callback [get]
+// @Router /oauth/google/callback [get]
 func HandleGoogleLogin(c *gin.Context) {
 	code := c.Query("code")
 
@@ -288,7 +288,7 @@ func HandleGoogleLogin(c *gin.Context) {
 // @Success 200 {object} models.NormalizedUserData
 // @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
 // @Failure 500 {object} models.SimpleMessageResponse "Internal server error"
-// @Router /kube-jit-api/google/profile [get]
+// @Router /google/profile [get]
 func GetGoogleProfile(c *gin.Context) {
 	// Check if the user is logged
 	sessionData := GetSessionData(c)

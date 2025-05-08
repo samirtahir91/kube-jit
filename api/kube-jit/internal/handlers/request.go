@@ -29,7 +29,7 @@ import (
 // @Failure 400 {object} models.SimpleMessageResponse "Invalid request data"
 // @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
 // @Failure 500 {object} models.SimpleMessageResponse "Failed to submit request"
-// @Router /kube-jit-api/submit-request [post]
+// @Router /submit-request [post]
 func SubmitRequest(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData := GetSessionData(c)
@@ -141,7 +141,7 @@ func SubmitRequest(c *gin.Context) {
 // @Failure 400 {object} models.SimpleMessageResponse "Invalid request format"
 // @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no approver groups in session"
 // @Failure 500 {object} models.SimpleMessageResponse "Failed to process requests"
-// @Router /kube-jit-api/approve-reject [post]
+// @Router /approve-reject [post]
 func ApproveOrRejectRequests(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData := GetSessionData(c)

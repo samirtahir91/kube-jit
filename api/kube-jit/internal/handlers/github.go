@@ -140,7 +140,7 @@ func GetGithubTeams(token string, reqLogger *zap.Logger) ([]models.Team, error) 
 // @Failure 400 {object} models.SimpleMessageResponse "Missing or invalid code"
 // @Failure 403 {object} models.SimpleMessageResponse "Unauthorized org"
 // @Failure 500 {object} models.SimpleMessageResponse "Internal server error"
-// @Router /kube-jit-api/oauth/github/callback [get]
+// @Router /oauth/github/callback [get]
 func HandleGitHubLogin(c *gin.Context) {
 	// Check for the presence of the 'code' query parameter
 	code := c.Query("code")
@@ -282,7 +282,7 @@ func HandleGitHubLogin(c *gin.Context) {
 // @Success 200 {object} models.NormalizedUserData
 // @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
 // @Failure 500 {object} models.SimpleMessageResponse "Internal server error"
-// @Router /kube-jit-api/github/profile [get]
+// @Router /github/profile [get]
 func GetGithubProfile(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData := GetSessionData(c)

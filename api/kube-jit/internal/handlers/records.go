@@ -71,7 +71,7 @@ type PendingApprovalsResponse struct {
 // @Param   limit      query    int     false  "Limit"
 // @Success 200 {array} models.RequestWithNamespaceApprovers
 // @Failure 500 {object} models.SimpleMessageResponse
-// @Router /kube-jit-api/history [get]
+// @Router /history [get]
 func GetRecords(c *gin.Context) {
 	// Check if the user is logged in and get logger
 	sessionData := GetSessionData(c)
@@ -150,7 +150,7 @@ func GetRecords(c *gin.Context) {
 // @Success 200 {object} handlers.PendingApprovalsResponse "List of pending requests"
 // @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no approver groups in session"
 // @Failure 500 {object} models.SimpleMessageResponse "Failed to fetch pending requests"
-// @Router /kube-jit-api/approvals [get]
+// @Router /approvals [get]
 func GetPendingApprovals(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData := GetSessionData(c)
