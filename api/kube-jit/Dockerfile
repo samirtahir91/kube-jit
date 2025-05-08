@@ -18,6 +18,7 @@ RUN go mod download
 # Copy the go source
 COPY cmd/main.go cmd/main.go
 COPY pkg/ pkg/
+COPY docs/ docs/
 COPY internal/ internal/
 
 # Build

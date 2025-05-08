@@ -13,10 +13,66 @@ import (
 	"go.uber.org/zap"
 )
 
-// SubmitRequest creates the new jit record in postgress
-// It validates the request data and checks if the user is logged in
-// It also validates the namespaces and sends an email notification
-// It returns a success message or an error message
+// AdminApproveRequest represents the request payload for admin approval
+type AdminApproveRequest struct {
+	Requests     []models.RequestData `json:"requests"`
+	ApproverID   string               `json:"approverID"`
+	ApproverName string               `json:"approverName"`
+	Status       string               `json:"status"`
+}
+
+// Non-admin: expects Namespace string
+type UserApproveRequest struct {
+	Requests []struct {
+		ID            uint      `json:"id"`
+		ApproverName  string    `json:"approverName"`
+		ClusterName   string    `json:"clusterName"`
+		RoleName      string    `json:"roleName"`
+		Status        string    `json:"status"`
+		UserID        string    `json:"userID"`
+		Username      string    `json:"username"`
+		Users         []string  `json:"users"`
+		Justification string    `json:"justification"`
+		StartDate     time.Time `json:"startDate"`
+		EndDate       time.Time `json:"endDate"`
+		FullyApproved bool      `gorm:"default:false"`
+		Namespace     string    `json:"namespace"`
+	} `json:"requests"`
+	ApproverID   string `json:"approverID"`
+	ApproverName string `json:"approverName"`
+	Status       string `json:"status"`
+}
+
+// SubmitRequestPayload represents the request payload for JIT access
+type SubmitRequestPayload struct {
+	Role          models.Roles   `json:"role"`
+	ClusterName   models.Cluster `json:"cluster"`
+	UserID        string         `json:"requestorId"`
+	Username      string         `json:"requestorName"`
+	Users         []string       `json:"users"`
+	Namespaces    []string       `json:"namespaces"`
+	Justification string         `json:"justification"`
+	StartDate     time.Time      `json:"startDate"`
+	EndDate       time.Time      `json:"endDate"`
+}
+
+// SubmitRequest godoc
+// @Summary Submit a new JIT access request
+// @Description Creates a new JIT access request for the authenticated user.
+// @Description Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+// @Description Pass split cookies in the Cookie header, for example:
+// @Description     -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+// @Description Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+// @Tags request
+// @Accept  json
+// @Produce  json
+// @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
+// @Param   request body handlers.SubmitRequestPayload true "JIT request payload"
+// @Success 200 {object} models.SimpleMessageResponse "Request submitted successfully"
+// @Failure 400 {object} models.SimpleMessageResponse "Invalid request data"
+// @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
+// @Failure 500 {object} models.SimpleMessageResponse "Failed to submit request"
+// @Router /submit-request [post]
 func SubmitRequest(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData := GetSessionData(c)
@@ -26,27 +82,16 @@ func SubmitRequest(c *gin.Context) {
 	emailAddress, _ := sessionData["email"].(string)
 
 	// Process the request data
-	var requestData struct {
-		Role          models.Roles   `json:"role"`
-		ClusterName   models.Cluster `json:"cluster"`
-		UserID        string         `json:"requestorId"`
-		Username      string         `json:"requestorName"`
-		Users         []string       `json:"users"`
-		Namespaces    []string       `json:"namespaces"`
-		Justification string         `json:"justification"`
-		StartDate     time.Time      `json:"startDate"`
-		EndDate       time.Time      `json:"endDate"`
-	}
-
+	var requestData SubmitRequestPayload
 	if err := c.ShouldBindJSON(&requestData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+		c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: "Invalid request data"})
 		return
 	}
 
 	// Validate namespaces and fetch group IDs and names
 	namespaceGroups, err := k8s.ValidateNamespaces(requestData.ClusterName.Name, requestData.Namespaces)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Namespace validation failed: %v", err)})
+		c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: fmt.Sprintf("Namespace validation failed: %v", err)})
 		return
 	}
 
@@ -68,7 +113,7 @@ func SubmitRequest(c *gin.Context) {
 	// Insert the request data into the database
 	if err := db.DB.Create(&dbRequestData).Error; err != nil {
 		reqLogger.Error("Error inserting data in SubmitRequest", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit request (database error)"})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to submit request (database error)"})
 		return
 	}
 
@@ -83,7 +128,7 @@ func SubmitRequest(c *gin.Context) {
 		}
 		if err := db.DB.Create(&namespaceEntry).Error; err != nil {
 			reqLogger.Error("Error inserting namespace data in SubmitRequest", zap.Error(err))
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit request (namespace error)"})
+			c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to submit request (namespace error)"})
 			return
 		}
 	}
@@ -109,13 +154,26 @@ func SubmitRequest(c *gin.Context) {
 	}
 
 	// Respond with success message
-	c.JSON(http.StatusOK, gin.H{"message": "Request submitted successfully"})
+	c.JSON(http.StatusOK, models.SimpleMessageResponse{Error: "Request submitted successfully"})
 }
 
-// ApproveOrRejectRequests approves pending requests in db - status = Approved
-// or rejects them - status = Rejected
-// It creates the k8s object for each request if status is Approved
-// It updates the status of the requests in the database
+// ApproveOrRejectRequests godoc
+// @Summary Approve or reject JIT access requests
+// @Description Approves or rejects pending JIT access requests. Admins and platform approvers can approve/reject multiple requests at once. Non-admins can approve/reject individual namespaces.
+// @Description Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+// @Description Pass split cookies in the Cookie header, for example:
+// @Description     -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+// @Description Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+// @Tags request
+// @Accept  json
+// @Produce  json
+// @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
+// @Param   request body handlers.AdminApproveRequest true "Approval/rejection payload (admins/platform approvers use AdminApproveRequest, non-admins use UserApproveRequest)"
+// @Success 200 {object} models.SimpleMessageResponse "Requests processed successfully"
+// @Failure 400 {object} models.SimpleMessageResponse "Invalid request format"
+// @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no approver groups in session"
+// @Failure 500 {object} models.SimpleMessageResponse "Failed to process requests"
+// @Router /approve-reject [post]
 func ApproveOrRejectRequests(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData := GetSessionData(c)
@@ -130,7 +188,7 @@ func ApproveOrRejectRequests(c *gin.Context) {
 		// Only non-admins need approverGroups
 		rawApproverGroups, ok := sessionData["approverGroups"]
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
+			c.JSON(http.StatusUnauthorized, models.SimpleMessageResponse{Error: "Unauthorized: no approver groups in session"})
 			return
 		}
 		// Handle both []models.Team and []interface{} (from session serialization)
@@ -148,54 +206,27 @@ func ApproveOrRejectRequests(c *gin.Context) {
 			}
 		}
 		if len(approverGroups) == 0 {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
+			c.JSON(http.StatusUnauthorized, models.SimpleMessageResponse{Error: "Unauthorized: no approver groups in session"})
 			return
 		}
 	}
 
 	if isAdmin || isPlatformApprover {
 		// Admin/Platform Approver: expects Namespaces []string
-		type AdminApproveRequest struct {
-			Requests     []models.RequestData `json:"requests"`
-			ApproverID   string               `json:"approverID"`
-			ApproverName string               `json:"approverName"`
-			Status       string               `json:"status"`
-		}
 		var req AdminApproveRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+			c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: "Invalid request format"})
 			return
 		}
 		for _, r := range req.Requests {
 			processApproval(reqLogger, r.ID, r, req.ApproverID, req.ApproverName, req.Status, nil, c)
 		}
-		c.JSON(http.StatusOK, gin.H{"message": "Admin/Platform requests processed successfully"})
+		c.JSON(http.StatusOK, models.SimpleMessageResponse{Error: "Admin/Platform requests processed successfully"})
 		return
 	} else {
-		// Non-admin: expects Namespace string
-		type UserApproveRequest struct {
-			Requests []struct {
-				ID            uint      `json:"id"`
-				ApproverName  string    `json:"approverName"`
-				ClusterName   string    `json:"clusterName"`
-				RoleName      string    `json:"roleName"`
-				Status        string    `json:"status"`
-				UserID        string    `json:"userID"`
-				Username      string    `json:"username"`
-				Users         []string  `json:"users"`
-				Justification string    `json:"justification"`
-				StartDate     time.Time `json:"startDate"`
-				EndDate       time.Time `json:"endDate"`
-				FullyApproved bool      `gorm:"default:false"`
-				Namespace     string    `json:"namespace"`
-			} `json:"requests"`
-			ApproverID   string `json:"approverID"`
-			ApproverName string `json:"approverName"`
-			Status       string `json:"status"`
-		}
 		var req UserApproveRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+			c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: "Invalid request format"})
 			return
 		}
 		for _, r := range req.Requests {
@@ -216,7 +247,7 @@ func ApproveOrRejectRequests(c *gin.Context) {
 			}
 			processApproval(reqLogger, r.ID, requestData, req.ApproverID, req.ApproverName, req.Status, approverGroups, c)
 		}
-		c.JSON(http.StatusOK, gin.H{"message": "User requests processed successfully"})
+		c.JSON(http.StatusOK, models.SimpleMessageResponse{Error: "User requests processed successfully"})
 		return
 	}
 }
@@ -239,7 +270,7 @@ func processApproval(
 	var dbNamespaces []models.RequestNamespace
 	if err := db.DB.Where("request_id = ?", requestID).Find(&dbNamespaces).Error; err != nil {
 		reqLogger.Error("Error fetching namespaces for request", zap.Uint("requestID", requestID), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch namespaces"})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to fetch namespaces"})
 		return
 	}
 
@@ -256,7 +287,7 @@ func processApproval(
 			ns.ApproverName = approverName
 			if err := db.DB.Save(ns).Error; err != nil {
 				reqLogger.Error("Error updating namespace approval", zap.Uint("requestID", requestID), zap.String("namespace", ns.Namespace), zap.Error(err))
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update namespace approval"})
+				c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to update namespace approval"})
 				return
 			}
 		} else {
@@ -299,7 +330,7 @@ func processApproval(
 		requestData.ID = requestID
 		if err := k8s.CreateK8sObject(requestData, approverName); err != nil {
 			reqLogger.Error("Error creating k8s object for request", zap.Uint("requestID", requestID), zap.Error(err))
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create k8s object"})
+			c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to create k8s object"})
 			return
 		}
 	}
@@ -308,7 +339,7 @@ func processApproval(
 	var req models.RequestData
 	if err := db.DB.First(&req, requestID).Error; err != nil {
 		reqLogger.Error("Error fetching request for update", zap.Uint("requestID", requestID), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch request"})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to fetch request"})
 		return
 	}
 
@@ -326,7 +357,7 @@ func processApproval(
 
 	if err := db.DB.Model(&req).Select("Status", "ApproverIDs", "ApproverNames", "FullyApproved").Updates(req).Error; err != nil {
 		reqLogger.Error("Error updating request after approval", zap.Uint("requestID", requestID), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update request"})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to update request"})
 		return
 	}
 

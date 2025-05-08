@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 // Team represents a team structure for both GitHub and Google
@@ -22,9 +20,22 @@ type Cluster struct {
 	Name string `json:"name"`
 }
 
+// SimpleMessageResponse is a generic response for success/error messages
+type SimpleMessageResponse struct {
+	Message string `json:"message"`
+	Error   string `json:"error"`
+	Status  string `json:"status"`
+}
+
+// LoginResponse represents the response for login handlers
+type LoginResponse struct {
+	UserData  NormalizedUserData `json:"userData"`
+	ExpiresIn int                `json:"expiresIn"`
+}
+
 // RequestData represents a JIT request
 type RequestData struct {
-	gorm.Model
+	GormModel
 	ApproverIDs   []string  `gorm:"type:jsonb;serializer:json" json:"approverIDs"`
 	ApproverNames []string  `gorm:"type:jsonb;serializer:json" json:"approverNames"`
 	ClusterName   string    `json:"clusterName"`
@@ -40,6 +51,30 @@ type RequestData struct {
 	EndDate       time.Time `json:"endDate"`
 	FullyApproved bool      `gorm:"default:false"`
 	Email         string    `json:"email"`
+}
+
+// GormModel is a doc-only struct for Swagger
+type GormModel struct {
+	ID        uint       `gorm:"primarykey" json:"ID"`
+	CreatedAt time.Time  `json:"CreatedAt"`
+	UpdatedAt time.Time  `json:"UpdatedAt"`
+	DeletedAt *time.Time `gorm:"index" json:"DeletedAt,omitempty"`
+}
+
+// NamespaceApprovalInfo represents the namespace-level approval information
+type NamespaceApprovalInfo struct {
+	Namespace    string `json:"namespace"`
+	GroupID      string `json:"groupID"`
+	GroupName    string `json:"groupName"`
+	Approved     bool   `json:"approved"`
+	ApproverID   string `json:"approverID"`
+	ApproverName string `json:"approverName"`
+}
+
+// RequestWithNamespaceApprovers represents a request with namespace-level approvers
+type RequestWithNamespaceApprovers struct {
+	RequestData
+	NamespaceApprovals []NamespaceApprovalInfo `json:"namespaceApprovals"`
 }
 
 // RequestNamespace represents the namespace-level approval tracking
