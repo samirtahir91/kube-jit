@@ -221,6 +221,7 @@ func ApproveOrRejectRequests(c *gin.Context) {
 		for _, r := range req.Requests {
 			processApproval(reqLogger, r.ID, r, req.ApproverID, req.ApproverName, req.Status, nil, c)
 		}
+
 		c.JSON(http.StatusOK, models.SimpleMessageResponse{Message: "Admin/Platform requests processed successfully"})
 		return
 	} else {
@@ -247,6 +248,7 @@ func ApproveOrRejectRequests(c *gin.Context) {
 			}
 			processApproval(reqLogger, r.ID, requestData, req.ApproverID, req.ApproverName, req.Status, approverGroups, c)
 		}
+
 		c.JSON(http.StatusOK, models.SimpleMessageResponse{Message: "User requests processed successfully"})
 		return
 	}
