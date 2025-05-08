@@ -43,7 +43,7 @@ func Logout(c *gin.Context) {
 	}
 
 	// Respond with a success message
-	c.JSON(http.StatusOK, models.SimpleMessageResponse{Error: "Logged out successfully"})
+	c.JSON(http.StatusOK, models.SimpleMessageResponse{Message: "Logged out successfully"})
 }
 
 // CommonPermissionsResponse represents the response for CommonPermissions

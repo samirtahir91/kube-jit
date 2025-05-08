@@ -128,7 +128,7 @@ func K8sCallback(c *gin.Context) {
 		}()
 	}
 
-	c.JSON(http.StatusOK, models.SimpleMessageResponse{Error: "Success"})
+	c.JSON(http.StatusOK, models.SimpleMessageResponse{Message: "Success"})
 }
 
 // GetOauthClientId godoc
