@@ -2,4 +2,4 @@
 A open source application to implement self-service access with Kubernetes RBAC, integrated with GitHub Teams.
 
 ## Diagram
-![Diagram](docs/diagrams/Kube-JIT.png)
+![Diagram](docs/diagrams/Kube-JIT.svg)
