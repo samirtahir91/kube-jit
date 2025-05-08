@@ -1,3 +1,7 @@
+// @title Kube-JIT API
+// @version 1.0
+// @description Self-service Kubernetes RBAC with GitHub Teams.
+// @BasePath /kube-jit-api
 package main
 
 import (

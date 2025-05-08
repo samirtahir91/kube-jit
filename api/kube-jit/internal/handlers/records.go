@@ -12,9 +12,18 @@ import (
 	"go.uber.org/zap"
 )
 
-// GetRecords returns the latest jit requests for a user with optional limit and date range
-// It fetches the records from the database and returns them as JSON
-// It checks if the user is an admin or platform approver to determine the query parameters
+// GetRecords godoc
+// @Summary Get JIT requests for a user
+// @Description Returns the latest JIT requests for a user with optional limit and date range
+// @Tags records
+// @Accept  json
+// @Produce  json
+// @Param   userID     query    string  false  "User ID"
+// @Param   username   query    string  false  "Username"
+// @Param   limit      query    int     false  "Limit"
+// @Success 200 {array} []models.RequestWithNamespaceApprovers
+// @Failure 500 {object} map[string]string
+// @Router /history [get]
 func GetRecords(c *gin.Context) {
 	// Check if the user is logged in and get logger
 	sessionData := GetSessionData(c)
@@ -58,22 +67,9 @@ func GetRecords(c *gin.Context) {
 		return
 	}
 
-	type NamespaceApprovalInfo struct {
-		Namespace    string `json:"namespace"`
-		GroupID      string `json:"groupID"`
-		GroupName    string `json:"groupName"`
-		Approved     bool   `json:"approved"`
-		ApproverID   string `json:"approverID"`
-		ApproverName string `json:"approverName"`
-	}
-	type RequestWithNamespaceApprovers struct {
-		models.RequestData
-		NamespaceApprovals []NamespaceApprovalInfo `json:"namespaceApprovals"`
-	}
-
-	var enriched []RequestWithNamespaceApprovers
+	var enriched []models.RequestWithNamespaceApprovers
 	for _, req := range requests {
-		var nsApprovals []NamespaceApprovalInfo
+		var nsApprovals []models.NamespaceApprovalInfo
 		if err := db.DB.
 			Table("request_namespaces").
 			Select("namespace, group_name, group_id, approved, approver_id, approver_name").
@@ -83,7 +79,7 @@ func GetRecords(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch namespace approvals"})
 			return
 		}
-		enriched = append(enriched, RequestWithNamespaceApprovers{
+		enriched = append(enriched, models.RequestWithNamespaceApprovers{
 			RequestData:        req,
 			NamespaceApprovals: nsApprovals,
 		})
