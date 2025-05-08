@@ -56,6 +56,11 @@ type CommonPermissionsResponse struct {
 	PlatformApproverGroups []models.Team `json:"platformApproverGroups"`
 }
 
+// CommonPermissionsRequest represents the request payload for CommonPermissions
+type CommonPermissionsRequest struct {
+	Provider string `json:"provider" example:"github"`
+}
+
 // CommonPermissions godoc
 // @Summary Get common permissions for the logged in user
 // @Description Returns the user's permissions and group memberships for the specified provider (GitHub, Google, Azure).
@@ -67,7 +72,7 @@ type CommonPermissionsResponse struct {
 // @Accept  json
 // @Produce  json
 // @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
-// @Param   request body object true "Provider payload (e.g., {\"provider\": \"github\"})"
+// @Param   request body handlers.CommonPermissionsRequest true "Provider payload"
 // @Success 200 {object} handlers.CommonPermissionsResponse "User permissions and groups"
 // @Failure 400 {object} models.SimpleMessageResponse "Missing or invalid provider"
 // @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"

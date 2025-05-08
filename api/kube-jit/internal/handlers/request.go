@@ -13,6 +13,49 @@ import (
 	"go.uber.org/zap"
 )
 
+// AdminApproveRequest represents the request payload for admin approval
+type AdminApproveRequest struct {
+	Requests     []models.RequestData `json:"requests"`
+	ApproverID   string               `json:"approverID"`
+	ApproverName string               `json:"approverName"`
+	Status       string               `json:"status"`
+}
+
+// Non-admin: expects Namespace string
+type UserApproveRequest struct {
+	Requests []struct {
+		ID            uint      `json:"id"`
+		ApproverName  string    `json:"approverName"`
+		ClusterName   string    `json:"clusterName"`
+		RoleName      string    `json:"roleName"`
+		Status        string    `json:"status"`
+		UserID        string    `json:"userID"`
+		Username      string    `json:"username"`
+		Users         []string  `json:"users"`
+		Justification string    `json:"justification"`
+		StartDate     time.Time `json:"startDate"`
+		EndDate       time.Time `json:"endDate"`
+		FullyApproved bool      `gorm:"default:false"`
+		Namespace     string    `json:"namespace"`
+	} `json:"requests"`
+	ApproverID   string `json:"approverID"`
+	ApproverName string `json:"approverName"`
+	Status       string `json:"status"`
+}
+
+// SubmitRequestPayload represents the request payload for JIT access
+type SubmitRequestPayload struct {
+	Role          models.Roles   `json:"role"`
+	ClusterName   models.Cluster `json:"cluster"`
+	UserID        string         `json:"requestorId"`
+	Username      string         `json:"requestorName"`
+	Users         []string       `json:"users"`
+	Namespaces    []string       `json:"namespaces"`
+	Justification string         `json:"justification"`
+	StartDate     time.Time      `json:"startDate"`
+	EndDate       time.Time      `json:"endDate"`
+}
+
 // SubmitRequest godoc
 // @Summary Submit a new JIT access request
 // @Description Creates a new JIT access request for the authenticated user.
@@ -24,7 +67,7 @@ import (
 // @Accept  json
 // @Produce  json
 // @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
-// @Param   request body object true "JIT request payload"
+// @Param   request body handlers.SubmitRequestPayload true "JIT request payload"
 // @Success 200 {object} models.SimpleMessageResponse "Request submitted successfully"
 // @Failure 400 {object} models.SimpleMessageResponse "Invalid request data"
 // @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
@@ -39,18 +82,7 @@ func SubmitRequest(c *gin.Context) {
 	emailAddress, _ := sessionData["email"].(string)
 
 	// Process the request data
-	var requestData struct {
-		Role          models.Roles   `json:"role"`
-		ClusterName   models.Cluster `json:"cluster"`
-		UserID        string         `json:"requestorId"`
-		Username      string         `json:"requestorName"`
-		Users         []string       `json:"users"`
-		Namespaces    []string       `json:"namespaces"`
-		Justification string         `json:"justification"`
-		StartDate     time.Time      `json:"startDate"`
-		EndDate       time.Time      `json:"endDate"`
-	}
-
+	var requestData SubmitRequestPayload
 	if err := c.ShouldBindJSON(&requestData); err != nil {
 		c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: "Invalid request data"})
 		return
@@ -136,7 +168,7 @@ func SubmitRequest(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
-// @Param   request body object true "Approval/rejection payload (structure depends on user role)"
+// @Param   request body handlers.AdminApproveRequest true "Approval/rejection payload (admins/platform approvers use AdminApproveRequest, non-admins use UserApproveRequest)"
 // @Success 200 {object} models.SimpleMessageResponse "Requests processed successfully"
 // @Failure 400 {object} models.SimpleMessageResponse "Invalid request format"
 // @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no approver groups in session"
@@ -181,12 +213,6 @@ func ApproveOrRejectRequests(c *gin.Context) {
 
 	if isAdmin || isPlatformApprover {
 		// Admin/Platform Approver: expects Namespaces []string
-		type AdminApproveRequest struct {
-			Requests     []models.RequestData `json:"requests"`
-			ApproverID   string               `json:"approverID"`
-			ApproverName string               `json:"approverName"`
-			Status       string               `json:"status"`
-		}
 		var req AdminApproveRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: "Invalid request format"})
@@ -198,27 +224,6 @@ func ApproveOrRejectRequests(c *gin.Context) {
 		c.JSON(http.StatusOK, models.SimpleMessageResponse{Error: "Admin/Platform requests processed successfully"})
 		return
 	} else {
-		// Non-admin: expects Namespace string
-		type UserApproveRequest struct {
-			Requests []struct {
-				ID            uint      `json:"id"`
-				ApproverName  string    `json:"approverName"`
-				ClusterName   string    `json:"clusterName"`
-				RoleName      string    `json:"roleName"`
-				Status        string    `json:"status"`
-				UserID        string    `json:"userID"`
-				Username      string    `json:"username"`
-				Users         []string  `json:"users"`
-				Justification string    `json:"justification"`
-				StartDate     time.Time `json:"startDate"`
-				EndDate       time.Time `json:"endDate"`
-				FullyApproved bool      `gorm:"default:false"`
-				Namespace     string    `json:"namespace"`
-			} `json:"requests"`
-			ApproverID   string `json:"approverID"`
-			ApproverName string `json:"approverName"`
-			Status       string `json:"status"`
-		}
 		var req UserApproveRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: "Invalid request format"})

@@ -1,5 +1,18 @@
 basePath: /kube-jit-api
 definitions:
+  handlers.AdminApproveRequest:
+    properties:
+      approverID:
+        type: string
+      approverName:
+        type: string
+      requests:
+        items:
+          $ref: '#/definitions/models.RequestData'
+        type: array
+      status:
+        type: string
+    type: object
   handlers.BuildShaResponse:
     properties:
       sha:
@@ -22,6 +35,12 @@ definitions:
         items:
           $ref: '#/definitions/models.Roles'
         type: array
+    type: object
+  handlers.CommonPermissionsRequest:
+    properties:
+      provider:
+        example: github
+        type: string
     type: object
   handlers.CommonPermissionsResponse:
     properties:
@@ -105,6 +124,36 @@ definitions:
           type: string
         type: array
     type: object
+  handlers.SubmitRequestPayload:
+    properties:
+      cluster:
+        $ref: '#/definitions/models.Cluster'
+      endDate:
+        type: string
+      justification:
+        type: string
+      namespaces:
+        items:
+          type: string
+        type: array
+      requestorId:
+        type: string
+      requestorName:
+        type: string
+      role:
+        $ref: '#/definitions/models.Roles'
+      startDate:
+        type: string
+      users:
+        items:
+          type: string
+        type: array
+    type: object
+  models.Cluster:
+    properties:
+      name:
+        type: string
+    type: object
   models.LoginResponse:
     properties:
       expiresIn:
@@ -139,6 +188,55 @@ definitions:
         type: string
       provider:
         type: string
+    type: object
+  models.RequestData:
+    properties:
+      CreatedAt:
+        type: string
+      DeletedAt:
+        type: string
+      ID:
+        type: integer
+      UpdatedAt:
+        type: string
+      approverIDs:
+        items:
+          type: string
+        type: array
+      approverNames:
+        items:
+          type: string
+        type: array
+      clusterName:
+        type: string
+      email:
+        type: string
+      endDate:
+        type: string
+      fullyApproved:
+        type: boolean
+      justification:
+        type: string
+      namespaces:
+        items:
+          type: string
+        type: array
+      notes:
+        type: string
+      roleName:
+        type: string
+      startDate:
+        type: string
+      status:
+        type: string
+      userID:
+        type: string
+      username:
+        type: string
+      users:
+        items:
+          type: string
+        type: array
     type: object
   models.RequestWithNamespaceApprovers:
     properties:
@@ -308,12 +406,13 @@ paths:
         name: Cookie
         required: true
         type: string
-      - description: Approval/rejection payload (structure depends on user role)
+      - description: Approval/rejection payload (admins/platform approvers use AdminApproveRequest,
+          non-admins use UserApproveRequest)
         in: body
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/handlers.AdminApproveRequest'
       produces:
       - application/json
       responses:
@@ -435,37 +534,6 @@ paths:
       summary: Get OAuth client configuration
       tags:
       - auth
-  /clusters-and-roles:
-    get:
-      consumes:
-      - application/json
-      description: |-
-        Returns the list of clusters and roles available to the user.
-        Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
-        Pass split cookies in the Cookie header, for example:
-        -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
-        Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
-      parameters:
-      - description: 'Session cookies (multiple allowed, names: kube_jit_session_0,
-          kube_jit_session_1, etc.)'
-        in: header
-        name: Cookie
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: clusters and roles
-          schema:
-            $ref: '#/definitions/handlers.ClustersAndRolesResponse'
-        "401":
-          description: 'Unauthorized: no token in session data'
-          schema:
-            $ref: '#/definitions/models.SimpleMessageResponse'
-      summary: Get available clusters and roles
-      tags:
-      - records
   /github/profile:
     get:
       consumes:
@@ -771,12 +839,12 @@ paths:
         name: Cookie
         required: true
         type: string
-      - description: Provider payload (e.g., {\
+      - description: Provider payload
         in: body
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/handlers.CommonPermissionsRequest'
       produces:
       - application/json
       responses:
@@ -799,6 +867,37 @@ paths:
       summary: Get common permissions for the logged in user
       tags:
       - auth
+  /roles-and-clusters:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns the list of clusters and roles available to the user.
+        Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+        Pass split cookies in the Cookie header, for example:
+        -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+        Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+      parameters:
+      - description: 'Session cookies (multiple allowed, names: kube_jit_session_0,
+          kube_jit_session_1, etc.)'
+        in: header
+        name: Cookie
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: clusters and roles
+          schema:
+            $ref: '#/definitions/handlers.ClustersAndRolesResponse'
+        "401":
+          description: 'Unauthorized: no token in session data'
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Get available clusters and roles
+      tags:
+      - records
   /submit-request:
     post:
       consumes:
@@ -821,7 +920,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/handlers.SubmitRequestPayload'
       produces:
       - application/json
       responses:

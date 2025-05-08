@@ -163,7 +163,7 @@ func GetOauthClientId(c *gin.Context) {
 // @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
 // @Success 200 {object} ClustersAndRolesResponse "clusters and roles"
 // @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
-// @Router /clusters-and-roles [get]
+// @Router /roles-and-clusters [get]
 func GetClustersAndRoles(c *gin.Context) {
 	response := ClustersAndRolesResponse{
 		Clusters: k8s.ClusterNames,

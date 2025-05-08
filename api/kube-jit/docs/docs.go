@@ -125,12 +125,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Approval/rejection payload (structure depends on user role)",
+                        "description": "Approval/rejection payload (admins/platform approvers use AdminApproveRequest, non-admins use UserApproveRequest)",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/handlers.AdminApproveRequest"
                         }
                     }
                 ],
@@ -288,44 +288,6 @@ const docTemplate = `{
                         "description": "OAuth client configuration",
                         "schema": {
                             "$ref": "#/definitions/handlers.OauthClientIdResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/clusters-and-roles": {
-            "get": {
-                "description": "Returns the list of clusters and roles available to the user.\nRequires one or more cookies named kube_jit_session_\u003cnumber\u003e (e.g., kube_jit_session_0, kube_jit_session_1).\nPass split cookies in the Cookie header, for example:\n-H \"Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}\"\nNote: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "records"
-                ],
-                "summary": "Get available clusters and roles",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)",
-                        "name": "Cookie",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "clusters and roles",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.ClustersAndRolesResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized: no token in session data",
-                        "schema": {
-                            "$ref": "#/definitions/models.SimpleMessageResponse"
                         }
                     }
                 }
@@ -748,12 +710,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Provider payload (e.g., {\\",
+                        "description": "Provider payload",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/handlers.CommonPermissionsRequest"
                         }
                     }
                 ],
@@ -778,6 +740,44 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Failed to fetch user groups",
+                        "schema": {
+                            "$ref": "#/definitions/models.SimpleMessageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/roles-and-clusters": {
+            "get": {
+                "description": "Returns the list of clusters and roles available to the user.\nRequires one or more cookies named kube_jit_session_\u003cnumber\u003e (e.g., kube_jit_session_0, kube_jit_session_1).\nPass split cookies in the Cookie header, for example:\n-H \"Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}\"\nNote: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "Get available clusters and roles",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)",
+                        "name": "Cookie",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "clusters and roles",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ClustersAndRolesResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized: no token in session data",
                         "schema": {
                             "$ref": "#/definitions/models.SimpleMessageResponse"
                         }
@@ -812,7 +812,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/handlers.SubmitRequestPayload"
                         }
                     }
                 ],
@@ -846,6 +846,26 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "handlers.AdminApproveRequest": {
+            "type": "object",
+            "properties": {
+                "approverID": {
+                    "type": "string"
+                },
+                "approverName": {
+                    "type": "string"
+                },
+                "requests": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.RequestData"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "handlers.BuildShaResponse": {
             "type": "object",
             "properties": {
@@ -879,6 +899,15 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/models.Roles"
                     }
+                }
+            }
+        },
+        "handlers.CommonPermissionsRequest": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "type": "string",
+                    "example": "github"
                 }
             }
         },
@@ -1007,6 +1036,52 @@ const docTemplate = `{
                 }
             }
         },
+        "handlers.SubmitRequestPayload": {
+            "type": "object",
+            "properties": {
+                "cluster": {
+                    "$ref": "#/definitions/models.Cluster"
+                },
+                "endDate": {
+                    "type": "string"
+                },
+                "justification": {
+                    "type": "string"
+                },
+                "namespaces": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "requestorId": {
+                    "type": "string"
+                },
+                "requestorName": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/models.Roles"
+                },
+                "startDate": {
+                    "type": "string"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "models.Cluster": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "models.LoginResponse": {
             "type": "object",
             "properties": {
@@ -1058,6 +1133,80 @@ const docTemplate = `{
                 },
                 "provider": {
                     "type": "string"
+                }
+            }
+        },
+        "models.RequestData": {
+            "type": "object",
+            "properties": {
+                "CreatedAt": {
+                    "type": "string"
+                },
+                "DeletedAt": {
+                    "type": "string"
+                },
+                "ID": {
+                    "type": "integer"
+                },
+                "UpdatedAt": {
+                    "type": "string"
+                },
+                "approverIDs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "approverNames": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "clusterName": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "endDate": {
+                    "type": "string"
+                },
+                "fullyApproved": {
+                    "type": "boolean"
+                },
+                "justification": {
+                    "type": "string"
+                },
+                "namespaces": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "roleName": {
+                    "type": "string"
+                },
+                "startDate": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "userID": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
