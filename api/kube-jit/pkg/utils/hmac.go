@@ -52,7 +52,7 @@ func GenerateHMAC(data string) string {
 // ValidateSignedURL returns true/false if a url matches the hmac sig
 // It takes a signed URL as input and validates its expiry time and signature.
 // It returns true if the URL is valid and not expired, false otherwise.
-func ValidateSignedURL(u *url.URL) bool {
+func ValidateSignedURL(u *url.URL, callbackHostOverride string) bool {
 	query := u.Query()
 	expiry := query.Get("expiry")
 	signature := query.Get("signature")
@@ -75,7 +75,7 @@ func ValidateSignedURL(u *url.URL) bool {
 	u.RawQuery = query.Encode()
 
 	// Generate the expected signature
-	callbackBaseURL := "http://localhost:8589/kube-jit-api/k8s-callback"
+	callbackBaseURL := callbackHostOverride + "/k8s-callback"
 	u, _ = url.Parse(callbackBaseURL)
 	query = u.Query()
 	query.Set("expiry", fmt.Sprintf("%d", expiryTime))

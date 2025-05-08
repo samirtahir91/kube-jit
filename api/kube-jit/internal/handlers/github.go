@@ -89,24 +89,24 @@ func fetchGitHubPrimaryEmail(token string) (string, error) {
 // and returns a slice of models.Team
 // Each team is represented by its ID and name
 // It returns an error if the request fails or if the response is not as expected
-func GetGithubTeams(token string) ([]models.Team, error) {
+func GetGithubTeams(token string, reqLogger *zap.Logger) ([]models.Team, error) {
 	req, err := http.NewRequest("GET", "https://api.github.com/user/teams", nil)
 	if err != nil {
-		logger.Error("Failed to create request for GitHub teams", zap.Error(err))
+		reqLogger.Error("Failed to create request for GitHub teams", zap.Error(err))
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		logger.Error("Failed to fetch GitHub teams", zap.Error(err))
+		reqLogger.Error("Failed to fetch GitHub teams", zap.Error(err))
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		logger.Warn("Error fetching teams from GitHub", zap.String("response", string(body)))
+		reqLogger.Warn("Error fetching teams from GitHub", zap.String("response", string(body)))
 		return nil, fmt.Errorf("error fetching teams from GitHub: %s", string(body))
 	}
 
@@ -115,7 +115,7 @@ func GetGithubTeams(token string) ([]models.Team, error) {
 		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&githubTeams); err != nil {
-		logger.Error("Failed to decode GitHub teams", zap.Error(err))
+		reqLogger.Error("Failed to decode GitHub teams", zap.Error(err))
 		return nil, err
 	}
 
@@ -208,6 +208,8 @@ func HandleGitHubLogin(c *gin.Context) {
 	sessionData := map[string]interface{}{
 		"token": tokenData.AccessToken,
 		"email": email,
+		"id":    normalizedUserData.ID,
+		"name":  normalizedUserData.Name,
 	}
 
 	// Save the session data in the session
@@ -261,21 +263,20 @@ func HandleGitHubLogin(c *gin.Context) {
 
 // GetGithubProfile gets the logged in user's profile info from GitHub
 func GetGithubProfile(c *gin.Context) {
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	// Check if the user is logged in
+	sessionData := GetSessionData(c)
+	reqLogger := RequestLogger(c)
 
 	token, ok := sessionData["token"].(string)
 	if !ok || token == "" {
-		logger.Warn("No token in session data for GitHub profile")
+		reqLogger.Warn("No token in session data for GitHub profile")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
 		return
 	}
 
 	githubUser, err := fetchGitHubUserProfile(token)
 	if err != nil {
-		logger.Error("Failed to fetch GitHub user profile", zap.Error(err))
+		reqLogger.Error("Failed to fetch GitHub user profile", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

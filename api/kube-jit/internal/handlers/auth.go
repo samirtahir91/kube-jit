@@ -14,26 +14,11 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// checkLoggedIn verifies if the user is logged in by checking session data.
-// Returns the session data if valid, or sends an unauthorized response and aborts the request.
-func checkLoggedIn(c *gin.Context) (map[string]interface{}, bool) {
-	session := sessions.Default(c)
-	combinedData := session.Get("data")
-	if combinedData == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no session data in cookies"})
-		c.Abort() // Stop further processing of the request
-		return nil, false
-	}
+// GetSessionData retrieves session data from the context or panics
+func GetSessionData(c *gin.Context) map[string]interface{} {
+	sessionData := c.MustGet("sessionData").(map[string]interface{})
 
-	// Ensure the session data is a map[string]interface{}
-	sessionData, ok := combinedData.(map[string]interface{})
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid session data format"})
-		c.Abort() // Stop further processing of the request
-		return nil, false
-	}
-
-	return sessionData, true
+	return sessionData
 }
 
 // Logout clears all session cookies with the sessionPrefix
@@ -61,13 +46,9 @@ func Logout(c *gin.Context) {
 // It updates the session with the user's permissions
 // It returns the permissions as JSON
 func CommonPermissions(c *gin.Context) {
-	session := sessions.Default(c)
-
-	// Check if the user is logged in
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	// Check if the user is logged in and get logger
+	sessionData := GetSessionData(c)
+	reqLogger := RequestLogger(c)
 
 	// Parse provider from payload
 	var payload struct {
@@ -84,13 +65,15 @@ func CommonPermissions(c *gin.Context) {
 	isPlatformApprover, isPlatformApproverOk := sessionData["isPlatformApprover"].(bool)
 	approverGroups, approverGroupsOk := sessionData["approverGroups"]
 	adminGroups, adminGroupsOk := sessionData["adminGroups"]
-	if isApproverOk && isAdminOk && isPlatformApprover && isPlatformApproverOk && approverGroupsOk && adminGroupsOk {
+	platformApproverGroups, platformApproverGroupsOk := sessionData["platformApproverGroups"]
+	if isApproverOk && isAdminOk && isPlatformApproverOk && approverGroupsOk && adminGroupsOk && platformApproverGroupsOk {
 		c.JSON(http.StatusOK, gin.H{
-			"isApprover":         isApprover,
-			"approverGroups":     approverGroups,
-			"isAdmin":            isAdmin,
-			"isPlatformApprover": isPlatformApprover,
-			"adminGroups":        adminGroups,
+			"isApprover":             isApprover,
+			"approverGroups":         approverGroups,
+			"isAdmin":                isAdmin,
+			"isPlatformApprover":     isPlatformApprover,
+			"adminGroups":            adminGroups,
+			"platformApproverGroups": platformApproverGroups,
 		})
 		return
 	}
@@ -104,20 +87,20 @@ func CommonPermissions(c *gin.Context) {
 	// Fetch user groups based on the provider
 	switch payload.Provider {
 	case "github": // GitHub provider
-		userGroups, err = GetGithubTeams(token)
+		userGroups, err = GetGithubTeams(token, reqLogger)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch GitHub teams"})
 			return
 		}
 	case "google": // Google provider
 		userEmail, _ := sessionData["email"].(string)
-		userGroups, err = GetGoogleGroupsWithWorkloadIdentity(userEmail)
+		userGroups, err = GetGoogleGroupsWithWorkloadIdentity(userEmail, reqLogger)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Google groups"})
 			return
 		}
 	case "azure": // Azure provider
-		userGroups, err = GetAzureGroups(token)
+		userGroups, err = GetAzureGroups(token, reqLogger)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Azure groups"})
 			return
@@ -128,18 +111,18 @@ func CommonPermissions(c *gin.Context) {
 	}
 
 	// Match user groups to approver/admin teams
-	isAdmin, isPlatformApprover, matchedAdminGroups := MatchUserGroups(
+	isAdmin, isPlatformApprover, matchedPlatformGroups, matchedAdminGroups := MatchUserGroups(
 		userGroups,
 		k8s.PlatformApproverTeams,
 		k8s.AdminTeams,
 	)
 
 	// Check and append if user is in any JitGroup for any cluster
-	var matchedApproverGroups []string
+	var matchedApproverGroups []models.Team
 	for _, clusterName := range k8s.ClusterNames {
 		jitGroups, err := k8s.GetJitGroups(clusterName)
 		if err != nil {
-			logger.Error("Error fetching JitGroups for cluster", zap.String("clusterName", clusterName), zap.Error(err))
+			reqLogger.Error("Error fetching JitGroups for cluster", zap.String("clusterName", clusterName), zap.Error(err))
 			continue
 		}
 		groups, _, _ := unstructured.NestedSlice(jitGroups.Object, "spec", "groups")
@@ -149,10 +132,11 @@ func CommonPermissions(c *gin.Context) {
 				continue
 			}
 			groupID, ok := groupMap["groupID"].(string)
+			groupName, _ := groupMap["groupName"].(string)
 			if ok {
 				for _, userGroup := range userGroups {
 					if userGroup.ID == groupID {
-						matchedApproverGroups = append(matchedApproverGroups, groupID)
+						matchedApproverGroups = append(matchedApproverGroups, models.Team{ID: groupID, Name: groupName})
 					}
 				}
 			}
@@ -168,15 +152,19 @@ func CommonPermissions(c *gin.Context) {
 	sessionData["isAdmin"] = isAdmin
 	sessionData["isPlatformApprover"] = isPlatformApprover
 	sessionData["adminGroups"] = matchedAdminGroups
+	sessionData["platformApproverGroups"] = matchedPlatformGroups
+
+	session := sessions.Default(c)
 	session.Set("data", sessionData)
 	sessioncookie.SplitSessionData(c)
 
 	c.JSON(http.StatusOK, gin.H{
-		"isApprover":         isApprover,
-		"approverGroups":     matchedApproverGroups,
-		"isAdmin":            isAdmin,
-		"isPlatformApprover": isPlatformApprover,
-		"adminGroups":        matchedAdminGroups,
+		"isApprover":             isApprover,
+		"approverGroups":         matchedApproverGroups,
+		"isAdmin":                isAdmin,
+		"isPlatformApprover":     isPlatformApprover,
+		"adminGroups":            matchedAdminGroups,
+		"platformApproverGroups": matchedPlatformGroups,
 	})
 }
 

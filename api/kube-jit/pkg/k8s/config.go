@@ -50,7 +50,7 @@ func InitK8sConfig() {
 	var config *rest.Config
 	var err error
 
-	callbackHostOverride = utils.MustGetEnv("CALLBACK_HOST_OVERRIDE")
+	CallbackHostOverride = utils.MustGetEnv("CALLBACK_HOST_OVERRIDE")
 
 	// Load in-cluster kube config
 	config, err = rest.InClusterConfig()

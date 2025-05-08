@@ -16,10 +16,10 @@ import (
 // It fetches the records from the database and returns them as JSON
 // It checks if the user is an admin or platform approver to determine the query parameters
 func GetRecords(c *gin.Context) {
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	// Check if the user is logged in and get logger
+	sessionData := GetSessionData(c)
+	reqLogger := RequestLogger(c)
+
 	isAdmin, _ := sessionData["isAdmin"].(bool)
 	isPlatformApprover, _ := sessionData["isPlatformApprover"].(bool)
 	userID := c.Query("userID")
@@ -53,7 +53,7 @@ func GetRecords(c *gin.Context) {
 		query = query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
 	}
 	if err := query.Find(&requests).Error; err != nil {
-		logger.Error("Error fetching records in GetRecords", zap.Error(err))
+		reqLogger.Error("Error fetching records in GetRecords", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch records"})
 		return
 	}
@@ -79,7 +79,7 @@ func GetRecords(c *gin.Context) {
 			Select("namespace, group_name, group_id, approved, approver_id, approver_name").
 			Where("request_id = ?", req.ID).
 			Scan(&nsApprovals).Error; err != nil {
-			logger.Error("Error fetching namespace approvals in GetRecords", zap.Uint("requestID", req.ID), zap.Error(err))
+			reqLogger.Error("Error fetching namespace approvals in GetRecords", zap.Uint("requestID", req.ID), zap.Error(err))
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch namespace approvals"})
 			return
 		}
@@ -96,12 +96,8 @@ func GetRecords(c *gin.Context) {
 // It uses the session to retrieve the user's approver groups
 // It queries the database for requests with status "Requested" and matching approver groups
 func GetPendingApprovals(c *gin.Context) {
-
 	// Check if the user is logged in
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	sessionData := GetSessionData(c)
 
 	// Check if the user is an admin or platform approver
 	isAdmin, isAdminOk := sessionData["isAdmin"].(bool)
@@ -129,19 +125,23 @@ func GetPendingApprovals(c *gin.Context) {
 		return
 	}
 
-	// Convert approverGroups to a slice of strings
-	approverGroups := []string{}
-	if rawGroups, ok := rawApproverGroups.([]any); ok {
+	// Convert approverGroups to a slice of group IDs
+	approverGroupIDs := []string{}
+	if rawGroups, ok := rawApproverGroups.([]models.Team); ok {
 		for _, group := range rawGroups {
-			if groupStr, ok := group.(string); ok {
-				approverGroups = append(approverGroups, groupStr)
+			approverGroupIDs = append(approverGroupIDs, group.ID)
+		}
+	} else if rawGroups, ok := rawApproverGroups.([]any); ok {
+		for _, group := range rawGroups {
+			if groupMap, ok := group.(map[string]any); ok {
+				if id, ok := groupMap["id"].(string); ok {
+					approverGroupIDs = append(approverGroupIDs, id)
+				}
 			}
 		}
-	} else if rawGroups, ok := rawApproverGroups.([]string); ok {
-		approverGroups = rawGroups
 	}
 
-	if len(approverGroups) == 0 {
+	if len(approverGroupIDs) == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
 		return
 	}
@@ -204,7 +204,7 @@ func GetPendingApprovals(c *gin.Context) {
 				"request_namespaces.approved",
 		).
 		Joins("JOIN request_namespaces ON request_namespaces.request_id = request_data.id").
-		Where("request_namespaces.group_id IN (?) AND request_data.status = ? AND request_namespaces.approved = false", approverGroups, "Requested").
+		Where("request_namespaces.group_id IN (?) AND request_data.status = ? AND request_namespaces.approved = false", approverGroupIDs, "Requested").
 		Scan(&rows).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

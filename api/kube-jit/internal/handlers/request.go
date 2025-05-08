@@ -19,10 +19,9 @@ import (
 // It returns a success message or an error message
 func SubmitRequest(c *gin.Context) {
 	// Check if the user is logged in
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	sessionData := GetSessionData(c)
+	reqLogger := RequestLogger(c)
+
 	// Check if the email is present in the session data
 	emailAddress, _ := sessionData["email"].(string)
 
@@ -68,7 +67,7 @@ func SubmitRequest(c *gin.Context) {
 
 	// Insert the request data into the database
 	if err := db.DB.Create(&dbRequestData).Error; err != nil {
-		logger.Error("Error inserting data in SubmitRequest", zap.Error(err))
+		reqLogger.Error("Error inserting data in SubmitRequest", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit request (database error)"})
 		return
 	}
@@ -83,7 +82,7 @@ func SubmitRequest(c *gin.Context) {
 			Approved:  false,
 		}
 		if err := db.DB.Create(&namespaceEntry).Error; err != nil {
-			logger.Error("Error inserting namespace data in SubmitRequest", zap.Error(err))
+			reqLogger.Error("Error inserting namespace data in SubmitRequest", zap.Error(err))
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit request (namespace error)"})
 			return
 		}
@@ -104,7 +103,7 @@ func SubmitRequest(c *gin.Context) {
 		})
 		go func() {
 			if err := email.SendMail(dbRequestData.Email, fmt.Sprintf("Your JIT request #%d has been submitted", dbRequestData.ID), body); err != nil {
-				logger.Warn("Failed to send submission email", zap.String("email", dbRequestData.Email), zap.Error(err))
+				reqLogger.Warn("Failed to send submission email", zap.String("email", dbRequestData.Email), zap.Error(err))
 			}
 		}()
 	}
@@ -119,10 +118,8 @@ func SubmitRequest(c *gin.Context) {
 // It updates the status of the requests in the database
 func ApproveOrRejectRequests(c *gin.Context) {
 	// Check if the user is logged in
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	sessionData := GetSessionData(c)
+	reqLogger := RequestLogger(c)
 
 	// Check if the user is an admin or platform approver
 	isAdmin, _ := sessionData["isAdmin"].(bool)
@@ -136,14 +133,19 @@ func ApproveOrRejectRequests(c *gin.Context) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
 			return
 		}
-		if rawGroups, ok := rawApproverGroups.([]any); ok {
+		// Handle both []models.Team and []interface{} (from session serialization)
+		if rawGroups, ok := rawApproverGroups.([]models.Team); ok {
 			for _, group := range rawGroups {
-				if groupStr, ok := group.(string); ok {
-					approverGroups = append(approverGroups, groupStr)
+				approverGroups = append(approverGroups, group.ID)
+			}
+		} else if rawGroups, ok := rawApproverGroups.([]any); ok {
+			for _, group := range rawGroups {
+				if groupMap, ok := group.(map[string]any); ok {
+					if id, ok := groupMap["id"].(string); ok {
+						approverGroups = append(approverGroups, id)
+					}
 				}
 			}
-		} else if rawGroups, ok := rawApproverGroups.([]string); ok {
-			approverGroups = rawGroups
 		}
 		if len(approverGroups) == 0 {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
@@ -165,7 +167,7 @@ func ApproveOrRejectRequests(c *gin.Context) {
 			return
 		}
 		for _, r := range req.Requests {
-			processApproval(r.ID, r, req.ApproverID, req.ApproverName, req.Status, nil, c)
+			processApproval(reqLogger, r.ID, r, req.ApproverID, req.ApproverName, req.Status, nil, c)
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "Admin/Platform requests processed successfully"})
 		return
@@ -212,7 +214,7 @@ func ApproveOrRejectRequests(c *gin.Context) {
 				EndDate:       r.EndDate,
 				FullyApproved: r.FullyApproved,
 			}
-			processApproval(r.ID, requestData, req.ApproverID, req.ApproverName, req.Status, approverGroups, c)
+			processApproval(reqLogger, r.ID, requestData, req.ApproverID, req.ApproverName, req.Status, approverGroups, c)
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "User requests processed successfully"})
 		return
@@ -224,6 +226,7 @@ func ApproveOrRejectRequests(c *gin.Context) {
 // It also creates the k8s object if all namespaces are approved
 // It sends an email notification to the user if the request is approved
 func processApproval(
+	reqLogger *zap.Logger,
 	requestID uint,
 	requestData models.RequestData,
 	approverID string,
@@ -235,7 +238,7 @@ func processApproval(
 	// Fetch namespaces for the request
 	var dbNamespaces []models.RequestNamespace
 	if err := db.DB.Where("request_id = ?", requestID).Find(&dbNamespaces).Error; err != nil {
-		logger.Error("Error fetching namespaces for request", zap.Uint("requestID", requestID), zap.Error(err))
+		reqLogger.Error("Error fetching namespaces for request", zap.Uint("requestID", requestID), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch namespaces"})
 		return
 	}
@@ -252,12 +255,12 @@ func processApproval(
 			ns.ApproverID = approverID
 			ns.ApproverName = approverName
 			if err := db.DB.Save(ns).Error; err != nil {
-				logger.Error("Error updating namespace approval", zap.Uint("requestID", requestID), zap.String("namespace", ns.Namespace), zap.Error(err))
+				reqLogger.Error("Error updating namespace approval", zap.Uint("requestID", requestID), zap.String("namespace", ns.Namespace), zap.Error(err))
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update namespace approval"})
 				return
 			}
 		} else {
-			logger.Info("Skipping namespace - approver does not have permissions",
+			reqLogger.Info("Skipping namespace - approver does not have permissions",
 				zap.String("namespace", ns.Namespace),
 				zap.String("groupID", ns.GroupID),
 				zap.String("approverID", approverID),
@@ -280,7 +283,7 @@ func processApproval(
 		finalStatus = "Requested"
 	}
 
-	logger.Debug("Approval status check",
+	reqLogger.Debug("Approval status check",
 		zap.Bool("allApproved", allApproved),
 		zap.String("status", status),
 		zap.String("finalStatus", finalStatus),
@@ -295,7 +298,7 @@ func processApproval(
 		requestData.Namespaces = namespacesToSpec
 		requestData.ID = requestID
 		if err := k8s.CreateK8sObject(requestData, approverName); err != nil {
-			logger.Error("Error creating k8s object for request", zap.Uint("requestID", requestID), zap.Error(err))
+			reqLogger.Error("Error creating k8s object for request", zap.Uint("requestID", requestID), zap.Error(err))
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create k8s object"})
 			return
 		}
@@ -304,7 +307,7 @@ func processApproval(
 	// Fetch the request record
 	var req models.RequestData
 	if err := db.DB.First(&req, requestID).Error; err != nil {
-		logger.Error("Error fetching request for update", zap.Uint("requestID", requestID), zap.Error(err))
+		reqLogger.Error("Error fetching request for update", zap.Uint("requestID", requestID), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch request"})
 		return
 	}
@@ -322,7 +325,7 @@ func processApproval(
 	req.FullyApproved = allApproved
 
 	if err := db.DB.Model(&req).Select("Status", "ApproverIDs", "ApproverNames", "FullyApproved").Updates(req).Error; err != nil {
-		logger.Error("Error updating request after approval", zap.Uint("requestID", requestID), zap.Error(err))
+		reqLogger.Error("Error updating request after approval", zap.Uint("requestID", requestID), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update request"})
 		return
 	}
@@ -341,7 +344,7 @@ func processApproval(
 		})
 		go func() {
 			if err := email.SendMail(req.Email, fmt.Sprintf("Your JIT request #%d is now %s", req.ID, req.Status), body); err != nil {
-				logger.Warn("Failed to send status change email", zap.String("email", req.Email), zap.Error(err))
+				reqLogger.Warn("Failed to send status change email", zap.String("email", req.Email), zap.Error(err))
 			}
 		}()
 	}

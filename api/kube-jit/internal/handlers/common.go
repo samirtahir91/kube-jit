@@ -57,7 +57,7 @@ func K8sCallback(c *gin.Context) {
 	}
 
 	callbackURL := c.Request.URL
-	if !utils.ValidateSignedURL(callbackURL) {
+	if !utils.ValidateSignedURL(callbackURL, k8s.CallbackHostOverride) {
 		logger.Warn("Invalid or expired signed URL in K8sCallback")
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
@@ -118,13 +118,6 @@ func GetOauthClientId(c *gin.Context) {
 
 // GetClustersAndRoles returns the list of clusters and roles available
 func GetClustersAndRoles(c *gin.Context) {
-
-	// Check if the user is logged in
-	_, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
-
 	// Return the clusters and roles
 	response := map[string]interface{}{
 		"clusters": k8s.ClusterNames,
@@ -136,10 +129,7 @@ func GetClustersAndRoles(c *gin.Context) {
 // GetApprovingGroups returns the list of platform approving groups
 func GetApprovingGroups(c *gin.Context) {
 	// Check if the user is logged in
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	sessionData := GetSessionData(c)
 
 	// Retrieve the token from the session data
 	token, ok := sessionData["token"].(string)
@@ -174,21 +164,30 @@ func MatchUserGroups(
 	userGroups []models.Team,
 	platformTeams []models.Team,
 	adminTeams []models.Team,
-) (isAdmin bool, isPlatformApprover bool, matchedAdminGroups []string) {
-	var matchedPlatformApproverGroups []string
+) (isAdmin bool, isPlatformApprover bool, matchedPlatformGroups, matchedAdminGroups []models.Team) {
 	for _, group := range userGroups {
 		for _, approverGroup := range platformTeams {
 			if group.ID == approverGroup.ID && group.Name == approverGroup.Name {
-				matchedPlatformApproverGroups = append(matchedPlatformApproverGroups, group.ID)
+				matchedPlatformGroups = append(matchedPlatformGroups, group)
 			}
 		}
 		for _, adminGroup := range adminTeams {
 			if group.ID == adminGroup.ID && group.Name == adminGroup.Name {
-				matchedAdminGroups = append(matchedAdminGroups, group.ID)
+				matchedAdminGroups = append(matchedAdminGroups, group)
 			}
 		}
 	}
 	isAdmin = len(matchedAdminGroups) > 0
-	isPlatformApprover = len(matchedPlatformApproverGroups) > 0
+	isPlatformApprover = len(matchedPlatformGroups) > 0
 	return
+}
+
+func RequestLogger(c *gin.Context) *zap.Logger {
+	sessionData := GetSessionData(c)
+	userID, _ := sessionData["id"].(string)
+	username, _ := sessionData["name"].(string)
+	return logger.With(
+		zap.String("userID", userID),
+		zap.String("username", username),
+	)
 }

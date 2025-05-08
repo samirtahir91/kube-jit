@@ -72,11 +72,12 @@ func fetchGoogleUserProfile(token string) (*models.GoogleUser, error) {
 }
 
 // getGSAEmail retrieves the Google Service Account (GSA) email from the metadata server
-func getGSAEmail() (string, error) {
+func getGSAEmail(reqLogger *zap.Logger) (string, error) {
+
 	gsaEmailOnce.Do(func() {
 		req, err := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email", nil)
 		if err != nil {
-			logger.Error("Failed to create request for GSA email", zap.Error(err))
+			reqLogger.Error("Failed to create request for GSA email", zap.Error(err))
 			gsaEmailErr = err
 			return
 		}
@@ -84,7 +85,7 @@ func getGSAEmail() (string, error) {
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			logger.Error("Failed to fetch GSA email from metadata server", zap.Error(err))
+			reqLogger.Error("Failed to fetch GSA email from metadata server", zap.Error(err))
 			gsaEmailErr = err
 			return
 		}
@@ -92,7 +93,7 @@ func getGSAEmail() (string, error) {
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			logger.Error("Failed to read GSA email response body", zap.Error(err))
+			reqLogger.Error("Failed to read GSA email response body", zap.Error(err))
 			gsaEmailErr = err
 			return
 		}
@@ -104,18 +105,18 @@ func getGSAEmail() (string, error) {
 }
 
 // GetGoogleGroupsWithWorkloadIdentity retrieves the Google Groups for a user using Workload Identity
-func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error) {
+func GetGoogleGroupsWithWorkloadIdentity(userEmail string, reqLogger *zap.Logger) ([]models.Team, error) {
 	ctx := context.Background()
 
-	serviceAccountEmail, err := getGSAEmail()
+	serviceAccountEmail, err := getGSAEmail(reqLogger)
 	if err != nil {
-		logger.Error("Failed to get GSA email", zap.Error(err))
+		reqLogger.Error("Failed to get GSA email", zap.Error(err))
 		return nil, fmt.Errorf("failed to get GSA email")
 	}
 
 	iamService, err := iamcredentials.NewService(ctx)
 	if err != nil {
-		logger.Error("Failed to create IAM credentials service", zap.Error(err))
+		reqLogger.Error("Failed to create IAM credentials service", zap.Error(err))
 		return nil, fmt.Errorf("failed to create IAM credentials service")
 	}
 
@@ -131,7 +132,7 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error
 
 	claimsJSON, err := json.Marshal(claims)
 	if err != nil {
-		logger.Error("Failed to marshal JWT claims", zap.Error(err))
+		reqLogger.Error("Failed to marshal JWT claims", zap.Error(err))
 		return nil, fmt.Errorf("failed to marshal claims")
 	}
 
@@ -142,7 +143,7 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error
 
 	signJwtResponse, err := iamService.Projects.ServiceAccounts.SignJwt(name, signJwtRequest).Do()
 	if err != nil {
-		logger.Error("Failed to sign JWT", zap.Error(err))
+		reqLogger.Error("Failed to sign JWT", zap.Error(err))
 		return nil, fmt.Errorf("failed to sign JWT")
 	}
 
@@ -154,7 +155,7 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error
 		strings.NewReader(fmt.Sprintf("grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=%s", signedJwt)),
 	)
 	if err != nil {
-		logger.Error("Failed to exchange JWT for access token", zap.Error(err))
+		reqLogger.Error("Failed to exchange JWT for access token", zap.Error(err))
 		return nil, fmt.Errorf("failed to exchange JWT for access token")
 	}
 	defer resp.Body.Close()
@@ -162,7 +163,7 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error
 	body, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
-		logger.Error("Failed to get token from Google", zap.String("response", string(body)))
+		reqLogger.Error("Failed to get token from Google", zap.String("response", string(body)))
 		return nil, fmt.Errorf("failed to get token")
 	}
 
@@ -172,7 +173,7 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error
 		TokenType   string `json:"token_type"`
 	}
 	if err := json.Unmarshal(body, &tokenResp); err != nil {
-		logger.Error("Failed to parse token response", zap.Error(err))
+		reqLogger.Error("Failed to parse token response", zap.Error(err))
 		return nil, fmt.Errorf("failed to parse token response")
 	}
 
@@ -181,14 +182,14 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error
 	})
 	service, err := admin.NewService(ctx, option.WithTokenSource(tokenSource))
 	if err != nil {
-		logger.Error("Failed to create Admin SDK service", zap.Error(err))
+		reqLogger.Error("Failed to create Admin SDK service", zap.Error(err))
 		return nil, fmt.Errorf("failed to create Admin SDK service")
 	}
 
 	groupsCall := service.Groups.List().UserKey(userEmail)
 	groupsResponse, err := groupsCall.Do()
 	if err != nil {
-		logger.Error("Failed to list Google groups", zap.Error(err))
+		reqLogger.Error("Failed to list Google groups", zap.Error(err))
 		return nil, fmt.Errorf("failed to list groups")
 	}
 
@@ -208,6 +209,7 @@ func GetGoogleGroupsWithWorkloadIdentity(userEmail string) ([]models.Team, error
 // It also checks if the user is allowed to log in based on their email domain
 func HandleGoogleLogin(c *gin.Context) {
 	code := c.Query("code")
+
 	if code == "" {
 		logger.Warn("Missing 'code' query parameter in Google login")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Code query parameter is required"})
@@ -243,7 +245,9 @@ func HandleGoogleLogin(c *gin.Context) {
 		Provider:  "google",
 	}
 
-	sessionData := map[string]interface{}{
+	sessionData := map[string]any{
+		"id":    googleUser.ID,
+		"name":  googleUser.Name,
 		"email": googleUser.Email,
 		"token": token.AccessToken,
 	}
@@ -263,23 +267,21 @@ func HandleGoogleLogin(c *gin.Context) {
 
 // GetGoogleProfile gets the logged in user's profile info from Google
 func GetGoogleProfile(c *gin.Context) {
-	// Check if the user is logged in
-	sessionData, ok := checkLoggedIn(c)
-	if !ok {
-		return
-	}
+	// Check if the user is logged
+	sessionData := GetSessionData(c)
+	reqLogger := RequestLogger(c)
 
 	// Retrieve the token from the session data
 	token, ok := sessionData["token"].(string)
 	if !ok || token == "" {
-		logger.Warn("No token in session data for Google profile")
+		reqLogger.Warn("No token in session data for Google profile")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
 		return
 	}
 
 	googleUser, err := fetchGoogleUserProfile(token)
 	if err != nil {
-		logger.Error("Failed to fetch Google user profile", zap.Error(err))
+		reqLogger.Error("Failed to fetch Google user profile", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

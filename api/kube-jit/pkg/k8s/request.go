@@ -31,7 +31,7 @@ func CreateK8sObject(req models.RequestData, approverName string) error {
 	endTime := metav1.NewTime(req.EndDate)
 
 	// Generate signed URL for callback
-	callbackBaseURL := callbackHostOverride + "/kube-jit-api/k8s-callback"
+	callbackBaseURL := CallbackHostOverride + "/k8s-callback"
 	signedURL, err := utils.GenerateSignedURL(callbackBaseURL, req.EndDate)
 	if err != nil {
 		logger.Error("Failed to generate signed URL", zap.Error(err))
