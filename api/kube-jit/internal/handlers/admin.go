@@ -10,7 +10,27 @@ import (
 	"go.uber.org/zap"
 )
 
-// CleanExpiredRequests deletes requests where endDate < now and status is Requested (not Approved or Rejected)
+// CleanExpiredResponse represents the response for CleanExpiredRequests
+type CleanExpiredResponse struct {
+	Message string `json:"message"`
+	Deleted int64  `json:"deleted"`
+}
+
+// CleanExpiredRequests godoc
+// @Summary Clean up expired non-approved JIT requests
+// @Description Deletes JIT requests where endDate is in the past and status is "Requested" (not Approved or Rejected). Admin only.
+// @Description Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+// @Description Pass split cookies in the Cookie header, for example:
+// @Description     -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+// @Description Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+// @Tags admin
+// @Accept  json
+// @Produce  json
+// @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
+// @Success 200 {object} handlers.CleanExpiredResponse "Expired non-approved requests cleaned"
+// @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: admin only"
+// @Failure 500 {object} models.SimpleMessageResponse "Failed to clean expired requests"
+// @Router /kube-jit-api/admin/clean-expired [post]
 func CleanExpiredRequests(c *gin.Context) {
 	// Check if the user is logged in and get logger
 	sessionData := GetSessionData(c)
@@ -19,7 +39,7 @@ func CleanExpiredRequests(c *gin.Context) {
 	isAdmin, _ := sessionData["isAdmin"].(bool)
 	if !isAdmin {
 		reqLogger.Warn("Unauthorized access attempt to CleanExpiredRequests")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: admin only"})
+		c.JSON(http.StatusUnauthorized, models.SimpleMessageResponse{Error: "Unauthorized: admin only"})
 		return
 	}
 
@@ -30,15 +50,15 @@ func CleanExpiredRequests(c *gin.Context) {
 
 	if result.Error != nil {
 		reqLogger.Error("Failed to clean expired non-approved requests", zap.Error(result.Error))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to clean expired requests"})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to clean expired requests"})
 		return
 	}
 
 	reqLogger.Info("Expired non-approved requests cleaned",
 		zap.Int64("deleted", result.RowsAffected),
 	)
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Expired non-approved requests cleaned",
-		"deleted": result.RowsAffected,
+	c.JSON(http.StatusOK, CleanExpiredResponse{
+		Message: "Expired non-approved requests cleaned",
+		Deleted: result.RowsAffected,
 	})
 }

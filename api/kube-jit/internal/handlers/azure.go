@@ -51,12 +51,23 @@ func fetchAzureUserProfile(token string) (*models.AzureUser, error) {
 	return &azureUser, nil
 }
 
-// HandleAzureLogin handles the Azure AD OAuth callback
+// HandleAzureLogin godoc
+// @Summary Azure OAuth callback
+// @Description Handles the Azure OAuth callback, exchanges the code for an access token, fetches user info, sets session data, and returns normalized user data and expiration time.
+// @Tags azure
+// @Accept  json
+// @Produce  json
+// @Param   code query string true "Azure OAuth authorization code"
+// @Success 200 {object} models.LoginResponse "Normalized user data and expiration time"
+// @Failure 400 {object} models.SimpleMessageResponse "Missing or invalid code"
+// @Failure 403 {object} models.SimpleMessageResponse "Unauthorized domain"
+// @Failure 500 {object} models.SimpleMessageResponse "Internal server error"
+// @Router /kube-jit-api/oauth/azure/callback [get]
 func HandleAzureLogin(c *gin.Context) {
 	code := c.Query("code")
 	if code == "" {
 		logger.Warn("Missing 'code' query parameter in Azure login")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Code query parameter is required"})
+		c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: "Code query parameter is required"})
 		return
 	}
 
@@ -64,7 +75,7 @@ func HandleAzureLogin(c *gin.Context) {
 	token, err := azureOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		logger.Error("Failed to exchange Azure token", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to exchange token"})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to exchange token"})
 		return
 	}
 
@@ -72,7 +83,7 @@ func HandleAzureLogin(c *gin.Context) {
 	azureUser, err := fetchAzureUserProfile(token.AccessToken)
 	if err != nil {
 		logger.Error("Failed to fetch Azure user info", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: err.Error()})
 		return
 	}
 
@@ -85,7 +96,7 @@ func HandleAzureLogin(c *gin.Context) {
 	// Check if the user is allowed to log in
 	if !isAllowedUser("azure", email, nil) {
 		logger.Warn("Login attempt from unauthorized Azure domain", zap.String("email", email))
-		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized domain"})
+		c.JSON(http.StatusForbidden, models.SimpleMessageResponse{Error: "Unauthorized domain"})
 		return
 	}
 
@@ -113,16 +124,30 @@ func HandleAzureLogin(c *gin.Context) {
 	// Split the session data into cookies
 	sessioncookie.SplitSessionData(c)
 
-	logger.Info("Session cookies set successfully for Azure login", zap.String("name", azureUser.DisplayName))
+	logger.Debug("Session cookies set successfully for Azure login", zap.String("name", azureUser.DisplayName))
 
 	// Respond with the normalized user data
-	c.JSON(http.StatusOK, gin.H{
-		"userData":  normalizedUserData,
-		"expiresIn": int(time.Until(token.Expiry).Seconds()),
+	c.JSON(http.StatusOK, models.LoginResponse{
+		UserData:  normalizedUserData,
+		ExpiresIn: int(time.Until(token.Expiry).Seconds()),
 	})
 }
 
-// GetAzureProfile retrieves the logged-in user's profile info from Azure
+// GetAzureProfile godoc
+// @Summary Get the logged in user's Azure profile
+// @Description Returns the normalized Azure user profile for the authenticated user.
+// @Description Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+// @Description Pass split cookies in the Cookie header, for example:
+// @Description     -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+// @Description Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+// @Tags azure
+// @Accept  json
+// @Produce  json
+// @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
+// @Success 200 {object} models.NormalizedUserData
+// @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
+// @Failure 500 {object} models.SimpleMessageResponse "Internal server error"
+// @Router /kube-jit-api/azure/profile [get]
 func GetAzureProfile(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData := GetSessionData(c)
@@ -133,7 +158,7 @@ func GetAzureProfile(c *gin.Context) {
 	token, ok := sessionData["token"].(string)
 	if !ok || token == "" {
 		reqLogger.Warn("No token in session data for Azure profile")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no token in session data"})
+		c.JSON(http.StatusUnauthorized, models.SimpleMessageResponse{Error: "Unauthorized: no token in session data"})
 		return
 	}
 
@@ -141,7 +166,7 @@ func GetAzureProfile(c *gin.Context) {
 	azureUser, err := fetchAzureUserProfile(token)
 	if err != nil {
 		reqLogger.Error("Failed to fetch Azure user profile", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: err.Error()})
 		return
 	}
 

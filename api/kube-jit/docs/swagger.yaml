@@ -1,5 +1,117 @@
 basePath: /kube-jit-api
 definitions:
+  handlers.BuildShaResponse:
+    properties:
+      sha:
+        type: string
+    type: object
+  handlers.CleanExpiredResponse:
+    properties:
+      deleted:
+        type: integer
+      message:
+        type: string
+    type: object
+  handlers.ClustersAndRolesResponse:
+    properties:
+      clusters:
+        items:
+          type: string
+        type: array
+      roles:
+        items:
+          $ref: '#/definitions/models.Roles'
+        type: array
+    type: object
+  handlers.CommonPermissionsResponse:
+    properties:
+      adminGroups:
+        items:
+          $ref: '#/definitions/models.Team'
+        type: array
+      approverGroups:
+        items:
+          $ref: '#/definitions/models.Team'
+        type: array
+      isAdmin:
+        type: boolean
+      isApprover:
+        type: boolean
+      isPlatformApprover:
+        type: boolean
+      platformApproverGroups:
+        items:
+          $ref: '#/definitions/models.Team'
+        type: array
+    type: object
+  handlers.OauthClientIdResponse:
+    properties:
+      auth_url:
+        type: string
+      client_id:
+        type: string
+      provider:
+        type: string
+      redirect_uri:
+        type: string
+    type: object
+  handlers.PendingApprovalsResponse:
+    properties:
+      pendingRequests:
+        items:
+          $ref: '#/definitions/handlers.PendingRequest'
+        type: array
+    type: object
+  handlers.PendingRequest:
+    properties:
+      CreatedAt:
+        type: string
+      ID:
+        type: integer
+      approvedList:
+        items:
+          type: boolean
+        type: array
+      clusterName:
+        type: string
+      endDate:
+        type: string
+      groupIDs:
+        items:
+          type: string
+        type: array
+      groupNames:
+        items:
+          type: string
+        type: array
+      justification:
+        type: string
+      namespaces:
+        items:
+          type: string
+        type: array
+      roleName:
+        type: string
+      startDate:
+        type: string
+      status:
+        type: string
+      userID:
+        type: string
+      username:
+        type: string
+      users:
+        items:
+          type: string
+        type: array
+    type: object
+  models.LoginResponse:
+    properties:
+      expiresIn:
+        type: integer
+      userData:
+        $ref: '#/definitions/models.NormalizedUserData'
+    type: object
   models.NamespaceApprovalInfo:
     properties:
       approved:
@@ -13,6 +125,19 @@ definitions:
       groupName:
         type: string
       namespace:
+        type: string
+    type: object
+  models.NormalizedUserData:
+    properties:
+      avatar_url:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      provider:
         type: string
     type: object
   models.RequestWithNamespaceApprovers:
@@ -68,6 +193,27 @@ definitions:
           type: string
         type: array
     type: object
+  models.Roles:
+    properties:
+      name:
+        type: string
+    type: object
+  models.SimpleMessageResponse:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  models.Team:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
 info:
   contact: {}
   description: Self-service Kubernetes RBAC JIT Requests with Google/Azure/Github
@@ -75,7 +221,373 @@ info:
   title: Kube-JIT API
   version: "1.0"
 paths:
-  /history:
+  /k8s-callback:
+    post:
+      consumes:
+      - application/json
+      description: Used by the downstream Kubernetes controller to callback for status
+        update. Validates the signed URL and updates the request status in the database.
+        Returns a success message.
+      parameters:
+      - description: Callback payload (ticketID, status, message)
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Status updated successfully
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "500":
+          description: Failed to update request
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Kubernetes controller callback for status update
+      tags:
+      - k8s
+  /kube-jit-api/admin/clean-expired:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Deletes JIT requests where endDate is in the past and status is "Requested" (not Approved or Rejected). Admin only.
+        Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+        Pass split cookies in the Cookie header, for example:
+        -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+        Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+      parameters:
+      - description: 'Session cookies (multiple allowed, names: kube_jit_session_0,
+          kube_jit_session_1, etc.)'
+        in: header
+        name: Cookie
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Expired non-approved requests cleaned
+          schema:
+            $ref: '#/definitions/handlers.CleanExpiredResponse'
+        "401":
+          description: 'Unauthorized: admin only'
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "500":
+          description: Failed to clean expired requests
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Clean up expired non-approved JIT requests
+      tags:
+      - admin
+  /kube-jit-api/approvals:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns the pending JIT requests for the authenticated user's approver groups.
+        Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+        Pass split cookies in the Cookie header, for example:
+        -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+        Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+      parameters:
+      - description: 'Session cookies (multiple allowed, names: kube_jit_session_0,
+          kube_jit_session_1, etc.)'
+        in: header
+        name: Cookie
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of pending requests
+          schema:
+            $ref: '#/definitions/handlers.PendingApprovalsResponse'
+        "401":
+          description: 'Unauthorized: no approver groups in session'
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "500":
+          description: Failed to fetch pending requests
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Get pending JIT requests for approver groups
+      tags:
+      - records
+  /kube-jit-api/approve-reject:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Approves or rejects pending JIT access requests. Admins and platform approvers can approve/reject multiple requests at once. Non-admins can approve/reject individual namespaces.
+        Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+        Pass split cookies in the Cookie header, for example:
+        -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+        Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+      parameters:
+      - description: 'Session cookies (multiple allowed, names: kube_jit_session_0,
+          kube_jit_session_1, etc.)'
+        in: header
+        name: Cookie
+        required: true
+        type: string
+      - description: Approval/rejection payload (structure depends on user role)
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Requests processed successfully
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "401":
+          description: 'Unauthorized: no approver groups in session'
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "500":
+          description: Failed to process requests
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Approve or reject JIT access requests
+      tags:
+      - request
+  /kube-jit-api/approving-groups:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns the list of platform approving groups for the authenticated user.
+        Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+        Pass split cookies in the Cookie header, for example:
+        -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+        Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+      parameters:
+      - description: 'Session cookies (multiple allowed, names: kube_jit_session_0,
+          kube_jit_session_1, etc.)'
+        in: header
+        name: Cookie
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Team'
+            type: array
+        "401":
+          description: 'Unauthorized: no token in session data'
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Get platform approving groups
+      tags:
+      - records
+  /kube-jit-api/azure/profile:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns the normalized Azure user profile for the authenticated user.
+        Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+        Pass split cookies in the Cookie header, for example:
+        -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+        Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+      parameters:
+      - description: 'Session cookies (multiple allowed, names: kube_jit_session_0,
+          kube_jit_session_1, etc.)'
+        in: header
+        name: Cookie
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.NormalizedUserData'
+        "401":
+          description: 'Unauthorized: no token in session data'
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Get the logged in user's Azure profile
+      tags:
+      - azure
+  /kube-jit-api/build-sha:
+    get:
+      consumes:
+      - application/json
+      description: Returns the current build SHA for the running API.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Current build SHA
+          schema:
+            $ref: '#/definitions/handlers.BuildShaResponse'
+      summary: Get build SHA
+      tags:
+      - health
+  /kube-jit-api/client_id:
+    get:
+      consumes:
+      - application/json
+      description: Returns the OAuth client_id, provider, redirect URI, and auth URL
+        for the frontend to initiate login.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OAuth client configuration
+          schema:
+            $ref: '#/definitions/handlers.OauthClientIdResponse'
+      summary: Get OAuth client configuration
+      tags:
+      - auth
+  /kube-jit-api/clusters-and-roles:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns the list of clusters and roles available to the user.
+        Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+        Pass split cookies in the Cookie header, for example:
+        -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+        Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+      parameters:
+      - description: 'Session cookies (multiple allowed, names: kube_jit_session_0,
+          kube_jit_session_1, etc.)'
+        in: header
+        name: Cookie
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: clusters and roles
+          schema:
+            $ref: '#/definitions/handlers.ClustersAndRolesResponse'
+        "401":
+          description: 'Unauthorized: no token in session data'
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Get available clusters and roles
+      tags:
+      - records
+  /kube-jit-api/github/profile:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns the normalized GitHub user profile for the authenticated user.
+        Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+        Pass split cookies in the Cookie header, for example:
+        -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+        Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+      parameters:
+      - description: 'Session cookies (multiple allowed, names: kube_jit_session_0,
+          kube_jit_session_1, etc.)'
+        in: header
+        name: Cookie
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.NormalizedUserData'
+        "401":
+          description: 'Unauthorized: no token in session data'
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Get the logged in user's GitHub profile
+      tags:
+      - github
+  /kube-jit-api/google/profile:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns the normalized Google user profile for the authenticated user.
+        Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+        Pass split cookies in the Cookie header, for example:
+        -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+        Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+      parameters:
+      - description: 'Session cookies (multiple allowed, names: kube_jit_session_0,
+          kube_jit_session_1, etc.)'
+        in: header
+        name: Cookie
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.NormalizedUserData'
+        "401":
+          description: 'Unauthorized: no token in session data'
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Get the logged in user's Google profile
+      tags:
+      - google
+  /kube-jit-api/healthz:
+    get:
+      consumes:
+      - application/json
+      description: Returns a simple status message to verify the API is running.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: API is healthy
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Health check endpoint
+      tags:
+      - health
+  /kube-jit-api/history:
     get:
       consumes:
       - application/json
@@ -84,6 +596,8 @@ paths:
         Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
         Pass split cookies in the Cookie header, for example:
         -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+        Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies:
+        Login required to test via browser, else test via curl
       parameters:
       - description: 'Session cookies (multiple allowed, names: kube_jit_session_0,
           kube_jit_session_1, etc.)'
@@ -115,10 +629,219 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.SimpleMessageResponse'
       summary: Get JIT requests for a user
       tags:
       - records
+  /kube-jit-api/logout:
+    post:
+      consumes:
+      - application/json
+      description: Clears all session cookies with the session prefix and logs the
+        user out.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logged out successfully
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Log out and clear all session cookies
+      tags:
+      - auth
+  /kube-jit-api/oauth/azure/callback:
+    get:
+      consumes:
+      - application/json
+      description: Handles the Azure OAuth callback, exchanges the code for an access
+        token, fetches user info, sets session data, and returns normalized user data
+        and expiration time.
+      parameters:
+      - description: Azure OAuth authorization code
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Normalized user data and expiration time
+          schema:
+            $ref: '#/definitions/models.LoginResponse'
+        "400":
+          description: Missing or invalid code
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "403":
+          description: Unauthorized domain
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Azure OAuth callback
+      tags:
+      - azure
+  /kube-jit-api/oauth/github/callback:
+    get:
+      consumes:
+      - application/json
+      description: Handles the GitHub OAuth callback, exchanges the code for an access
+        token, fetches user info, sets session data, and returns normalized user data
+        and expiration time.
+      parameters:
+      - description: GitHub OAuth authorization code
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Normalized user data and expiration time
+          schema:
+            $ref: '#/definitions/models.LoginResponse'
+        "400":
+          description: Missing or invalid code
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "403":
+          description: Unauthorized org
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: GitHub OAuth callback
+      tags:
+      - github
+  /kube-jit-api/oauth/google/callback:
+    get:
+      consumes:
+      - application/json
+      description: Handles the Google OAuth callback, exchanges the code for an access
+        token, fetches user info, sets session data, and returns normalized user data
+        and expiration time.
+      parameters:
+      - description: Google OAuth authorization code
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Normalized user data and expiration time
+          schema:
+            $ref: '#/definitions/models.LoginResponse'
+        "400":
+          description: Missing or invalid code
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "403":
+          description: Unauthorized domain
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Google OAuth callback
+      tags:
+      - google
+  /kube-jit-api/permissions:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Returns the user's permissions and group memberships for the specified provider (GitHub, Google, Azure).
+        Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+        Pass split cookies in the Cookie header, for example:
+        -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+        Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+      parameters:
+      - description: 'Session cookies (multiple allowed, names: kube_jit_session_0,
+          kube_jit_session_1, etc.)'
+        in: header
+        name: Cookie
+        required: true
+        type: string
+      - description: Provider payload (e.g., {\
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User permissions and groups
+          schema:
+            $ref: '#/definitions/handlers.CommonPermissionsResponse'
+        "400":
+          description: Missing or invalid provider
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "401":
+          description: 'Unauthorized: no token in session data'
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "500":
+          description: Failed to fetch user groups
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Get common permissions for the logged in user
+      tags:
+      - auth
+  /kube-jit-api/submit-request:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Creates a new JIT access request for the authenticated user.
+        Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+        Pass split cookies in the Cookie header, for example:
+        -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+        Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+      parameters:
+      - description: 'Session cookies (multiple allowed, names: kube_jit_session_0,
+          kube_jit_session_1, etc.)'
+        in: header
+        name: Cookie
+        required: true
+        type: string
+      - description: JIT request payload
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Request submitted successfully
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "401":
+          description: 'Unauthorized: no token in session data'
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+        "500":
+          description: Failed to submit request
+          schema:
+            $ref: '#/definitions/models.SimpleMessageResponse'
+      summary: Submit a new JIT access request
+      tags:
+      - request
 swagger: "2.0"

@@ -4,7 +4,6 @@ import (
 	"kube-jit/internal/handlers"
 	"kube-jit/internal/middleware"
 	"kube-jit/pkg/sessioncookie"
-	"os"
 
 	_ "kube-jit/docs"
 
@@ -45,7 +44,5 @@ func SetupRoutes(r *gin.Engine) {
 	r.GET("/kube-jit-api/client_id", handlers.GetOauthClientId)
 	r.POST("/k8s-callback", handlers.K8sCallback)
 	r.POST("/kube-jit-api/logout", handlers.Logout)
-	r.GET("/kube-jit-api/build-sha", func(c *gin.Context) {
-		c.JSON(200, gin.H{"sha": os.Getenv("BUILD_SHA")})
-	})
+	r.GET("/kube-jit-api/build-sha", handlers.GetBuildSha)
 }

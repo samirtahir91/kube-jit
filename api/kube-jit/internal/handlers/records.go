@@ -12,6 +12,48 @@ import (
 	"go.uber.org/zap"
 )
 
+// Query the database for pending requests for non-admin users
+type PendingRequestRow struct {
+	ID            uint      `json:"ID"`
+	ClusterName   string    `json:"clusterName"`
+	RoleName      string    `json:"roleName"`
+	Status        string    `json:"status"`
+	UserID        string    `json:"userID"`
+	Users         []string  `gorm:"type:jsonb;serializer:json" json:"users"`
+	Username      string    `json:"username"`
+	Justification string    `json:"justification"`
+	StartDate     time.Time `json:"startDate"`
+	EndDate       time.Time `json:"endDate"`
+	Namespace     string    `json:"namespace"`
+	GroupID       string    `json:"groupID"`
+	GroupName     string    `json:"groupName"`
+	Approved      bool      `json:"approved"`
+	CreatedAt     time.Time `json:"CreatedAt"`
+}
+
+type PendingRequest struct {
+	ID            uint      `json:"ID"`
+	ClusterName   string    `json:"clusterName"`
+	RoleName      string    `json:"roleName"`
+	Status        string    `json:"status"`
+	UserID        string    `json:"userID"`
+	Users         []string  `json:"users"`
+	Username      string    `json:"username"`
+	Justification string    `json:"justification"`
+	StartDate     time.Time `json:"startDate"`
+	EndDate       time.Time `json:"endDate"`
+	Namespaces    []string  `json:"namespaces"`
+	GroupIDs      []string  `json:"groupIDs"`
+	GroupNames    []string  `json:"groupNames"`
+	ApprovedList  []bool    `json:"approvedList"`
+	CreatedAt     time.Time `json:"CreatedAt"`
+}
+
+// PendingApprovalsResponse is used for Swagger docs
+type PendingApprovalsResponse struct {
+	PendingRequests []PendingRequest `json:"pendingRequests"`
+}
+
 // GetRecords godoc
 // @Summary Get JIT requests for a user
 // @Description Returns the latest JIT requests for a user with optional limit and date range.
@@ -28,8 +70,8 @@ import (
 // @Param   username   query    string  false  "Username"
 // @Param   limit      query    int     false  "Limit"
 // @Success 200 {array} models.RequestWithNamespaceApprovers
-// @Failure 500 {object} map[string]string
-// @Router /history [get]
+// @Failure 500 {object} models.SimpleMessageResponse
+// @Router /kube-jit-api/history [get]
 func GetRecords(c *gin.Context) {
 	// Check if the user is logged in and get logger
 	sessionData := GetSessionData(c)
@@ -69,7 +111,7 @@ func GetRecords(c *gin.Context) {
 	}
 	if err := query.Find(&requests).Error; err != nil {
 		reqLogger.Error("Error fetching records in GetRecords", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch records"})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to fetch records"})
 		return
 	}
 
@@ -82,7 +124,7 @@ func GetRecords(c *gin.Context) {
 			Where("request_id = ?", req.ID).
 			Scan(&nsApprovals).Error; err != nil {
 			reqLogger.Error("Error fetching namespace approvals in GetRecords", zap.Uint("requestID", req.ID), zap.Error(err))
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch namespace approvals"})
+			c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to fetch namespace approvals"})
 			return
 		}
 		enriched = append(enriched, models.RequestWithNamespaceApprovers{
@@ -94,9 +136,21 @@ func GetRecords(c *gin.Context) {
 	c.JSON(http.StatusOK, enriched)
 }
 
-// GetPendingApprovals returns the pending requests for the user based on their approver groups
-// It uses the session to retrieve the user's approver groups
-// It queries the database for requests with status "Requested" and matching approver groups
+// GetPendingApprovals godoc
+// @Summary Get pending JIT requests for approver groups
+// @Description Returns the pending JIT requests for the authenticated user's approver groups.
+// @Description Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+// @Description Pass split cookies in the Cookie header, for example:
+// @Description     -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+// @Description Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+// @Tags records
+// @Accept  json
+// @Produce  json
+// @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
+// @Success 200 {object} handlers.PendingApprovalsResponse "List of pending requests"
+// @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no approver groups in session"
+// @Failure 500 {object} models.SimpleMessageResponse "Failed to fetch pending requests"
+// @Router /kube-jit-api/approvals [get]
 func GetPendingApprovals(c *gin.Context) {
 	// Check if the user is logged in
 	sessionData := GetSessionData(c)
@@ -112,7 +166,7 @@ func GetPendingApprovals(c *gin.Context) {
 		if err := db.DB.
 			Where("status = ?", "Requested").
 			Find(&pendingRequests).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: err.Error()})
 			return
 		}
 
@@ -123,7 +177,7 @@ func GetPendingApprovals(c *gin.Context) {
 	// Retrieve approverGroups from the session for non-admin users
 	rawApproverGroups, ok := sessionData["approverGroups"]
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
+		c.JSON(http.StatusUnauthorized, models.SimpleMessageResponse{Error: "Unauthorized: no approver groups in session"})
 		return
 	}
 
@@ -144,45 +198,8 @@ func GetPendingApprovals(c *gin.Context) {
 	}
 
 	if len(approverGroupIDs) == 0 {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: no approver groups in session"})
+		c.JSON(http.StatusUnauthorized, models.SimpleMessageResponse{Error: "Unauthorized: no approver groups in session"})
 		return
-	}
-
-	// Query the database for pending requests for non-admin users
-	type PendingRequestRow struct {
-		ID            uint      `json:"ID"`
-		ClusterName   string    `json:"clusterName"`
-		RoleName      string    `json:"roleName"`
-		Status        string    `json:"status"`
-		UserID        string    `json:"userID"`
-		Users         []string  `gorm:"type:jsonb;serializer:json" json:"users"`
-		Username      string    `json:"username"`
-		Justification string    `json:"justification"`
-		StartDate     time.Time `json:"startDate"`
-		EndDate       time.Time `json:"endDate"`
-		Namespace     string    `json:"namespace"`
-		GroupID       string    `json:"groupID"`
-		GroupName     string    `json:"groupName"`
-		Approved      bool      `json:"approved"`
-		CreatedAt     time.Time `json:"CreatedAt"`
-	}
-
-	type PendingRequest struct {
-		ID            uint      `json:"ID"`
-		ClusterName   string    `json:"clusterName"`
-		RoleName      string    `json:"roleName"`
-		Status        string    `json:"status"`
-		UserID        string    `json:"userID"`
-		Users         []string  `json:"users"`
-		Username      string    `json:"username"`
-		Justification string    `json:"justification"`
-		StartDate     time.Time `json:"startDate"`
-		EndDate       time.Time `json:"endDate"`
-		Namespaces    []string  `json:"namespaces"`
-		GroupIDs      []string  `json:"groupIDs"`
-		GroupNames    []string  `json:"groupNames"`
-		ApprovedList  []bool    `json:"approvedList"`
-		CreatedAt     time.Time `json:"CreatedAt"`
 	}
 
 	var rows []PendingRequestRow
@@ -208,7 +225,7 @@ func GetPendingApprovals(c *gin.Context) {
 		Joins("JOIN request_namespaces ON request_namespaces.request_id = request_data.id").
 		Where("request_namespaces.group_id IN (?) AND request_data.status = ? AND request_namespaces.approved = false", approverGroupIDs, "Requested").
 		Scan(&rows).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: err.Error()})
 		return
 	}
 

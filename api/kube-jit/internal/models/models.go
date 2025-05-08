@@ -20,6 +20,19 @@ type Cluster struct {
 	Name string `json:"name"`
 }
 
+// SimpleMessageResponse is a generic response for success/error messages
+type SimpleMessageResponse struct {
+	Message string `json:"message"`
+	Error   string `json:"error"`
+	Status  string `json:"status"`
+}
+
+// LoginResponse represents the response for login handlers
+type LoginResponse struct {
+	UserData  NormalizedUserData `json:"userData"`
+	ExpiresIn int                `json:"expiresIn"`
+}
+
 // RequestData represents a JIT request
 type RequestData struct {
 	GormModel

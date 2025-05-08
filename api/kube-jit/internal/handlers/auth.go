@@ -21,7 +21,14 @@ func GetSessionData(c *gin.Context) map[string]interface{} {
 	return sessionData
 }
 
-// Logout clears all session cookies with the sessionPrefix
+// Logout godoc
+// @Summary Log out and clear all session cookies
+// @Description Clears all session cookies with the session prefix and logs the user out.
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} models.SimpleMessageResponse "Logged out successfully"
+// @Router /kube-jit-api/logout [post]
 func Logout(c *gin.Context) {
 	// Iterate through cookies with the session prefix
 	for i := 0; ; i++ {
@@ -36,15 +43,37 @@ func Logout(c *gin.Context) {
 	}
 
 	// Respond with a success message
-	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+	c.JSON(http.StatusOK, models.SimpleMessageResponse{Error: "Logged out successfully"})
 }
 
+// CommonPermissionsResponse represents the response for CommonPermissions
+type CommonPermissionsResponse struct {
+	IsApprover             bool          `json:"isApprover"`
+	ApproverGroups         []models.Team `json:"approverGroups"`
+	IsAdmin                bool          `json:"isAdmin"`
+	IsPlatformApprover     bool          `json:"isPlatformApprover"`
+	AdminGroups            []models.Team `json:"adminGroups"`
+	PlatformApproverGroups []models.Team `json:"platformApproverGroups"`
+}
+
+// CommonPermissions godoc
+// @Summary Get common permissions for the logged in user
+// @Description Returns the user's permissions and group memberships for the specified provider (GitHub, Google, Azure).
+// @Description Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
+// @Description Pass split cookies in the Cookie header, for example:
+// @Description     -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
+// @Description Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies.
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
+// @Param   request body object true "Provider payload (e.g., {\"provider\": \"github\"})"
+// @Success 200 {object} handlers.CommonPermissionsResponse "User permissions and groups"
+// @Failure 400 {object} models.SimpleMessageResponse "Missing or invalid provider"
+// @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no token in session data"
+// @Failure 500 {object} models.SimpleMessageResponse "Failed to fetch user groups"
+// @Router /kube-jit-api/permissions [post]
 // CommonPermissions checks if the user has common permissions
-// It checks if the user is logged in and retrieves their permissions
-// It fetches the user's groups from the specified provider (GitHub, Google, Azure)
-// It matches the user groups to the approver and admin teams
-// It updates the session with the user's permissions
-// It returns the permissions as JSON
 func CommonPermissions(c *gin.Context) {
 	// Check if the user is logged in and get logger
 	sessionData := GetSessionData(c)
@@ -55,7 +84,7 @@ func CommonPermissions(c *gin.Context) {
 		Provider string `json:"provider"`
 	}
 	if err := c.ShouldBindJSON(&payload); err != nil || payload.Provider == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing or invalid provider"})
+		c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: "Missing or invalid provider"})
 		return
 	}
 
@@ -89,24 +118,24 @@ func CommonPermissions(c *gin.Context) {
 	case "github": // GitHub provider
 		userGroups, err = GetGithubTeams(token, reqLogger)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch GitHub teams"})
+			c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to fetch GitHub teams"})
 			return
 		}
 	case "google": // Google provider
 		userEmail, _ := sessionData["email"].(string)
 		userGroups, err = GetGoogleGroupsWithWorkloadIdentity(userEmail, reqLogger)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Google groups"})
+			c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to fetch Google groups"})
 			return
 		}
 	case "azure": // Azure provider
 		userGroups, err = GetAzureGroups(token, reqLogger)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Azure groups"})
+			c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to fetch Azure groups"})
 			return
 		}
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown provider"})
+		c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: "Unknown provider"})
 		return
 	}
 
@@ -158,13 +187,13 @@ func CommonPermissions(c *gin.Context) {
 	session.Set("data", sessionData)
 	sessioncookie.SplitSessionData(c)
 
-	c.JSON(http.StatusOK, gin.H{
-		"isApprover":             isApprover,
-		"approverGroups":         matchedApproverGroups,
-		"isAdmin":                isAdmin,
-		"isPlatformApprover":     isPlatformApprover,
-		"adminGroups":            matchedAdminGroups,
-		"platformApproverGroups": matchedPlatformGroups,
+	c.JSON(http.StatusOK, CommonPermissionsResponse{
+		IsApprover:             isApprover,
+		ApproverGroups:         matchedApproverGroups,
+		IsAdmin:                isAdmin,
+		IsPlatformApprover:     isPlatformApprover,
+		AdminGroups:            matchedAdminGroups,
+		PlatformApproverGroups: matchedPlatformGroups,
 	})
 }
 
