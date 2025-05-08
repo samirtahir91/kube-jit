@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, vi, afterEach, expect } from 'vitest';
+import { describe, it, beforeEach, vi, afterEach, expect, Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import App from '../App';
 
@@ -113,11 +113,10 @@ describe('App', () => {
                 json: () => Promise.resolve({ name: 'Test User', id: '123' }),
             })
         ) as any;
-        // Mock axios.get for build-sha
+
         const axios = (await import('axios')).default;
-        axios.get.mockResolvedValue({ data: { sha: 'abc123' } });
-        // Mock permissions
-        axios.post.mockResolvedValue({
+        (axios.get as Mock).mockResolvedValue({ data: { sha: 'abc123' } });
+        (axios.post as Mock).mockResolvedValue({
             data: { isApprover: true, isAdmin: false, isPlatformApprover: false },
         });
 
@@ -141,8 +140,8 @@ describe('App', () => {
             })
         ) as any;
         const axios = (await import('axios')).default;
-        axios.get.mockResolvedValue({ data: { sha: 'sha-admin' } });
-        axios.post.mockResolvedValue({
+        (axios.get as Mock).mockResolvedValue({ data: { sha: 'sha-admin' } });
+        (axios.post as Mock).mockResolvedValue({
             data: { isApprover: false, isAdmin: true, isPlatformApprover: false },
         });
 
@@ -162,8 +161,8 @@ describe('App', () => {
             })
         ) as any;
         const axios = (await import('axios')).default;
-        axios.get.mockResolvedValue({ data: { sha: 'sha-plat' } });
-        axios.post.mockResolvedValue({
+        (axios.get as Mock).mockResolvedValue({ data: { sha: 'sha-plat' } });
+        (axios.post as Mock).mockResolvedValue({
             data: { isApprover: false, isAdmin: false, isPlatformApprover: true },
         });
 
@@ -182,8 +181,8 @@ describe('App', () => {
             })
         ) as any;
         const axios = (await import('axios')).default;
-        axios.get.mockResolvedValue({ data: { sha: 'sha-logout' } });
-        axios.post.mockResolvedValue({
+        (axios.get as Mock).mockResolvedValue({ data: { sha: 'sha-logout' } });
+        (axios.post as Mock).mockResolvedValue({
             data: { isApprover: true, isAdmin: false, isPlatformApprover: false },
         });
 
