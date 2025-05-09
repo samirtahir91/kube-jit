@@ -53,6 +53,7 @@ const Profile = ({ user, onSignOut }: { user: UserData; onSignOut: () => void })
                     <Navbar.Collapse id="custom-navbar-collapse" bsPrefix="custom-navbar-collapse" className="justify-content-end">
                         <div
                             id="user-dropdown"
+                            data-testid="user-dropdown"
                             onMouseEnter={handleMouseEnter}
                             onMouseLeave={handleMouseLeave}
                             className="position-relative"
