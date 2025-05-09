@@ -148,6 +148,10 @@ e2e-aks: docker-build docker-push delete deploy-aks
 
 e2e-gh: docker-build docker-push delete deploy-gh
 
+.PHONY: openapi2-3
+openapi2-3: ## Generate OpenAPI specification from Swagger
+	docker run --rm -v ${PWD}:/usr/src/app mermade/swagger2openapi swagger2openapi --yaml --outfile openapi3.yaml docs/swagger.json
+
 ##@ Dependencies
 
 ## Location to install dependencies to

@@ -19,6 +19,7 @@ RUN go mod download
 COPY cmd/main.go cmd/main.go
 COPY pkg/ pkg/
 COPY docs/ docs/
+COPY swagger-ui/ swagger-ui/
 COPY internal/ internal/
 
 # Build
@@ -37,6 +38,9 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 WORKDIR /
 COPY --from=builder /workspace/api .
+# for the swagger-ui openapi3
+COPY --from=builder /workspace/docs /docs
+COPY --from=builder /workspace/swagger-ui /swagger-ui
 USER 65532:65532
 
 ENTRYPOINT ["/api"]
