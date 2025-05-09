@@ -36,7 +36,7 @@ func SetupRoutes(r *gin.Engine) {
 	}
 
 	// Routes that do NOT require session handling - unauthenticated
-	r.GET("/kube-jit-api/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	r.GET("/kube-jit-api/docs/openapi3.yaml", handlers.ServeOpenAPI3)
 	r.GET("/kube-jit-api/oauth/github/callback", handlers.HandleGitHubLogin)
 	r.GET("/kube-jit-api/oauth/google/callback", handlers.HandleGoogleLogin)
 	r.GET("/kube-jit-api/oauth/azure/callback", handlers.HandleAzureLogin)
@@ -45,4 +45,8 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/k8s-callback", handlers.K8sCallback)
 	r.POST("/kube-jit-api/logout", handlers.Logout)
 	r.GET("/kube-jit-api/build-sha", handlers.GetBuildSha)
+	// openapi v2
+	r.GET("/kube-jit-api/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// openapi v3
+	r.Static("/kube-jit-api/swagger-ui", "/swagger-ui")
 }

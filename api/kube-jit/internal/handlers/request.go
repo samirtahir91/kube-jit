@@ -168,7 +168,47 @@ func SubmitRequest(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
-// @Param   request body handlers.AdminApproveRequest true "Approval/rejection payload (admins/platform approvers use AdminApproveRequest, non-admins use UserApproveRequest)"
+// @Param   request body handlers.AdminApproveRequest true "Approval/rejection payload (admins/platform approvers use AdminApproveRequest, non-admins use UserApproveRequest)" example({
+// @example AdminApproveRequest:
+// @example {
+// @example   "approverID": "admin123",
+// @example   "approverName": "Admin User",
+// @example   "requests": [{
+// @example     "ID": 1,
+// @example     "userID": "user1",
+// @example     "username": "alice",
+// @example     "clusterName": "prod",
+// @example     "roleName": "admin",
+// @example     "namespaces": ["default", "kube-system"],
+// @example     "justification": "Need access for deployment",
+// @example     "startDate": "2024-05-01T00:00:00Z",
+// @example     "endDate": "2024-05-02T00:00:00Z",
+// @example     "status": "approved",
+// @example     "users": ["alice"]
+// @example   }],
+// @example   "status": "approved"
+// @example }
+// @example UserApproveRequest:
+// @example {
+// @example   "approverID": "user123",
+// @example   "approverName": "User",
+// @example   "namespaceApprovals": [{
+// @example     "namespace": "default",
+// @example     "approved": true,
+// @example     "approverID": "user123",
+// @example     "approverName": "User",
+// @example     "groupID": "group1",
+// @example     "groupName": "Dev Team"
+// @example   },{
+// @example     "namespace": "kube-system",
+// @example     "approved": false,
+// @example     "approverID": "user123",
+// @example     "approverName": "User",
+// @example     "groupID": "group1",
+// @example     "groupName": "Dev Team"
+// @example   }],
+// @example   "status": "approved"
+// @example }
 // @Success 200 {object} models.SimpleMessageResponse "Requests processed successfully"
 // @Failure 400 {object} models.SimpleMessageResponse "Invalid request format"
 // @Failure 401 {object} models.SimpleMessageResponse "Unauthorized: no approver groups in session"
