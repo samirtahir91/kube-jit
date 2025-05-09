@@ -1,5 +1,10 @@
 # App.tsx Test Plan
 
+background:
+i've shared all the components, you can see the login flow, fetch client id from api and login with provider google/azure or github, oauth flow redirects back with code query which sends to my api to get a access token from the oauth provider and returns an encrypted http only cookie (with access token) along with expiryDate to my react client. Then my client sets the tokenExpire in local storage, if there are any 401 erros to my api it is redirected to logout and clears cookies by hitting the logout api endpoint, likewise if tokenExpiry is past current time it will redirect to logout and clear cookies/localstorage.
+
+
+
 ## 1. Initial Loading State
 - [ ] Renders loading spinner and footer while loading (`loading` is `true`).
 
