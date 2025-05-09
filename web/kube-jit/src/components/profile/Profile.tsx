@@ -78,6 +78,12 @@ const Profile = ({ user, onSignOut }: { user: UserData; onSignOut: () => void })
                                 <NavDropdown.Item onClick={handleShowPermissions}>
                                     My Permissions
                                 </NavDropdown.Item>
+                                <NavDropdown.Item href={`${config.apiBaseUrl}/kube-jit-api/swagger/index.html#`} target="_blank">
+                                    API (OpenAPI 2)
+                                </NavDropdown.Item>
+                                <NavDropdown.Item href={`${config.apiBaseUrl}/kube-jit-api/swagger-ui/`} target="_blank">
+                                    API (OpenAPI 3)
+                                </NavDropdown.Item>
                                 <NavDropdown.Item onClick={onSignOut}>Sign Out</NavDropdown.Item>
                             </NavDropdown>
                         </div>
