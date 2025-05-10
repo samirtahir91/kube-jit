@@ -149,6 +149,22 @@ const getModalButton = (name: RegExp) => {
     return within(modal).getByRole('button', { name });
 };
 
+// Add this helper at the top of your test file (or in a test utils file)
+async function waitForWithTimers<T>(cb: () => T | Promise<T>, step = 50, max = 5000) {
+    const start = Date.now();
+    let lastErr;
+    while (Date.now() - start < max) {
+        try {
+            return await cb();
+        } catch (err) {
+            lastErr = err;
+            await act(async () => {
+                vi.advanceTimersByTime(step);
+            });
+        }
+    }
+    throw lastErr;
+}
 
 describe('ApproveTabPane', () => {
     beforeEach(() => {
@@ -258,6 +274,47 @@ describe('ApproveTabPane', () => {
         expect(baseProps.setLoadingInCard).toHaveBeenCalledWith(false);
 
         expect(screen.getByText('Request(s) approved successfully.')).toBeInTheDocument();
+    });
+
+    it('auto-dismisses success message after 5 seconds and logs to console', async () => {
+        vi.useFakeTimers();
+        const consoleLogSpy = vi.spyOn(console, 'log');
+
+        try {
+            render(<ApproveTabPane {...baseProps} />);
+
+            // Wait for initial table load
+            await waitForWithTimers(() => expect(screen.getByTestId('request-table')).toBeInTheDocument());
+
+            // Trigger the success message
+            fireEvent.click(screen.getByTestId('checkbox-1'));
+            fireEvent.click(screen.getByRole('button', { name: /Approve/i }));
+
+            // Modal appearance
+            await waitForWithTimers(() => expect(screen.getByTestId('mock-modal')).toBeInTheDocument());
+            fireEvent.click(getModalButton(/Confirm/i));
+
+            // Wait for success message to appear
+            await waitForWithTimers(() =>
+                expect(screen.getByText('Request(s) approved successfully.')).toBeInTheDocument()
+            );
+
+            // Advance timers for auto-dismissal
+            await act(async () => {
+                vi.advanceTimersByTime(5000);
+            });
+
+            // Wait for message to disappear and log to be called
+            await waitForWithTimers(() =>
+                expect(consoleLogSpy).toHaveBeenCalledWith('SUCCESS TIMEOUT FIRED - Clearing success message')
+            );
+            await waitForWithTimers(() =>
+                expect(screen.queryByText('Request(s) approved successfully.')).not.toBeInTheDocument()
+            );
+        } finally {
+            consoleLogSpy.mockRestore();
+            vi.useRealTimers();
+        }
     });
 
     it('handles rejecting selected requests', async () => {
