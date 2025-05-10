@@ -67,7 +67,10 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
             setSelectedRequests([]);
             setErrorMessage('');
             setSuccessMessage(`Request(s) ${status === 'Approved' ? 'approved' : 'rejected'} successfully.`);
-            setTimeout(() => setSuccessMessage(''), 5000);
+            setTimeout(() => {
+                console.log('SUCCESS TIMEOUT FIRED - Clearing success message');
+                setSuccessMessage('');
+            }, 5000);
         } catch (error: any) {
             console.error('Error approving/rejecting requests:', error);
             const apiError = error?.response?.data?.error || error.message || 'Error approving/rejecting requests. Please try again.';
@@ -177,20 +180,16 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <p>
-                        Are you sure you want to <b>
-                            {confirmAction === 'Approved' ? 'approve' : confirmAction === 'Rejected' ? 'reject' : ''}
-                        </b> the following request(s)?
-                    </p>
+                    <p>Are you sure you want to <b>{confirmAction === 'Approved' ? 'approve' : 'reject'}</b> the following request(s)?</p>
                     <ul>
-                        {pendingRequests && pendingRequests.length === 0 && (pendingRequests
+                        {pendingRequests
                             .filter(request => selectedRequests.includes(request.ID))
                             .map(request => (
                                 <li key={request.ID}>
                                     Request ID: {request.ID}
                                     {/* Add more details if needed */}
                                 </li>
-                            )))}
+                            ))}
                     </ul>
                 </Modal.Body>
                 <Modal.Footer>
