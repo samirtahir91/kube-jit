@@ -1,5 +1,11 @@
 Todo:
 
+API:
+- validate and auto reject approving requests past there start date
+- Audit persona - search same as admin
+- Up admin/appr/audit persona to seach ticket ID, with filter
+- Link to ticket possible?
+
 stretch
 - refresh token?
   - max session env var option
