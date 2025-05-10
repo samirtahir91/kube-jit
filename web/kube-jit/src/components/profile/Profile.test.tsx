@@ -57,7 +57,7 @@ describe('Profile', () => {
       },
     });
 
-    const { container } = render(<Profile user={user} onSignOut={onSignOut} />);
+    render(<Profile user={user} onSignOut={onSignOut} />);
     fireEvent.mouseEnter(screen.getByTestId('user-dropdown'));
 
     // Click the dropdown item, not the modal title
