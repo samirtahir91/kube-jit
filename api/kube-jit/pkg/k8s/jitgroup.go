@@ -91,7 +91,7 @@ func InvalidateJitGroupsCache(clusterName string) {
 // It fetches the JitGroups for the cluster and checks if the namespaces exist in the JitGroups
 // It returns a map of namespaces with their corresponding group IDs and names
 // or an error if any namespace is invalid
-func ValidateNamespaces(clusterName string, namespaces []string) (map[string]struct{ GroupID, GroupName string }, error) {
+var ValidateNamespaces = func(clusterName string, namespaces []string) (map[string]struct{ GroupID, GroupName string }, error) {
 	jitGroups, err := GetJitGroups(clusterName)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching JitGroups: %v", err)

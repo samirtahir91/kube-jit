@@ -10,7 +10,7 @@ import (
 // SendMail sends an email using the SMTP server configured in the environment variables.
 // It takes the recipient's email address, subject, and body of the email as parameters.
 // It returns an error if the email could not be sent.
-func SendMail(to, subject, body string) error {
+var SendMail = func(to, subject, body string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", utils.MustGetEnv("SMTP_FROM"))
 	m.SetHeader("To", to)

@@ -25,7 +25,7 @@ var (
 // It takes the request data and approver name as input
 // It generates a signed URL for the callback and sets the start and end times
 // It returns an error if the creation fails
-func CreateK8sObject(req models.RequestData, approverName string) error {
+var CreateK8sObject = func(req models.RequestData, approverName string) error {
 	// Convert time.Time to metav1.Time
 	startTime := metav1.NewTime(req.StartDate)
 	endTime := metav1.NewTime(req.EndDate)
