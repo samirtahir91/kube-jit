@@ -44,7 +44,7 @@ func setupGetRecordsTest(t *testing.T) (*gin.Engine, sqlmock.Sqlmock, func()) {
 		PreferSimpleProtocol: true,
 	})
 	gormDB, err := gorm.Open(dialector, &gorm.Config{
-		Logger: gormlogger.Default.LogMode(gormlogger.Silent), // Use gormlogger.Info for verbose GORM logs
+		Logger: gormlogger.Default.LogMode(gormlogger.Info), // Use gormlogger.Info for verbose GORM logs
 	})
 	if err != nil {
 		t.Fatalf("Failed to open gorm database: %s", err)
@@ -187,7 +187,7 @@ func TestGetRecords(t *testing.T) {
 
 				rowsRd := sqlmock.NewRows(requestDataCols).
 					AddRow(sampleRecord1.ID, sampleRecord1.CreatedAt, sampleRecord1.UpdatedAt, sampleRecord1.DeletedAt, approverIDsJSON1, approverNamesJSON1, sampleRecord1.ClusterName, sampleRecord1.RoleName, sampleRecord1.Status, sampleRecord1.Notes, sampleRecord1.UserID, sampleRecord1.Username, usersJSON1, namespacesJSON1, sampleRecord1.Justification, sampleRecord1.StartDate, sampleRecord1.EndDate, sampleRecord1.FullyApproved, sampleRecord1.Email)
-				mock.ExpectQuery(`SELECT .* FROM "request_data" ORDER BY "created_at" DESC LIMIT 1`).WillReturnRows(rowsRd)
+				mock.ExpectQuery(`SELECT \* FROM "request_data" ORDER BY created_at desc LIMIT \$1`).WithArgs(1).WillReturnRows(rowsRd)
 
 				rowsNs := sqlmock.NewRows(nsApprovalCols).
 					AddRow(sampleNsApproval1ForRecord1.Namespace, sampleNsApproval1ForRecord1.GroupName, sampleNsApproval1ForRecord1.GroupID, sampleNsApproval1ForRecord1.Approved, sampleNsApproval1ForRecord1.ApproverID, sampleNsApproval1ForRecord1.ApproverName)
@@ -217,7 +217,7 @@ func TestGetRecords(t *testing.T) {
 
 				rowsRd := sqlmock.NewRows(requestDataCols).
 					AddRow(sampleRecord2.ID, sampleRecord2.CreatedAt, sampleRecord2.UpdatedAt, sampleRecord2.DeletedAt, approverIDsJSON2, approverNamesJSON2, sampleRecord2.ClusterName, sampleRecord2.RoleName, sampleRecord2.Status, sampleRecord2.Notes, sampleRecord2.UserID, sampleRecord2.Username, usersJSON2, namespacesJSON2, sampleRecord2.Justification, sampleRecord2.StartDate, sampleRecord2.EndDate, sampleRecord2.FullyApproved, sampleRecord2.Email)
-				mock.ExpectQuery(`SELECT .* FROM "request_data" WHERE user_id = \$1 ORDER BY "created_at" DESC LIMIT \$2`).
+				mock.ExpectQuery(`SELECT \* FROM "request_data" WHERE user_id = \$1 ORDER BY created_at desc LIMIT \$2`).
 					WithArgs("user2", 1).WillReturnRows(rowsRd)
 
 				rowsNs := sqlmock.NewRows(nsApprovalCols).
@@ -250,8 +250,8 @@ func TestGetRecords(t *testing.T) {
 
 				rowsRd := sqlmock.NewRows(requestDataCols).
 					AddRow(sampleRecord1.ID, sampleRecord1.CreatedAt, sampleRecord1.UpdatedAt, sampleRecord1.DeletedAt, approverIDsJSON1, approverNamesJSON1, sampleRecord1.ClusterName, sampleRecord1.RoleName, sampleRecord1.Status, sampleRecord1.Notes, sampleRecord1.UserID, sampleRecord1.Username, usersJSON1, namespacesJSON1, sampleRecord1.Justification, sampleRecord1.StartDate, sampleRecord1.EndDate, sampleRecord1.FullyApproved, sampleRecord1.Email)
-				// For non-admin, query is "user_id = ? OR approver_ids @> ?"
-				mock.ExpectQuery(`SELECT .* FROM "request_data" WHERE \(user_id = \$1 OR approver_ids @> \$2\) ORDER BY "created_at" DESC LIMIT \$3`).
+				// For non-admin, query is "user_id = ? OR approver_ids @> ?" - GORM doesn't seem to wrap this simple OR in parens
+				mock.ExpectQuery(`SELECT \* FROM "request_data" WHERE user_id = \$1 OR approver_ids @> \$2 ORDER BY created_at desc LIMIT \$3`).
 					WithArgs("user1", `["user1"]`, 1).WillReturnRows(rowsRd)
 
 				rowsNs := sqlmock.NewRows(nsApprovalCols).
@@ -284,7 +284,7 @@ func TestGetRecords(t *testing.T) {
 				rowsRd := sqlmock.NewRows(requestDataCols).
 					AddRow(sampleRecord2.ID, sampleRecord2.CreatedAt, sampleRecord2.UpdatedAt, sampleRecord2.DeletedAt, approverIDsJSON2, approverNamesJSON2, sampleRecord2.ClusterName, sampleRecord2.RoleName, sampleRecord2.Status, sampleRecord2.Notes, sampleRecord2.UserID, sampleRecord2.Username, usersJSON2, namespacesJSON2, sampleRecord2.Justification, sampleRecord2.StartDate, sampleRecord2.EndDate, sampleRecord2.FullyApproved, sampleRecord2.Email)
 				// Non-admin, no userID/username params -> no specific user filter, just ORDER and LIMIT
-				mock.ExpectQuery(`SELECT .* FROM "request_data" ORDER BY "created_at" DESC LIMIT 1`).WillReturnRows(rowsRd)
+				mock.ExpectQuery(`SELECT \* FROM "request_data" ORDER BY created_at desc LIMIT \$1`).WithArgs(1).WillReturnRows(rowsRd)
 
 				rowsNs := sqlmock.NewRows(nsApprovalCols).
 					AddRow(sampleNsApproval1ForRecord2.Namespace, sampleNsApproval1ForRecord2.GroupName, sampleNsApproval1ForRecord2.GroupID, sampleNsApproval1ForRecord2.Approved, sampleNsApproval1ForRecord2.ApproverID, sampleNsApproval1ForRecord2.ApproverName).
@@ -308,7 +308,8 @@ func TestGetRecords(t *testing.T) {
 			},
 			queryParams: "",
 			mockDB: func(t *testing.T, mock sqlmock.Sqlmock) {
-				mock.ExpectQuery(`SELECT .* FROM "request_data"`).
+				mock.ExpectQuery(`SELECT \* FROM "request_data" ORDER BY created_at desc LIMIT \$1`).
+					WithArgs(1).
 					WillReturnError(errors.New("db query failed for request_data"))
 			},
 			expectedStatus:      http.StatusInternalServerError,
@@ -331,7 +332,7 @@ func TestGetRecords(t *testing.T) {
 				namespacesJSON1, _ := json.Marshal(sampleRecord1.Namespaces)
 				rowsRd := sqlmock.NewRows(requestDataCols).
 					AddRow(sampleRecord1.ID, sampleRecord1.CreatedAt, sampleRecord1.UpdatedAt, sampleRecord1.DeletedAt, approverIDsJSON1, approverNamesJSON1, sampleRecord1.ClusterName, sampleRecord1.RoleName, sampleRecord1.Status, sampleRecord1.Notes, sampleRecord1.UserID, sampleRecord1.Username, usersJSON1, namespacesJSON1, sampleRecord1.Justification, sampleRecord1.StartDate, sampleRecord1.EndDate, sampleRecord1.FullyApproved, sampleRecord1.Email)
-				mock.ExpectQuery(`SELECT .* FROM "request_data" ORDER BY "created_at" DESC LIMIT \$1`).WithArgs(1).WillReturnRows(rowsRd)
+				mock.ExpectQuery(`SELECT \* FROM "request_data" ORDER BY created_at desc LIMIT \$1`).WithArgs(1).WillReturnRows(rowsRd)
 
 				mock.ExpectQuery(`SELECT namespace, group_name, group_id, approved, approver_id, approver_name FROM "request_namespaces" WHERE request_id = \$1`).
 					WithArgs(sampleRecord1.ID).WillReturnError(errors.New("db query failed for namespace_approvals"))
@@ -351,7 +352,7 @@ func TestGetRecords(t *testing.T) {
 			queryParams: "?userID=nonexistentuser",
 			mockDB: func(t *testing.T, mock sqlmock.Sqlmock) {
 				rowsRd := sqlmock.NewRows(requestDataCols) // No rows
-				mock.ExpectQuery(`SELECT .* FROM "request_data" WHERE user_id = \$1 ORDER BY "created_at" DESC LIMIT \$2`).
+				mock.ExpectQuery(`SELECT \* FROM "request_data" WHERE user_id = \$1 ORDER BY created_at desc LIMIT \$2`).
 					WithArgs("nonexistentuser", 1).WillReturnRows(rowsRd)
 				// No second query expected if first returns no results
 			},

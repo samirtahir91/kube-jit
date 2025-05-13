@@ -5,6 +5,7 @@ import (
 	"kube-jit/internal/db"
 	"kube-jit/internal/models"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -115,25 +116,32 @@ func GetRecords(c *gin.Context) {
 		return
 	}
 
-	var enriched []models.RequestWithNamespaceApprovers
+	var requestsWithApprovals []models.RequestWithNamespaceApprovers
+
 	for _, req := range requests {
 		var nsApprovals []models.NamespaceApprovalInfo
-		if err := db.DB.
-			Table("request_namespaces").
+		if err := db.DB.Table("request_namespaces").
 			Select("namespace, group_name, group_id, approved, approver_id, approver_name").
 			Where("request_id = ?", req.ID).
-			Scan(&nsApprovals).Error; err != nil {
-			reqLogger.Error("Error fetching namespace approvals in GetRecords", zap.Uint("requestID", req.ID), zap.Error(err))
+			Find(&nsApprovals).Error; err != nil {
+			reqLogger.Error("Error fetching namespace approvals for request", zap.Uint("requestID", req.ID), zap.Error(err))
 			c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to fetch namespace approvals"})
 			return
 		}
-		enriched = append(enriched, models.RequestWithNamespaceApprovers{
+		if nsApprovals == nil {
+			nsApprovals = []models.NamespaceApprovalInfo{} // Ensure empty slice instead of nil
+		}
+		requestsWithApprovals = append(requestsWithApprovals, models.RequestWithNamespaceApprovers{
 			RequestData:        req,
 			NamespaceApprovals: nsApprovals,
 		})
 	}
 
-	c.JSON(http.StatusOK, enriched)
+	if requestsWithApprovals == nil {
+		requestsWithApprovals = []models.RequestWithNamespaceApprovers{}
+	}
+
+	c.JSON(http.StatusOK, requestsWithApprovals)
 }
 
 // GetPendingApprovals godoc
@@ -245,8 +253,7 @@ func GetPendingApprovals(c *gin.Context) {
 	// Group by request ID
 	grouped := map[uint]*PendingRequest{}
 	for _, row := range rows {
-		req, exists := grouped[row.ID]
-		if !exists {
+		if _, exists := grouped[row.ID]; !exists {
 			grouped[row.ID] = &PendingRequest{
 				ID:            row.ID,
 				ClusterName:   row.ClusterName,
@@ -264,18 +271,22 @@ func GetPendingApprovals(c *gin.Context) {
 				GroupNames:    []string{},
 				ApprovedList:  []bool{},
 			}
-			req = grouped[row.ID]
 		}
-		req.Namespaces = append(req.Namespaces, row.Namespace)
-		req.GroupIDs = append(req.GroupIDs, row.GroupID)
-		req.GroupNames = append(req.GroupNames, row.GroupName)
-		req.ApprovedList = append(req.ApprovedList, row.Approved)
+		grouped[row.ID].Namespaces = append(grouped[row.ID].Namespaces, row.Namespace)
+		grouped[row.ID].GroupIDs = append(grouped[row.ID].GroupIDs, row.GroupID)
+		grouped[row.ID].GroupNames = append(grouped[row.ID].GroupNames, row.GroupName)
+		grouped[row.ID].ApprovedList = append(grouped[row.ID].ApprovedList, row.Approved)
 	}
 
 	var pendingRequests []PendingRequest
 	for _, v := range grouped {
 		pendingRequests = append(pendingRequests, *v)
 	}
+
+	// Sort pendingRequests by ID to ensure consistent order for the API response
+	sort.Slice(pendingRequests, func(i, j int) bool {
+		return pendingRequests[i].ID < pendingRequests[j].ID
+	})
 
 	if pendingRequests == nil {
 		pendingRequests = []PendingRequest{}
