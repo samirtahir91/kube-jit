@@ -26,11 +26,11 @@ type JitGroupsCache struct {
 	ExpiresAt int64
 }
 
-// GetJitGroups retrieves the JitGroups for a cluster, using cache if available
-// It checks if the cache is still valid and refreshes it if expired
-// It fetches the JitGroups from the cluster if not in cache or if expired
-// It returns the JitGroups object or an error if fetching fails
-func GetJitGroups(clusterName string) (*unstructured.Unstructured, error) {
+// GetJitGroups fetches the JitGroups from the cluster
+// It checks if the cache is valid and returns the cached JitGroups if available
+// If the cache is expired or not available, it fetches the JitGroups from the cluster
+// and caches it for 10 minutes
+var GetJitGroups = func(clusterName string) (*unstructured.Unstructured, error) {
 	// Check if the cache exists
 	if cached, exists := jitGroupsCache.Load(clusterName); exists {
 		cache := cached.(*JitGroupsCache)

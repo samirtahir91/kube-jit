@@ -89,7 +89,7 @@ func fetchGitHubPrimaryEmail(token string) (string, error) {
 // and returns a slice of models.Team
 // Each team is represented by its ID and name
 // It returns an error if the request fails or if the response is not as expected
-func GetGithubTeams(token string, reqLogger *zap.Logger) ([]models.Team, error) {
+var GetGithubTeams = func(token string, reqLogger *zap.Logger) ([]models.Team, error) {
 	req, err := http.NewRequest("GET", "https://api.github.com/user/teams", nil)
 	if err != nil {
 		reqLogger.Error("Failed to create request for GitHub teams", zap.Error(err))

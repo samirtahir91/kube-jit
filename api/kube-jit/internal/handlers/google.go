@@ -105,7 +105,7 @@ func getGSAEmail(reqLogger *zap.Logger) (string, error) {
 }
 
 // GetGoogleGroupsWithWorkloadIdentity retrieves the Google Groups for a user using Workload Identity
-func GetGoogleGroupsWithWorkloadIdentity(userEmail string, reqLogger *zap.Logger) ([]models.Team, error) {
+var GetGoogleGroupsWithWorkloadIdentity = func(userEmail string, reqLogger *zap.Logger) ([]models.Team, error) {
 	ctx := context.Background()
 
 	serviceAccountEmail, err := getGSAEmail(reqLogger)

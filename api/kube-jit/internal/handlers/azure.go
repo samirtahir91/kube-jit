@@ -183,7 +183,7 @@ func GetAzureProfile(c *gin.Context) {
 }
 
 // Fetch Azure AD groups for a user using their OAuth token
-func GetAzureGroups(token string, reqLogger *zap.Logger) ([]models.Team, error) {
+var GetAzureGroups = func(token string, reqLogger *zap.Logger) ([]models.Team, error) {
 	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token}))
 	resp, err := client.Get("https://graph.microsoft.com/v1.0/me/memberOf")
 	if err != nil {
