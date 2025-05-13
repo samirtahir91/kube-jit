@@ -7,8 +7,8 @@ import (
 	"io"
 	"kube-jit/internal/models"
 	"kube-jit/pkg/sessioncookie"
+	"kube-jit/pkg/utils"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gin-contrib/sessions"
@@ -17,21 +17,23 @@ import (
 	"golang.org/x/oauth2"
 )
 
-var (
-	azureOAuthConfig = &oauth2.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		RedirectURL:  redirectUri,
+// getAzureOAuthConfig constructs and returns the Azure OAuth2 config.
+// This ensures it uses the current values of clientID, clientSecret, etc.
+func getAzureOAuthConfig() *oauth2.Config {
+	return &oauth2.Config{
+		ClientID:     clientID,     // Reads current package-level clientID from common.go
+		ClientSecret: clientSecret, // Reads current package-level clientSecret from common.go
+		RedirectURL:  redirectUri,  // Reads current package-level redirectUri from common.go
 		Scopes:       []string{"openid", "email", "profile", "User.Read", "Directory.Read.All"},
 		Endpoint: oauth2.Endpoint{
-			AuthURL:  os.Getenv("AZURE_AUTH_URL"),
-			TokenURL: os.Getenv("AZURE_TOKEN_URL"),
+			AuthURL:  utils.MustGetEnv("AZURE_AUTH_URL"),
+			TokenURL: utils.MustGetEnv("AZURE_TOKEN_URL"),
 		},
 	}
-)
+}
 
 // Helper to fetch and decode Azure user profile
-func fetchAzureUserProfile(token string) (*models.AzureUser, error) {
+var fetchAzureUserProfile = func(token string) (*models.AzureUser, error) {
 	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token}))
 	resp, err := client.Get("https://graph.microsoft.com/v1.0/me")
 	if err != nil {
@@ -71,10 +73,20 @@ func HandleAzureLogin(c *gin.Context) {
 		return
 	}
 
+	currentAzureOAuthConfig := getAzureOAuthConfig() // Use the function here
+
 	// Exchange the authorization code for a token
-	token, err := azureOAuthConfig.Exchange(context.Background(), code)
+	token, err := currentAzureOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
-		logger.Error("Failed to exchange Azure token", zap.Error(err))
+		// Log the detailed error from the Exchange call
+		logger.Error("Failed to exchange Azure token",
+			zap.Error(err), // This will print the underlying error from the oauth2 library
+			zap.String("codeUsed", code),
+			zap.String("clientIDUsed", currentAzureOAuthConfig.ClientID),
+			zap.String("clientSecretUsed", currentAzureOAuthConfig.ClientSecret), // Be careful logging secrets, even in tests
+			zap.String("redirectURIUsed", currentAzureOAuthConfig.RedirectURL),
+			zap.String("tokenURLUsed", currentAzureOAuthConfig.Endpoint.TokenURL),
+		)
 		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to exchange token"})
 		return
 	}

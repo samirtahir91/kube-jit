@@ -206,7 +206,7 @@ func CommonPermissions(c *gin.Context) {
 // It checks the provider and email domain for Google and Azure
 // and checks the organization membership for GitHub
 // It returns true if the user is allowed, false otherwise
-func isAllowedUser(provider, email string, extraInfo map[string]any) bool {
+var isAllowedUser = func(provider, email string, extraInfo map[string]any) bool {
 	switch provider {
 	case "google", "azure":
 		return strings.HasSuffix(email, "@"+allowedDomain)

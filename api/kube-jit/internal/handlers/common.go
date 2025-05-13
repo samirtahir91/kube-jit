@@ -140,11 +140,17 @@ func K8sCallback(c *gin.Context) {
 // @Success 200 {object} handlers.OauthClientIdResponse "OAuth client configuration"
 // @Router /client_id [get]
 func GetOauthClientId(c *gin.Context) {
+	authURL := ""
+	// For Azure, specifically:
+	if oauthProvider == "azure" {
+		authURL = getAzureOAuthConfig().Endpoint.AuthURL
+	}
+
 	response := OauthClientIdResponse{
 		ClientID:    clientID,
 		Provider:    oauthProvider,
 		RedirectURI: redirectUri,
-		AuthURL:     azureOAuthConfig.Endpoint.AuthURL,
+		AuthURL:     authURL,
 	}
 
 	c.JSON(http.StatusOK, response)
