@@ -19,7 +19,7 @@ import (
 
 // getAzureOAuthConfig constructs and returns the Azure OAuth2 config.
 // This ensures it uses the current values of clientID, clientSecret, etc.
-func getAzureOAuthConfig() *oauth2.Config {
+var getAzureOAuthConfig = func() *oauth2.Config {
 	return &oauth2.Config{
 		ClientID:     clientID,     // Reads current package-level clientID from common.go
 		ClientSecret: clientSecret, // Reads current package-level clientSecret from common.go
