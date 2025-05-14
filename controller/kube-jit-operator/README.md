@@ -153,7 +153,11 @@ make undeploy
 - Tests will be run against a real cluster, i.e. Kind or Minikube
 ```sh
 make kind-create # optional to use a kind cluster
+
 make test-config
+
+make test-cache
+
 make test
 ```
 
