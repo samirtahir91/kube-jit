@@ -1,5 +1,5 @@
 /*
-Copyright 2025.
+Copyright 2024.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,67 +18,84 @@ package groupCache
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	jitv1 "kube-jit-operator/api/v1"
+	"kube-jit-operator/test/utils"
+	"os/exec"
+
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
-var _ = Describe("JitGroupCache Controller", func() {
-	Context("When reconciling a resource", func() {
-		const resourceName = "test-resource"
+const (
+	ValidClusterRole string = "edit"
+)
 
-		ctx := context.Background()
+var (
+	TestNamespace = os.Getenv("OPERATOR_NAMESPACE")
+)
 
-		typeNamespacedName := types.NamespacedName{
-			Name:      resourceName,
-			Namespace: "default", // TODO(user):Modify as needed
-		}
-		jitgroupcache := &jitv1.JitGroupCache{}
+// init os vars
+func init() {
+	if TestNamespace == "" {
+		panic(fmt.Errorf("OPERATOR_NAMESPACE environment variable(s) not set"))
+	}
+}
 
-		BeforeEach(func() {
-			By("creating the custom resource for the Kind JitGroupCache")
-			err := k8sClient.Get(ctx, typeNamespacedName, jitgroupcache)
-			if err != nil && errors.IsNotFound(err) {
-				resource := &jitv1.JitGroupCache{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      resourceName,
-						Namespace: "default",
-					},
-					// TODO(user): Specify other spec details if needed.
-				}
-				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
-			}
-		})
+var _ = Describe("JustInTimeConfig Controller", Ordered, Label("integration"), func() {
 
-		AfterEach(func() {
-			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &jitv1.JitGroupCache{}
-			err := k8sClient.Get(ctx, typeNamespacedName, resource)
+	BeforeAll(func() {
+		By("removing manager config")
+		cmd := exec.Command("kubectl", "delete", "kjitcfg", TestJitConfig)
+		_, _ = utils.Run(cmd)
+
+		By("removing manager namespace")
+		cmd = exec.Command("kubectl", "delete", "ns", TestNamespace)
+		_, _ = utils.Run(cmd)
+
+		By("creating manager namespace")
+		err := utils.CreateNamespace(ctx, k8sClient, TestNamespace)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterAll(func() {
+		By("removing manager namespace")
+		cmd := exec.Command("kubectl", "delete", "ns", TestNamespace)
+		_, _ = utils.Run(cmd)
+
+		By("removing manager config")
+		cmd = exec.Command("kubectl", "delete", "kjitcfg", TestJitConfig)
+		_, _ = utils.Run(cmd)
+	})
+
+	Context("When initialising a context and K8s client", func() {
+		It("should be successfully initialised", func() {
+			By("Creating the ctx and client")
+			ctx = context.TODO()
+			err := jitv1.AddToScheme(scheme.Scheme)
 			Expect(err).NotTo(HaveOccurred())
-
-			By("Cleanup the specific resource instance JitGroupCache")
-			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
-		})
-		It("should successfully reconcile the resource", func() {
-			By("Reconciling the created resource")
-			controllerReconciler := &JitGroupCacheReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+			cfg, err := config.GetConfig()
+			if err != nil {
+				fmt.Printf("Failed to load kubeconfig: %v\n", err)
+				return
 			}
-
-			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
+			k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 			Expect(err).NotTo(HaveOccurred())
-			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-			// Example: If you expect a certain status condition after reconciliation, verify it here.
+			Expect(k8sClient).NotTo(BeNil())
+		})
+	})
+
+	Context("When creating the KubeJit config object", func() {
+		It("should successfully load the config and write the config file", func() {
+			By("Creating the operator KubeJitConfig")
+			err := utils.CreateJitConfig(ctx, k8sClient, ValidClusterRole, TestNamespace)
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 })
