@@ -1,6 +1,80 @@
 # kube-jit-operator
 
+A Kubernetes operator that creates short-lived rolebindings for users based on a JitRequest custom resource. It empowers self-service of Just-In-Time privileged access using Kubernetes RBAC.
+
 ## Description
+
+### Key Features
+- Uses a custom cluster scoped resource `JitRequest`, where the upstream API creates a JitRequest with:
+  - reporter
+  - clusterRole
+  - additionalEmails (optional users to also add to role binding)
+  - namespaces
+  - justification
+  - startTime
+  - endTime
+
+- The operator checks if the JitRequest's cluster role is allowed, from the `allowedClusterRoles` list defined in a `KubeJitConfig` custom resource (set by admins/operators) and then pre-approves the request.
+- Calls back to the Kube JIT API with status updates as per the details as per the `JitRequest` spec.
+- Requeues the `JitRequest` object for the defined `startTime`
+- Creates the RoleBinding as requested, rejects and cleans-up `JitRequest` if validations fail.
+- Deletes expired `JitRequests` and child objects (RoleBindings) at scheduled `endTime`.
+
+### Logging and Debugging
+- By default, logs are JSON formatted, and log level is set to info and error.
+- Set `DEBUG_LOG` to `true` in the manager deployment environment variable for debug level logs.
+
+
+### Additional Information
+- The CRD includes extra data printed with `kubectl get jitreq`:
+  - User
+  - Cluster Role
+  - Namespace
+  - Start Time
+  - End Time
+- Events are recorded for:
+  - Rejected `JitRequests`
+  - Failure to create a RoleBinding for a `JitRequest`
+  - Validation on allowed cluster roles
+
+## Example `JitRequest` Resource
+
+Here is an example of how a `JitRequest` resource looks:
+
+```yaml
+apiVersion: jit.kubejit.io/v1
+kind: JitRequest
+metadata:
+  name: jitrequest-sample
+spec:
+  user: dev
+  approver: your-boss
+  userEmails:
+    - "dev@dev.com"
+    - "dev3@dev.com"
+  requestorEmail: dev@dev.com
+  namespaces: 
+    - foo
+    - bar
+  startTime: 2025-01-18T11:48:10Z
+  endTime: 2025-01-18T11:51:10Z
+  clusterRole: edit
+  ticketID: "123"
+  callbackUrl: https://kube-jit-api@dev.com/k8s-callback
+```
+
+Above the jiraFields are mapped to the customFields in the `KubeJitConfig`:
+```yaml
+apiVersion: jit.kubejit.io/v1
+kind: KubeJitConfig
+metadata:
+  name: kube-jit-operator-default
+spec:
+  allowedClusterRoles:
+    - admin
+    - edit
+  namespaceAllowedRegex: ".*"
+```
 
 ## Getting Started
 
@@ -9,6 +83,17 @@
 - docker version 17.03+.
 - kubectl version v1.11.3+.
 - Access to a Kubernetes v1.11.3+ cluster.
+
+### To deploy with Helm using public Docker image
+A helm chart is generated using `make helm`.
+- Edit the `values.yaml` as required.
+```sh
+cd charts/kube-jit-operator
+helm upgrade --install -n kube-jit-operator-system <release_name> . --create-namespace
+```
+- You can use the latest public image on DockerHub - `samirtahir91076/kube-jit-operator:latest`
+  - See [tags](https://hub.docker.com/r/samirtahir91076/kube-jit-operator/tags) 
+- Deploy the chart with Helm.
 
 ### To Deploy on the cluster
 **Build and push your image to the location specified by `IMG`:**
@@ -62,6 +147,36 @@ make uninstall
 
 ```sh
 make undeploy
+```
+
+### Integration Testing
+- Tests will be run against a real cluster, i.e. Kind or Minikube
+```sh
+make kind-create # optional to use a kind cluster
+make test-config
+make test
+```
+
+### E2E Testing (ToDo - dont run yet)
+- Tests will be run against a Kind cluster
+```sh
+# If on MAC
+export TEST_OS="mac"  # MAC OS only
+
+make test-e2e
+```
+
+**Run the controller in the foreground for testing:**
+```sh
+export KUBE_JIT_OPERATOR_CONFIG_PATH=/tmp/jit-test/
+export OPERATOR_NAMESPACE=default
+# run
+make run
+```
+
+**Generate coverage html report:**
+```sh
+go tool cover -html=cover.out -o coverage.html
 ```
 
 ## Project Distribution
