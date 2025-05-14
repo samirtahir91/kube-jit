@@ -12,12 +12,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	// imports...
 )
 
 var (
-	apiNamespace   = utils.MustGetEnv("API_NAMESPACE")
-	localClientset *kubernetes.Clientset
+	apiNamespace        = utils.MustGetEnv("API_NAMESPACE")
+	localClientset      kubernetes.Interface
+	runClusterInitAsync = true
 )
 
 // Config represents the configuration for the API
@@ -66,9 +66,11 @@ func InitK8sConfig() {
 		}
 	}
 
-	localClientset, err = kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
+	if localClientset == nil {
+		localClientset, err = kubernetes.NewForConfig(config)
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 
 	// Load ConfigMap of clusters from local file system
@@ -118,14 +120,18 @@ func InitK8sConfig() {
 	// Cache dynamic clients for all clusters on startup
 	for _, clusterName := range ClusterNames {
 		req := models.RequestData{ClusterName: clusterName}
-		go func(r models.RequestData) {
-			defer func() {
-				if err := recover(); err != nil {
-					logger.Error("Failed to cache dynamic client for cluster", zap.String("cluster", r.ClusterName), zap.Any("error", err))
-				}
-			}()
-			createDynamicClient(r)
-		}(req)
+		if runClusterInitAsync {
+			go func(r models.RequestData) {
+				defer func() {
+					if err := recover(); err != nil {
+						logger.Error("Failed to cache dynamic client for cluster", zap.String("cluster", r.ClusterName), zap.Any("error", err))
+					}
+				}()
+				createDynamicClient(r)
+			}(req)
+		} else {
+			createDynamicClient(req)
+		}
 	}
 }
 
