@@ -58,24 +58,36 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: manifests generate fmt vet setup-envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
+test: manifests generate fmt vet envtest ## Run tests.
+	USE_EXISTING_CLUSTER=true OPERATOR_NAMESPACE=kube-jit-int-test UNIT_TEST=false OPERATOR_NAMESPACE=kube-jit-int-test KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -E '/internal/controller') -v -ginkgo.v --ginkgo.label-filter="integration" -coverprofile cover.out
+
+.PHONY: test-config
+test-config: manifests generate fmt vet envtest ## Run tests.
+	USE_EXISTING_CLUSTER=true OPERATOR_NAMESPACE=kube-jit-int-test UNIT_TEST=false OPERATOR_NAMESPACE=kube-jit-int-test KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -E '/internal/config') -v -ginkgo.v --ginkgo.label-filter="integration" -coverprofile config-cover.out
 
 # TODO(user): To use a different vendor for e2e tests, modify the setup under 'tests/e2e'.
 # The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
 # CertManager is installed by default; skip with:
 # - CERT_MANAGER_INSTALL_SKIP=true
 .PHONY: test-e2e
-test-e2e: manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
-	@command -v $(KIND) >/dev/null 2>&1 || { \
+test-e2e: kind-delete manifests generate fmt vet kind-create ## Run the e2e tests. Expected an isolated environment using Kind.
+	@command -v kind >/dev/null 2>&1 || { \
 		echo "Kind is not installed. Please install Kind manually."; \
 		exit 1; \
 	}
-	@$(KIND) get clusters | grep -q 'kind' || { \
+	@kind get clusters | grep -q 'kube-jit-operator' || { \
 		echo "No Kind cluster is running. Please start a Kind cluster before running the e2e tests."; \
 		exit 1; \
 	}
 	go test ./test/e2e/ -v -ginkgo.v
+
+.PHONY: kind-create
+kind-create:
+	kind create cluster --wait=60s --name kube-jit-operator
+
+.PHONY: kind-delete
+kind-delete:
+	kind delete cluster --name kube-jit-operator
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter

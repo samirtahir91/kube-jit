@@ -19,12 +19,18 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2" //nolint:golint,revive
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	jitv1 "kube-jit-operator/api/v1"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -35,6 +41,28 @@ const (
 	certmanagerVersion = "v1.16.3"
 	certmanagerURLTmpl = "https://github.com/cert-manager/cert-manager/releases/download/%s/cert-manager.yaml"
 )
+
+// CreateJitConfig creates a KubeJitConfig
+func CreateJitConfig(ctx context.Context, k8sClient client.Client, clusterRole, namespace string) error {
+
+	jitCfg := &jitv1.KubeJitConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "kube-jit-operator-defaultt",
+		},
+		Spec: jitv1.KubeJitConfigSpec{
+			AllowedClusterRoles: []string{
+				clusterRole,
+			},
+			NamespaceAllowedRegex: fmt.Sprintf("^%s$", namespace),
+		},
+	}
+
+	if err := k8sClient.Create(ctx, jitCfg); err != nil {
+		return fmt.Errorf("failed to create JIT config: %w", err)
+	}
+
+	return nil
+}
 
 func warnError(err error) {
 	_, _ = fmt.Fprintf(GinkgoWriter, "warning: %v\n", err)
