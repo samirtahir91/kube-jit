@@ -67,7 +67,7 @@
 				
 				<option value="file5">kube-jit/internal/handlers/azure.go (59.2%)</option>
 				
-				<option value="file6">kube-jit/internal/handlers/common.go (60.7%)</option>
+				<option value="file6">kube-jit/internal/handlers/common.go (52.9%)</option>
 				
 				<option value="file7">kube-jit/internal/handlers/get_records.go (90.5%)</option>
 				
@@ -2193,6 +2193,7 @@ import (
         "kube-jit/pkg/k8s"
         "kube-jit/pkg/utils"
         "net/http"
+        "net/url"
         "os"
         "time"
 
@@ -2268,8 +2269,22 @@ func K8sCallback(c *gin.Context) <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">callbackURL := c.Request.URL
-        if !utils.ValidateSignedURL(callbackURL, k8s.CallbackHostOverride) </span><span class="cov0" title="0">{
+        // Reconstruct the full URL as seen by the client/controller
+        <span class="cov0" title="0">scheme := "http"
+        if c.Request.TLS != nil </span><span class="cov0" title="0">{
+                scheme = "https"
+        }</span>
+        <span class="cov0" title="0">host := c.Request.Host
+        fullURL := fmt.Sprintf("%s://%s%s", scheme, host, c.Request.RequestURI)
+
+        u, err := url.Parse(fullURL)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Warn("Failed to parse reconstructed callback URL", zap.String("url", fullURL), zap.Error(err))
+                c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: "Invalid callback URL"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">if !utils.ValidateSignedURL(u, k8s.CallbackHostOverride) </span><span class="cov0" title="0">{
                 logger.Warn("Invalid or expired signed URL in K8sCallback")
                 c.JSON(http.StatusUnauthorized, models.SimpleMessageResponse{Error: "Unauthorized"})
                 return

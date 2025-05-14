@@ -8,6 +8,7 @@ import (
 	"kube-jit/pkg/k8s"
 	"kube-jit/pkg/utils"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -83,8 +84,22 @@ func K8sCallback(c *gin.Context) {
 		return
 	}
 
-	callbackURL := c.Request.URL
-	if !utils.ValidateSignedURL(callbackURL, k8s.CallbackHostOverride) {
+	// Reconstruct the full URL as seen by the client/controller
+	scheme := "http"
+	if c.Request.TLS != nil {
+		scheme = "https"
+	}
+	host := c.Request.Host
+	fullURL := fmt.Sprintf("%s://%s%s", scheme, host, c.Request.RequestURI)
+
+	u, err := url.Parse(fullURL)
+	if err != nil {
+		logger.Warn("Failed to parse reconstructed callback URL", zap.String("url", fullURL), zap.Error(err))
+		c.JSON(http.StatusBadRequest, models.SimpleMessageResponse{Error: "Invalid callback URL"})
+		return
+	}
+
+	if !utils.ValidateSignedURL(u, k8s.CallbackHostOverride) {
 		logger.Warn("Invalid or expired signed URL in K8sCallback")
 		c.JSON(http.StatusUnauthorized, models.SimpleMessageResponse{Error: "Unauthorized"})
 		return
