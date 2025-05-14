@@ -9,7 +9,7 @@ Kube JIT enables organizations to reduce standing privileges and improve complia
 ![Diagram](docs/diagrams/Kube-JIT.svg)
 
 1. **User requests access** to a Kubernetes resource (namespace, role, etc.).
-2. **Identity group/team** is used to determine group membership and route approval requests.
+2. **Identity group/team** is used to determine group membership and route approval requests using annotations and label on Namespaces.
 3. **Approvers** (e.g., team/group members) review and approve or deny requests.
 4. **Temporary RBAC roles** are created in Kubernetes, granting access for a limited time.
 5. **Automatic expiry** ensures permissions are revoked after the approved window.
@@ -44,9 +44,12 @@ Kube JIT enables organizations to reduce standing privileges and improve complia
 
 These components should be deployed **together on your management cluster** using the provided Helm charts and sample values.
 
-The Oauth/Identitiy provider config is defined in the API chart, see the [values.yaml](./api/kube-jit/chart/kube-jit-api/values.yaml)
-
-Downstream clusters need to be configured also in the API [values.yaml](./api/kube-jit/chart/kube-jit-api/values.yaml).
+> **Note:**  
+> A PostgreSQL database is required for storing all request data. The API will automatically configure and connect to the database.  
+> PostgreSQL connection settings (host, port, user, password, database name, etc.) are defined in the API Helm chart values.  
+> See the [values.yaml](./api/kube-jit/chart/kube-jit-api/values.yaml) for all PostgreSQL configuration options.
+> The OAuth/Identity provider config is also defined in the API chart, see the [values.yaml](./api/kube-jit/chart/kube-jit-api/values.yaml).
+> Downstream clusters need to be configured also in the API [values.yaml](./api/kube-jit/chart/kube-jit-api/values.yaml).
 
 ```sh
 # Clone the repo and cd into it

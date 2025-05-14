@@ -101,6 +101,10 @@ docker-buildx: ## Build and push docker image for the manager for cross-platform
 	- $(CONTAINER_TOOL) buildx rm kube-jit-api-builder
 	rm Dockerfile.cross
 
+##@Test
+test: ## Run unit tests
+	SMTP_PORT=1025 SMTP_HOST=localhost SMTP_FROM=api@example.com OAUTH_REDIRECT_URI=localhost ALLOWED_DOMAIN=foo.com OAUTH_CLIENT_SECRET=foo OAUTH_CLIENT_ID=foo OAUTH_PROVIDER=azure API_NAMESPACE=default HMAC_SECRET=a-valid-32-byte-hmac-secret-key go test -v ./... -coverprofile cover.out
+	go tool cover -html=cover.out -o cover.html
 ##@ Deployment
 
 ifndef ignore-not-found

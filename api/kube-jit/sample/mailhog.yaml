@@ -35,4 +35,4 @@ spec:
     - name: http
       port: 8025
       targetPort: 8025
-  type: LoadBalancer
+  # type: LoadBalancer

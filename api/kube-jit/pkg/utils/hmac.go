@@ -54,33 +54,40 @@ func GenerateHMAC(data string) string {
 // It returns true if the URL is valid and not expired, false otherwise.
 func ValidateSignedURL(u *url.URL, _ string) bool {
 	query := u.Query()
+	expiry := query.Get("expiry")
 	signature := query.Get("signature")
-	expiryStr := query.Get("expiry")
-	if signature == "" || expiryStr == "" {
-		logger.Debug("Missing signature or expiry in signed URL", zap.String("url", u.String()))
-		return false
-	}
 
-	// Check expiry
-	expiryInt, err := strconv.ParseInt(expiryStr, 10, 64)
+	// Check if the URL has expired
+	expiryTime, err := strconv.ParseInt(expiry, 10, 64)
 	if err != nil {
-		logger.Debug("Invalid expiry in signed URL", zap.String("expiry", expiryStr), zap.Error(err))
-		return false
-	}
-	if time.Now().Unix() > expiryInt {
-		logger.Debug("Signed URL expired", zap.Int64("expiry", expiryInt), zap.String("url", u.String()))
+		logger.Warn("Failed to parse expiry time in signed URL", zap.Error(err))
 		return false
 	}
 
-	// Remove signature for validation
+	currentTime := time.Now().Unix()
+	if currentTime > expiryTime {
+		logger.Warn("Signed URL has expired")
+		return false
+	}
+
+	// Remove the signature from the query parameters
 	query.Del("signature")
 	u.RawQuery = query.Encode()
-	expectedSig := GenerateHMAC(u.String())
-	if !hmac.Equal([]byte(signature), []byte(expectedSig)) {
-		logger.Debug("Signature mismatch in signed URL", zap.String("expected", expectedSig), zap.String("actual", signature), zap.String("url", u.String()))
+
+	// Use the actual callback URL (minus signature) for validation
+	encodedURL := u.String()
+	expectedSignature := GenerateHMAC(encodedURL)
+
+	logger.Debug("Validating signed URL",
+		zap.String("expectedSignature", expectedSignature),
+		zap.String("providedSignature", signature),
+		zap.String("signedString", encodedURL),
+	)
+
+	if !hmac.Equal([]byte(expectedSignature), []byte(signature)) {
+		logger.Warn("Invalid signature in signed URL")
 		return false
 	}
 
-	logger.Debug("Signed URL validated successfully", zap.String("url", u.String()))
 	return true
 }

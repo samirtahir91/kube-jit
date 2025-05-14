@@ -185,14 +185,13 @@ func TestSubmitRequest(t *testing.T) {
 				// Regex for matching the specific INSERT statement for request_namespaces
 				nsInsertRegex := `INSERT INTO "request_namespaces"`
 
-				// Expect RequestNamespace creation for ns1
+				// Expect RequestNamespace creation for ns1 and ns2, in any order
 				mock.ExpectBegin()
 				mock.ExpectQuery(nsInsertRegex).
 					WithArgs(expectedRequestID, "ns1", "group1", "Group One", false, "", "").
 					WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(101))
 				mock.ExpectCommit()
 
-				// Expect RequestNamespace creation for ns2
 				mock.ExpectBegin()
 				mock.ExpectQuery(nsInsertRegex).
 					WithArgs(expectedRequestID, "ns2", "group2", "Group Two", false, "", "").
