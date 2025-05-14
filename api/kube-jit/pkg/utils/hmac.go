@@ -19,7 +19,7 @@ var (
 // GenerateSignedURL creates a signed url with hmac key based on expiry
 // It takes a base URL and an expiry time as input and returns the signed URL
 // or an error if the URL cannot be generated.
-func GenerateSignedURL(baseURL string, expiryTime time.Time) (string, error) {
+var GenerateSignedURL = func(baseURL string, expiryTime time.Time) (string, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		logger.Error("Failed to parse base URL for signed URL", zap.Error(err))
@@ -52,7 +52,7 @@ func GenerateHMAC(data string) string {
 // ValidateSignedURL returns true/false if a url matches the hmac sig
 // It takes a signed URL as input and validates its expiry time and signature.
 // It returns true if the URL is valid and not expired, false otherwise.
-func ValidateSignedURL(u *url.URL, callbackHostOverride string) bool {
+func ValidateSignedURL(u *url.URL, _ string) bool {
 	query := u.Query()
 	expiry := query.Get("expiry")
 	signature := query.Get("signature")
@@ -74,18 +74,14 @@ func ValidateSignedURL(u *url.URL, callbackHostOverride string) bool {
 	query.Del("signature")
 	u.RawQuery = query.Encode()
 
-	// Generate the expected signature
-	callbackBaseURL := callbackHostOverride + "/k8s-callback"
-	u, _ = url.Parse(callbackBaseURL)
-	query = u.Query()
-	query.Set("expiry", fmt.Sprintf("%d", expiryTime))
-	u.RawQuery = query.Encode()
+	// Use the actual callback URL (minus signature) for validation
 	encodedURL := u.String()
 	expectedSignature := GenerateHMAC(encodedURL)
 
 	logger.Debug("Validating signed URL",
 		zap.String("expectedSignature", expectedSignature),
 		zap.String("providedSignature", signature),
+		zap.String("signedString", encodedURL),
 	)
 
 	if !hmac.Equal([]byte(expectedSignature), []byte(signature)) {

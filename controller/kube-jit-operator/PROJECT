@@ -5,6 +5,8 @@
 domain: kubejit.io
 layout:
 - go.kubebuilder.io/v4
+plugins:
+  helm.kubebuilder.io/v1-alpha: {}
 projectName: kube-jit-operator
 repo: kube-jit-operator
 resources:

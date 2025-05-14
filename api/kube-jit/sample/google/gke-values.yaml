@@ -1,6 +1,4 @@
 config:
-  callbackHostOverride: http://localhost:8589
-
   allowedRoles:
     - name: edit
     - name: admin
@@ -32,11 +30,15 @@ config:
   allowedDomain: "samirtahir.dev"         # For Google/Azure
   allowedGithubOrg: "samirtahir91-org"            # For GitHub
 
+  # api lb
+  callbackHostOverride: http://34.39.10.62:80
+
   oauth:
     provider: "google"
     clientID: "630940189304-8uggsmkv6to2vu5sogsjrhge1m57t8cr.apps.googleusercontent.com"
     #clientID: "1092664767459-r6ettji6chf3bp1hilb0dear4f6abbju.apps.googleusercontent.com"
-    redirectUri: "http://localhost:5173/"
+    #redirectUri: "http://localhost:5173/"
+    redirectUri: "https://jit-test.samirtahir.dev/"
     #clientSecretKeyRef: googleClientSecretWS
     clientSecretKeyRef: googleClientSecret
     googleAdminEmail: "samir@samirtahir.dev"
@@ -48,10 +50,10 @@ config:
 
   smtp:
     enabled: true
-    host: 51.8.244.176
+    host: mailhog.default.svc.cluster.local
     port: 1025
     user: ""
-    from: jit-gke@example.com
+    from: jit@example.com
     timezone: Europe/London
 
 serviceAccount:

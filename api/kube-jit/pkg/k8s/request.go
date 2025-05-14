@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"kube-jit/internal/models"
 	"kube-jit/pkg/utils"
+	"time"
 
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,17 +26,23 @@ var (
 // It takes the request data and approver name as input
 // It generates a signed URL for the callback and sets the start and end times
 // It returns an error if the creation fails
-func CreateK8sObject(req models.RequestData, approverName string) error {
-	// Convert time.Time to metav1.Time
-	startTime := metav1.NewTime(req.StartDate)
-	endTime := metav1.NewTime(req.EndDate)
-
+var CreateK8sObject = func(req models.RequestData, approverName string) error {
 	// Generate signed URL for callback
 	callbackBaseURL := CallbackHostOverride + "/k8s-callback"
 	signedURL, err := utils.GenerateSignedURL(callbackBaseURL, req.EndDate)
 	if err != nil {
 		logger.Error("Failed to generate signed URL", zap.Error(err))
 		return err
+	}
+
+	// Convert []string to []interface{} for unstructured
+	namespaces := make([]interface{}, len(req.Namespaces))
+	for i, ns := range req.Namespaces {
+		namespaces[i] = ns
+	}
+	users := make([]interface{}, len(req.Users))
+	for i, u := range req.Users {
+		users[i] = u
 	}
 
 	// jitRequest payload
@@ -50,13 +57,13 @@ func CreateK8sObject(req models.RequestData, approverName string) error {
 				"user":           req.Username,
 				"approver":       approverName,
 				"justification":  req.Justification,
-				"userEmails":     req.Users,
+				"userEmails":     users,
 				"requestorEmail": req.Email,
 				"clusterRole":    req.RoleName,
-				"namespaces":     req.Namespaces,
+				"namespaces":     namespaces,
 				"ticketID":       fmt.Sprintf("%d", req.ID),
-				"startTime":      startTime,
-				"endTime":        endTime,
+				"startTime":      req.StartDate.Format(time.RFC3339),
+				"endTime":        req.EndDate.Format(time.RFC3339),
 				"callbackUrl":    signedURL,
 			},
 		},

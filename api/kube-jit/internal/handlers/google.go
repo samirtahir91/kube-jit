@@ -23,19 +23,6 @@ import (
 )
 
 var (
-	googleOAuthConfig = &oauth2.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		RedirectURL:  redirectUri,
-		Scopes: []string{
-			"https://www.googleapis.com/auth/userinfo.profile",
-			"https://www.googleapis.com/auth/userinfo.email",
-		},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://accounts.google.com/o/oauth2/auth",
-			TokenURL: "https://oauth2.googleapis.com/token",
-		},
-	}
 	gsaEmail     string
 	gsaEmailErr  error
 	gsaEmailOnce sync.Once
@@ -50,8 +37,26 @@ func init() {
 	}
 }
 
+// getGoogleOAuthConfig constructs and returns the Google OAuth2 config.
+// This ensures it uses the current values of clientID, clientSecret, etc.
+var getGoogleOAuthConfig = func() *oauth2.Config {
+	return &oauth2.Config{
+		ClientID:     clientID,     // Reads current package-level clientID from common.go
+		ClientSecret: clientSecret, // Reads current package-level clientSecret from common.go
+		RedirectURL:  redirectUri,  // Reads current package-level redirectUri from common.go
+		Scopes: []string{
+			"https://www.googleapis.com/auth/userinfo.profile",
+			"https://www.googleapis.com/auth/userinfo.email",
+		},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://accounts.google.com/o/oauth2/auth",
+			TokenURL: "https://oauth2.googleapis.com/token", // This will be the default
+		},
+	}
+}
+
 // Helper to fetch and decode Google user profile
-func fetchGoogleUserProfile(token string) (*models.GoogleUser, error) {
+var fetchGoogleUserProfile = func(token string) (*models.GoogleUser, error) {
 	client := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token}))
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
@@ -105,7 +110,7 @@ func getGSAEmail(reqLogger *zap.Logger) (string, error) {
 }
 
 // GetGoogleGroupsWithWorkloadIdentity retrieves the Google Groups for a user using Workload Identity
-func GetGoogleGroupsWithWorkloadIdentity(userEmail string, reqLogger *zap.Logger) ([]models.Team, error) {
+var GetGoogleGroupsWithWorkloadIdentity = func(userEmail string, reqLogger *zap.Logger) ([]models.Team, error) {
 	ctx := context.Background()
 
 	serviceAccountEmail, err := getGSAEmail(reqLogger)
@@ -225,7 +230,9 @@ func HandleGoogleLogin(c *gin.Context) {
 		return
 	}
 
-	token, err := googleOAuthConfig.Exchange(context.Background(), code)
+	currentGoogleOAuthConfig := getGoogleOAuthConfig() // Use the function
+
+	token, err := currentGoogleOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		logger.Error("Failed to exchange Google token", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to exchange token"})

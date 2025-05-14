@@ -1,11 +1,10 @@
 package handlers
 
 import (
-	"fmt"
 	"kube-jit/internal/db"
 	"kube-jit/internal/models"
 	"net/http"
-	"strconv"
+	"sort"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -54,88 +53,6 @@ type PendingApprovalsResponse struct {
 	PendingRequests []PendingRequest `json:"pendingRequests"`
 }
 
-// GetRecords godoc
-// @Summary Get JIT requests for a user
-// @Description Returns the latest JIT requests for a user with optional limit and date range.
-// @Description Requires one or more cookies named kube_jit_session_<number> (e.g., kube_jit_session_0, kube_jit_session_1).
-// @Description Pass split cookies in the Cookie header, for example:
-// @Description     -H "Cookie: kube_jit_session_0=${cookie_0};kube_jit_session_1=${cookie_1}"
-// @Description Note: Swagger UI cannot send custom Cookie headers due to browser security restrictions. Use curl for testing with split cookies:
-// @Description Login required to test via browser, else test via curl
-// @Tags records
-// @Accept  json
-// @Produce  json
-// @Param   Cookie header string true "Session cookies (multiple allowed, names: kube_jit_session_0, kube_jit_session_1, etc.)"
-// @Param   userID     query    string  false  "User ID"
-// @Param   username   query    string  false  "Username"
-// @Param   limit      query    int     false  "Limit"
-// @Success 200 {array} models.RequestWithNamespaceApprovers
-// @Failure 500 {object} models.SimpleMessageResponse
-// @Router /history [get]
-func GetRecords(c *gin.Context) {
-	// Check if the user is logged in and get logger
-	sessionData := GetSessionData(c)
-	reqLogger := RequestLogger(c)
-
-	isAdmin, _ := sessionData["isAdmin"].(bool)
-	isPlatformApprover, _ := sessionData["isPlatformApprover"].(bool)
-	userID := c.Query("userID")
-	username := c.Query("username")
-	limit := c.Query("limit")
-	startDate := c.Query("startDate")
-	endDate := c.Query("endDate")
-
-	limitInt, err := strconv.Atoi(limit)
-	if err != nil || limitInt <= 0 {
-		limitInt = 1
-	}
-
-	var requests []models.RequestData
-	query := db.DB.Order("created_at desc").Limit(limitInt)
-	if isAdmin || isPlatformApprover {
-		if userID != "" {
-			query = query.Where("user_id = ?", userID)
-		}
-		if username != "" {
-			query = query.Where("username = ?", username)
-		}
-	} else {
-		if userID != "" {
-			query = query.Where("user_id = ? OR approver_ids @> ?", userID, fmt.Sprintf(`["%s"]`, userID))
-		} else if username != "" {
-			query = query.Where("username = ? OR approver_names @> ?", username, fmt.Sprintf(`["%s"]`, username))
-		}
-	}
-	if startDate != "" && endDate != "" {
-		query = query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
-	}
-	if err := query.Find(&requests).Error; err != nil {
-		reqLogger.Error("Error fetching records in GetRecords", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to fetch records"})
-		return
-	}
-
-	var enriched []models.RequestWithNamespaceApprovers
-	for _, req := range requests {
-		var nsApprovals []models.NamespaceApprovalInfo
-		if err := db.DB.
-			Table("request_namespaces").
-			Select("namespace, group_name, group_id, approved, approver_id, approver_name").
-			Where("request_id = ?", req.ID).
-			Scan(&nsApprovals).Error; err != nil {
-			reqLogger.Error("Error fetching namespace approvals in GetRecords", zap.Uint("requestID", req.ID), zap.Error(err))
-			c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: "Failed to fetch namespace approvals"})
-			return
-		}
-		enriched = append(enriched, models.RequestWithNamespaceApprovers{
-			RequestData:        req,
-			NamespaceApprovals: nsApprovals,
-		})
-	}
-
-	c.JSON(http.StatusOK, enriched)
-}
-
 // GetPendingApprovals godoc
 // @Summary Get pending JIT requests for approver groups
 // @Description Returns the pending JIT requests for the authenticated user's approver groups.
@@ -152,17 +69,19 @@ func GetRecords(c *gin.Context) {
 // @Failure 500 {object} models.SimpleMessageResponse "Failed to fetch pending requests"
 // @Router /approvals [get]
 func GetPendingApprovals(c *gin.Context) {
-	// Check if the user is logged in
 	sessionData := GetSessionData(c)
+	reqLogger := RequestLogger(c)
 
-	// Check if the user is an admin or platform approver
+	reqLogger.Debug("GetPendingApprovals: Got sessionData", zap.Any("sessionData", sessionData))
+
 	isAdmin, isAdminOk := sessionData["isAdmin"].(bool)
 	isPlatformApprover, isPlatformApproverOk := sessionData["isPlatformApprover"].(bool)
-	if (isAdminOk && isAdmin) || (isPlatformApproverOk && isPlatformApprover) {
-		// If the user is an admin or platform approver, return all pending requests
-		var pendingRequests []models.RequestData
+	reqLogger.Debug("GetPendingApprovals: Admin/PlatformApprover check", zap.Bool("isAdmin", isAdmin), zap.Bool("isAdminOk", isAdminOk), zap.Bool("isPlatformApprover", isPlatformApprover), zap.Bool("isPlatformApproverOk", isPlatformApproverOk))
 
-		// Fetch all pending requests
+	if (isAdminOk && isAdmin) || (isPlatformApproverOk && isPlatformApprover) {
+		reqLogger.Debug("GetPendingApprovals: Admin or Platform Approver path")
+		var pendingRequests []models.RequestData // This is a slice of models.RequestData
+
 		if err := db.DB.
 			Where("status = ?", "Requested").
 			Find(&pendingRequests).Error; err != nil {
@@ -170,18 +89,27 @@ func GetPendingApprovals(c *gin.Context) {
 			return
 		}
 
+		// Ensure pendingRequests is an empty slice if nil, before returning
+		if pendingRequests == nil {
+			pendingRequests = []models.RequestData{}
+		}
+
 		c.JSON(http.StatusOK, gin.H{"pendingRequests": pendingRequests})
 		return
 	}
 
-	// Retrieve approverGroups from the session for non-admin users
+	reqLogger.Debug("GetPendingApprovals: Non-admin path")
 	rawApproverGroups, ok := sessionData["approverGroups"]
+	reqLogger.Debug("GetPendingApprovals: ApproverGroups check", zap.Any("rawApproverGroups", rawApproverGroups), zap.Bool("ok", ok))
+
 	if !ok {
+		reqLogger.Info("GetPendingApprovals: No approver groups in session, returning 401")
 		c.JSON(http.StatusUnauthorized, models.SimpleMessageResponse{Error: "Unauthorized: no approver groups in session"})
 		return
 	}
 
 	// Convert approverGroups to a slice of group IDs
+	reqLogger.Debug("GetPendingApprovals: Processing approver groups")
 	approverGroupIDs := []string{}
 	if rawGroups, ok := rawApproverGroups.([]models.Team); ok {
 		for _, group := range rawGroups {
@@ -198,6 +126,7 @@ func GetPendingApprovals(c *gin.Context) {
 	}
 
 	if len(approverGroupIDs) == 0 {
+		reqLogger.Debug("GetPendingApprovals: No approver groups in session, returning 401")
 		c.JSON(http.StatusUnauthorized, models.SimpleMessageResponse{Error: "Unauthorized: no approver groups in session"})
 		return
 	}
@@ -225,6 +154,7 @@ func GetPendingApprovals(c *gin.Context) {
 		Joins("JOIN request_namespaces ON request_namespaces.request_id = request_data.id").
 		Where("request_namespaces.group_id IN (?) AND request_data.status = ? AND request_namespaces.approved = false", approverGroupIDs, "Requested").
 		Scan(&rows).Error; err != nil {
+		reqLogger.Error("GetPendingApprovals: Error fetching pending requests", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, models.SimpleMessageResponse{Error: err.Error()})
 		return
 	}
@@ -232,8 +162,7 @@ func GetPendingApprovals(c *gin.Context) {
 	// Group by request ID
 	grouped := map[uint]*PendingRequest{}
 	for _, row := range rows {
-		req, exists := grouped[row.ID]
-		if !exists {
+		if _, exists := grouped[row.ID]; !exists {
 			grouped[row.ID] = &PendingRequest{
 				ID:            row.ID,
 				ClusterName:   row.ClusterName,
@@ -251,12 +180,11 @@ func GetPendingApprovals(c *gin.Context) {
 				GroupNames:    []string{},
 				ApprovedList:  []bool{},
 			}
-			req = grouped[row.ID]
 		}
-		req.Namespaces = append(req.Namespaces, row.Namespace)
-		req.GroupIDs = append(req.GroupIDs, row.GroupID)
-		req.GroupNames = append(req.GroupNames, row.GroupName)
-		req.ApprovedList = append(req.ApprovedList, row.Approved)
+		grouped[row.ID].Namespaces = append(grouped[row.ID].Namespaces, row.Namespace)
+		grouped[row.ID].GroupIDs = append(grouped[row.ID].GroupIDs, row.GroupID)
+		grouped[row.ID].GroupNames = append(grouped[row.ID].GroupNames, row.GroupName)
+		grouped[row.ID].ApprovedList = append(grouped[row.ID].ApprovedList, row.Approved)
 	}
 
 	var pendingRequests []PendingRequest
@@ -264,5 +192,15 @@ func GetPendingApprovals(c *gin.Context) {
 		pendingRequests = append(pendingRequests, *v)
 	}
 
+	// Sort pendingRequests by ID to ensure consistent order for the API response
+	sort.Slice(pendingRequests, func(i, j int) bool {
+		return pendingRequests[i].ID < pendingRequests[j].ID
+	})
+
+	if pendingRequests == nil {
+		pendingRequests = []PendingRequest{}
+	}
+
+	reqLogger.Debug("GetPendingApprovals: Returning pending requests", zap.Int("count", len(pendingRequests)))
 	c.JSON(http.StatusOK, gin.H{"pendingRequests": pendingRequests})
 }

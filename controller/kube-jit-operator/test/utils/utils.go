@@ -19,12 +19,26 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
+	//lint:ignore ST1001 for ginko
 	. "github.com/onsi/ginkgo/v2" //nolint:golint,revive
+	//lint:ignore ST1001 for ginko
+	. "github.com/onsi/gomega" //nolint:golint,revive
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	jitv1 "kube-jit-operator/api/v1"
+
+	rbacv1 "k8s.io/api/rbac/v1"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -35,6 +49,188 @@ const (
 	certmanagerVersion = "v1.16.3"
 	certmanagerURLTmpl = "https://github.com/cert-manager/cert-manager/releases/download/%s/cert-manager.yaml"
 )
+
+// CheckJitRemoved checks and JitRequest is deleted
+func CheckJitRemoved(ctx context.Context, k8sClient client.Client, name string) error {
+	Eventually(func() bool {
+		jitRequest := &jitv1.JitRequest{}
+		key := types.NamespacedName{Name: name, Namespace: jitRequest.Namespace}
+		err := k8sClient.Get(ctx, key, jitRequest)
+		if err != nil {
+			if client.IgnoreNotFound(err) == nil {
+				return true // JitRequest is removed
+			}
+			fmt.Printf("Error retrieving JitRequest: %v\n", err)
+			return false // Error other than not found
+		}
+		return false // JitRequest still exists
+	}, "30s", "5s").Should(BeTrue(), "JitRequest %s was not removed", name)
+
+	fmt.Printf("JitRequest %s is removed\n", name)
+	return nil
+}
+
+// CheckRoleBindingRemoved checks a role binding is removed
+func CheckRoleBindingRemoved(ctx context.Context, k8sClient client.Client, namespace string, name string) error {
+	Eventually(func() bool {
+		roleBinding := &rbacv1.RoleBinding{}
+		key := types.NamespacedName{Name: name, Namespace: namespace}
+		err := k8sClient.Get(ctx, key, roleBinding)
+		if err != nil {
+			if client.IgnoreNotFound(err) == nil {
+				return true // RoleBinding is removed
+			}
+			fmt.Printf("Error retrieving RoleBinding: %v\n", err)
+			return false // Error other than not found
+		}
+		return false // RoleBinding still exists
+	}, "60s", "5s").Should(BeTrue(), "RoleBinding %s in namespace %s was not removed", name, namespace)
+
+	fmt.Printf("RoleBinding %s in namespace %s is removed\n", name, namespace)
+	return nil
+}
+
+// CheckRoleBindingExists checks a Role Binding exists
+func CheckRoleBindingExists(ctx context.Context, k8sClient client.Client, namespace string, name string) error {
+	Eventually(func() bool {
+		roleBinding := &rbacv1.RoleBinding{}
+		key := types.NamespacedName{Name: name, Namespace: namespace}
+		err := k8sClient.Get(ctx, key, roleBinding)
+		if err != nil {
+			fmt.Printf("Error retrieving RoleBinding: %v\n", err)
+			return false // Unable to retrieve the RoleBinding
+		}
+		return true // RoleBinding exists
+	}, "30s", "5s").Should(BeTrue(), "RoleBinding %s in namespace %s does not exist", name, namespace)
+
+	fmt.Printf("RoleBinding %s in namespace %s exists\n", name, namespace)
+	return nil
+}
+
+// CheckEvent checks and waits for an event in a namespace
+func CheckEvent(ctx context.Context, k8sClient client.Client, objectName string, namespace string, eventType string, reason string, message string) error { //nolint:lll
+	listOptions := &client.ListOptions{
+		Namespace: namespace,
+	}
+
+	// Event not found, wait for it
+	Eventually(func() error {
+		// list events
+		eventList := &corev1.EventList{}
+		err := k8sClient.List(ctx, eventList, listOptions)
+		if err != nil {
+			return fmt.Errorf("failed to list events: %v", err)
+		}
+		// Check the event exists
+		for _, evt := range eventList.Items {
+			if evt.InvolvedObject.Name == objectName &&
+				evt.Type == eventType &&
+				evt.Reason == reason &&
+				strings.Contains(evt.Message, message) {
+				return nil // Event found
+			}
+		}
+
+		// Event not found yet
+		return fmt.Errorf("matching event not found for: %s", message)
+	}, "20s", "5s").Should(Succeed())
+
+	return nil
+}
+
+// CheckJitStatus checks the status of a JustInTimeRequest
+func CheckJitStatus(ctx context.Context, k8sClient client.Client, jitRequest *jitv1.JitRequest, status string) error { //nolint:lll
+
+	// Check if the status gets populated with the expected
+	Eventually(func() bool {
+		// Retrieve the jitRequest object
+		key := types.NamespacedName{Name: jitRequest.Name, Namespace: jitRequest.Namespace}
+		retrievedJitRequest := &jitv1.JitRequest{}
+		err := k8sClient.Get(ctx, key, retrievedJitRequest)
+		if err != nil {
+			GinkgoWriter.Printf("Error retrieving JitRequest: %v\n", err)
+			return false // Unable to retrieve the jitRequest
+		}
+		// Check if the status field contains the expected
+		return retrievedJitRequest.Status.State == status
+	}, "30s", "5s").Should(BeTrue(), "Failed on expected state for jitRequest")
+
+	return nil
+}
+
+// CreateJitRequest creates a JustInTimeRequest with a startTime delay in seconds
+func CreateJitRequest(ctx context.Context, k8sClient client.Client, startDelay time.Duration, clusterRole, namespace string, label ...string) (*jitv1.JitRequest, error) { //nolint:lll
+	// optional label
+	namespaceLabels := make(map[string]string)
+	if len(label) > 0 && label[0] != "" {
+		namespaceLabels["foo"] = label[0]
+	}
+
+	jit := &jitv1.JitRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "e2e-jit-test",
+		},
+		Spec: jitv1.JitRequestSpec{
+			ClusterRole:   clusterRole,
+			Requestee:     "master-chief",
+			Justification: "e2e test",
+			Approver:      "captain-keys",
+			UserEmails:    []string{"master-chief@unsc.com"},
+			Email:         "master-chief@unsc.com",
+			TicketID:      "1234567890",
+			CallbackURL:   "http://localhost/callback",
+			Namespaces: []string{
+				namespace,
+			},
+			StartTime: metav1.NewTime(metav1.Now().Add(startDelay * time.Second)),
+			EndTime:   metav1.NewTime(metav1.Now().Add(20 * time.Second)),
+		},
+	}
+
+	if err := k8sClient.Create(ctx, jit); err != nil {
+		return nil, fmt.Errorf("failed to create JIT request: %w", err)
+	}
+
+	return jit, nil
+}
+
+// CreateNamespace creates a namespace
+func CreateNamespace(ctx context.Context, k8sClient client.Client, namespace string) error {
+
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+		},
+	}
+
+	if err := k8sClient.Create(ctx, ns); err != nil {
+		return fmt.Errorf("failed to create Namespace: %w", err)
+	}
+
+	return nil
+}
+
+// CreateJitConfig creates a KubeJitConfig
+func CreateJitConfig(ctx context.Context, k8sClient client.Client, clusterRole, namespace string) error {
+
+	jitCfg := &jitv1.KubeJitConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "kube-jit-operator-default",
+		},
+		Spec: jitv1.KubeJitConfigSpec{
+			AllowedClusterRoles: []string{
+				clusterRole,
+			},
+			NamespaceAllowedRegex: fmt.Sprintf("^%s$", namespace),
+		},
+	}
+
+	if err := k8sClient.Create(ctx, jitCfg); err != nil {
+		return fmt.Errorf("failed to create JIT config: %w", err)
+	}
+
+	return nil
+}
 
 func warnError(err error) {
 	_, _ = fmt.Fprintf(GinkgoWriter, "warning: %v\n", err)

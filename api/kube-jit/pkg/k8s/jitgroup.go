@@ -26,11 +26,11 @@ type JitGroupsCache struct {
 	ExpiresAt int64
 }
 
-// GetJitGroups retrieves the JitGroups for a cluster, using cache if available
-// It checks if the cache is still valid and refreshes it if expired
-// It fetches the JitGroups from the cluster if not in cache or if expired
-// It returns the JitGroups object or an error if fetching fails
-func GetJitGroups(clusterName string) (*unstructured.Unstructured, error) {
+// GetJitGroups fetches the JitGroups from the cluster
+// It checks if the cache is valid and returns the cached JitGroups if available
+// If the cache is expired or not available, it fetches the JitGroups from the cluster
+// and caches it for 10 minutes
+var GetJitGroups = func(clusterName string) (*unstructured.Unstructured, error) {
 	// Check if the cache exists
 	if cached, exists := jitGroupsCache.Load(clusterName); exists {
 		cache := cached.(*JitGroupsCache)
@@ -82,7 +82,7 @@ func fetchJitGroupsFromCluster(clusterName string) (*unstructured.Unstructured, 
 }
 
 // InvalidateJitGroupsCache invalidates the JitGroups cache for a specific cluster
-func InvalidateJitGroupsCache(clusterName string) {
+var InvalidateJitGroupsCache = func(clusterName string) {
 	logger.Info("Invalidating JitGroups cache for cluster", zap.String("cluster", clusterName))
 	jitGroupsCache.Delete(clusterName)
 }
@@ -91,7 +91,7 @@ func InvalidateJitGroupsCache(clusterName string) {
 // It fetches the JitGroups for the cluster and checks if the namespaces exist in the JitGroups
 // It returns a map of namespaces with their corresponding group IDs and names
 // or an error if any namespace is invalid
-func ValidateNamespaces(clusterName string, namespaces []string) (map[string]struct{ GroupID, GroupName string }, error) {
+var ValidateNamespaces = func(clusterName string, namespaces []string) (map[string]struct{ GroupID, GroupName string }, error) {
 	jitGroups, err := GetJitGroups(clusterName)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching JitGroups: %v", err)

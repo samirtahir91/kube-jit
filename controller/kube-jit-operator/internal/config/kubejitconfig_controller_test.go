@@ -1,5 +1,5 @@
 /*
-Copyright 2025.
+Copyright 2024.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,67 +18,99 @@ package config
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	jitv1 "kube-jit-operator/api/v1"
+	"kube-jit-operator/test/utils"
+	"os/exec"
+
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
-var _ = Describe("KubeJitConfig Controller", func() {
-	Context("When reconciling a resource", func() {
-		const resourceName = "test-resource"
+const (
+	ValidClusterRole string = "edit"
+)
 
-		ctx := context.Background()
+var (
+	TestNamespace = os.Getenv("OPERATOR_NAMESPACE")
+)
 
-		typeNamespacedName := types.NamespacedName{
-			Name:      resourceName,
-			Namespace: "default", // TODO(user):Modify as needed
-		}
-		kubejitconfig := &jitv1.KubeJitConfig{}
+// init os vars
+func init() {
+	if TestNamespace == "" {
+		panic(fmt.Errorf("OPERATOR_NAMESPACE environment variable(s) not set"))
+	}
+}
 
-		BeforeEach(func() {
-			By("creating the custom resource for the Kind KubeJitConfig")
-			err := k8sClient.Get(ctx, typeNamespacedName, kubejitconfig)
-			if err != nil && errors.IsNotFound(err) {
-				resource := &jitv1.KubeJitConfig{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      resourceName,
-						Namespace: "default",
-					},
-					// TODO(user): Specify other spec details if needed.
-				}
-				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
+var _ = Describe("JustInTimeConfig Controller", Ordered, Label("integration"), func() {
+
+	BeforeAll(func() {
+		By("removing manager config")
+		cmd := exec.Command("kubectl", "delete", "jitcfg", TestJitConfig)
+		_, _ = utils.Run(cmd)
+
+	})
+
+	AfterAll(func() {
+		By("removing manager config")
+		cmd := exec.Command("kubectl", "delete", "jitcfg", TestJitConfig)
+		_, _ = utils.Run(cmd)
+	})
+
+	Context("When initialising a context and K8s client", func() {
+		It("should be successfully initialised", func() {
+			By("Creating the ctx and client")
+			ctx = context.TODO()
+			err := jitv1.AddToScheme(scheme.Scheme)
+			Expect(err).NotTo(HaveOccurred())
+			cfg, err := config.GetConfig()
+			if err != nil {
+				fmt.Printf("Failed to load kubeconfig: %v\n", err)
+				return
 			}
+			k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient).NotTo(BeNil())
 		})
+	})
 
-		AfterEach(func() {
-			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &jitv1.KubeJitConfig{}
-			err := k8sClient.Get(ctx, typeNamespacedName, resource)
+	Context("When creating the JustInTime config object", func() {
+		It("should successfully load the config and write the config file", func() {
+			By("Creating the operator JustInTimeConfig")
+			err := utils.CreateJitConfig(ctx, k8sClient, ValidClusterRole, TestNamespace)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Cleanup the specific resource instance KubeJitConfig")
-			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
-		})
-		It("should successfully reconcile the resource", func() {
-			By("Reconciling the created resource")
-			controllerReconciler := &KubeJitConfigReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+			filePath := ConfigCacheFilePath + "/" + ConfigFile
+
+			By("Waiting for the config file to be written")
+			Eventually(func() bool {
+				_, statErr := os.Stat(filePath)
+				return statErr == nil
+			}, 20, 0.5).Should(BeTrue(), "expected config file to be written within 10 seconds")
+
+			By("Checking the config json file matches expected config")
+			expectedConfig := jitv1.KubeJitConfigSpec{
+				AllowedClusterRoles:   []string{"edit"},
+				NamespaceAllowedRegex: "^kube-jit-int-test$",
 			}
 
-			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
+			// Read the generated config file
+			data, err := os.ReadFile(filePath)
 			Expect(err).NotTo(HaveOccurred())
-			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-			// Example: If you expect a certain status condition after reconciliation, verify it here.
+
+			var generatedConfig jitv1.KubeJitConfigSpec
+			err = json.Unmarshal(data, &generatedConfig)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Compare the generated config with the expected config
+			Expect(expectedConfig).To(Equal(generatedConfig))
 		})
 	})
 })

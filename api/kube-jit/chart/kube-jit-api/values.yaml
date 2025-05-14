@@ -77,6 +77,8 @@ config:
   # insecure - optional bool for https
   # tokenSecret - the name of the secret in the same namespace as this api, to get the service account token for auth.
   clusters: []
+
+  # Vanilla Kubernetes Example (SA token)
   # - name: cluster1
   #   host: https://cluster1.example.com
   #   ca: base64-encoded-ca-cert
@@ -87,6 +89,18 @@ config:
   #   ca: base64-encoded-ca-cert
   #   insecure: true
   #   tokenSecret: cluster2-token-secret
+  
+  # Google/GKE Example (GKE Workload Identity)
+  # - name: autopilot-cluster-2
+  #   type: gke
+  #   projectID: sacred-entry-304212
+  #   region: europe-west2
+  
+  # Azure/AKS example (Azure Workload Identity)
+  # - name: "controller"
+  #   type: "aks"
+  #   projectID: f55741e9-1730-4d6e-8624-bf7b932a6145 # Azure subscription id
+  #   region: "test"  # Azure resource group
 
   # callbackHostOverride sets the callback base url for external clusters running the kube-jit operator to callback to the api for status updates.
   # defaults to the ingress host
