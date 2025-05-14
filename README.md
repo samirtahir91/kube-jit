@@ -43,6 +43,8 @@ These components should be deployed **together on your management cluster** usin
 
 The Oauth/Identitiy provider config is defined in the API chart, see the [values.yaml](./api/kube-jit/chart/kube-jit-api/values.yaml)
 
+Downstream clusters need to be configured also in the API [values.yaml](./api/kube-jit/chart/kube-jit-api/values.yaml).
+
 ```sh
 # Clone the repo and cd into it
 git clone https://github.com/your-org/kube-jit-gh-teams.git
