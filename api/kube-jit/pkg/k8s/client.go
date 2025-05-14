@@ -24,8 +24,13 @@ import (
 
 var dynamicClientCache sync.Map
 
+// Use dynamic.Interface, not *dynamic.DynamicClient
+var dynamicNewForConfig = func(config *rest.Config) (dynamic.Interface, error) {
+	return dynamic.NewForConfig(config)
+}
+
 type CachedClient struct {
-	Client       *dynamic.DynamicClient
+	Client       dynamic.Interface
 	TokenExpires int64
 }
 
@@ -35,7 +40,7 @@ type CachedClient struct {
 // It uses the cluster type to determine how to create the client (GKE, AKS, or generic)
 // It uses the Google Cloud SDK for GKE and Azure SDK for AKS
 // It uses the Kubernetes client-go library for generic clusters
-func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
+func createDynamicClient(req models.RequestData) dynamic.Interface {
 	// Check if the dynamic client for the cluster is already cached
 	if cached, exists := dynamicClientCache.Load(req.ClusterName); exists {
 		cachedClient := cached.(*CachedClient)
@@ -168,7 +173,7 @@ func createDynamicClient(req models.RequestData) *dynamic.DynamicClient {
 	}
 
 	// Create the dynamic client
-	dynamicClient, err := dynamic.NewForConfig(restConfig)
+	dynamicClient, err := dynamicNewForConfig(restConfig)
 	if err != nil {
 		logger.Fatal("Failed to create k8s client", zap.Error(err))
 	}

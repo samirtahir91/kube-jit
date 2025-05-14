@@ -82,7 +82,7 @@ func fetchJitGroupsFromCluster(clusterName string) (*unstructured.Unstructured, 
 }
 
 // InvalidateJitGroupsCache invalidates the JitGroups cache for a specific cluster
-func InvalidateJitGroupsCache(clusterName string) {
+var InvalidateJitGroupsCache = func(clusterName string) {
 	logger.Info("Invalidating JitGroups cache for cluster", zap.String("cluster", clusterName))
 	jitGroupsCache.Delete(clusterName)
 }
