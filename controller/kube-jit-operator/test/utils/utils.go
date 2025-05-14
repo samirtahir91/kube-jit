@@ -47,7 +47,7 @@ func CreateJitConfig(ctx context.Context, k8sClient client.Client, clusterRole, 
 
 	jitCfg := &jitv1.KubeJitConfig{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "kube-jit-operator-defaultt",
+			Name: "kube-jit-operator-default",
 		},
 		Spec: jitv1.KubeJitConfigSpec{
 			AllowedClusterRoles: []string{

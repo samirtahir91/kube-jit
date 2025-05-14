@@ -43,7 +43,7 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-const TestJitConfig = "jira-jit-rbac-operator-default"
+const TestJitConfig = "kube-jit-operator-default"
 
 var cfg *rest.Config
 var k8sClient client.Client

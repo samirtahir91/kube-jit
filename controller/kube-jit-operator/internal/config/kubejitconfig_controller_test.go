@@ -87,14 +87,22 @@ var _ = Describe("JustInTimeConfig Controller", Ordered, Label("integration"), f
 			err := utils.CreateJitConfig(ctx, k8sClient, ValidClusterRole, TestNamespace)
 			Expect(err).NotTo(HaveOccurred())
 
+			filePath := ConfigCacheFilePath + "/" + ConfigFile
+
+			By("Waiting for the config file to be written")
+			Eventually(func() bool {
+				_, statErr := os.Stat(filePath)
+				return statErr == nil
+			}, 20, 0.5).Should(BeTrue(), "expected config file to be written within 10 seconds")
+
 			By("Checking the config json file matches expected config")
 			expectedConfig := jitv1.KubeJitConfigSpec{
 				AllowedClusterRoles:   []string{"edit"},
-				NamespaceAllowedRegex: ".*",
+				NamespaceAllowedRegex: "^kube-jit-int-test$",
 			}
 
 			// Read the generated config file
-			data, err := os.ReadFile(ConfigCacheFilePath + "/" + ConfigFile)
+			data, err := os.ReadFile(filePath)
 			Expect(err).NotTo(HaveOccurred())
 
 			var generatedConfig jitv1.KubeJitConfigSpec
