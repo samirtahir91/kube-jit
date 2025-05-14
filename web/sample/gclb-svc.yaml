@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kube-jit-web-ingress
+  namespace: kube-jit-web
+  annotations:
+    kubernetes.io/ingressClassName: "gce"
+    networking.gke.io/ssl-cert: "signed"  # Name of your uploaded cert
+spec:
+  rules:
+    - host: jit-test.samirtahir.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kube-jit-web
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - jit-test.samirtahir.dev
+      secretName: kube-jit-web-tls
