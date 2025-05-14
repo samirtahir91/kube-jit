@@ -9,10 +9,4 @@ nginx:
   proxyReadTimeout: "20s" # Default proxy read timeout
 image:
   repository: samirtahir91076/kube-jit-web
-  tag: v1.1.6
-
-service:
-  type: LoadBalancer
-  port: 80
-  containerPort: 80
-  annotations:
+  tag: v1.0.0
