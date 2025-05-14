@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -164,13 +163,4 @@ func TestUsernameString(t *testing.T) {
 			assert.Equal(t, tc.expected, usernameString(tc.input))
 		})
 	}
-}
-
-// Helper to unmarshal log context for easier assertion (alternative to iterating fields)
-// Not used in the main test to keep it explicit, but can be useful.
-func getLogFields(entry observer.LoggedEntry) map[string]interface{} {
-	bytes, _ := json.Marshal(entry.ContextMap())
-	var fields map[string]interface{}
-	_ = json.Unmarshal(bytes, &fields)
-	return fields
 }

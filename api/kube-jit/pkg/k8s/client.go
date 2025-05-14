@@ -40,7 +40,7 @@ type CachedClient struct {
 // It uses the cluster type to determine how to create the client (GKE, AKS, or generic)
 // It uses the Google Cloud SDK for GKE and Azure SDK for AKS
 // It uses the Kubernetes client-go library for generic clusters
-func createDynamicClient(req models.RequestData) dynamic.Interface {
+var createDynamicClient = func(req models.RequestData) dynamic.Interface {
 	// Check if the dynamic client for the cluster is already cached
 	if cached, exists := dynamicClientCache.Load(req.ClusterName); exists {
 		cachedClient := cached.(*CachedClient)

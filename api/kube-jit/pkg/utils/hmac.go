@@ -19,7 +19,7 @@ var (
 // GenerateSignedURL creates a signed url with hmac key based on expiry
 // It takes a base URL and an expiry time as input and returns the signed URL
 // or an error if the URL cannot be generated.
-func GenerateSignedURL(baseURL string, expiryTime time.Time) (string, error) {
+var GenerateSignedURL = func(baseURL string, expiryTime time.Time) (string, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		logger.Error("Failed to parse base URL for signed URL", zap.Error(err))
