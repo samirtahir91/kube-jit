@@ -120,7 +120,7 @@ func InitK8sConfig() {
 	// Cache dynamic clients for all clusters on startup
 	for _, clusterName := range ClusterNames {
 		req := models.RequestData{ClusterName: clusterName}
-		if runClusterInitAsync {
+		if runClusterInitAsync { // for production
 			go func(r models.RequestData) {
 				defer func() {
 					if err := recover(); err != nil {
@@ -130,6 +130,7 @@ func InitK8sConfig() {
 				createDynamicClient(r)
 			}(req)
 		} else {
+			// for testing
 			createDynamicClient(req)
 		}
 	}
