@@ -14,6 +14,9 @@ Kube JIT enables organizations to reduce standing privileges and improve complia
 4. **Temporary RBAC roles** are created in Kubernetes, granting access for a limited time.
 5. **Automatic expiry** ensures permissions are revoked after the approved window.
 
+## ToDo
+- Add short-lived token authentication support for API -> downstream controller clusters (using token review) so downstream clusters can provide API with up-to-date cluster access tokens.
+
 ## Features
 
 - **Just-in-Time Access:** Grant temporary RBAC permissions to users only when needed, with automatic expiry and revocation.
