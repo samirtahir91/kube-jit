@@ -1,0 +1,40 @@
+name: Unit Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component:
+          - name: web
+            path: web
+          - name: api
+            path: api/kube-jit
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (for web)
+        if: matrix.component.name == 'web'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies (web)
+        if: matrix.component.name == 'web'
+        working-directory: web/kube-jit
+        run: yarn install --frozen-lockfile
+
+      - name: Setup Go (for api)
+        if: matrix.component.name == 'api'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '~1.23'
+
+      - name: Run unit tests
+        working-directory: ${{ matrix.component.path }}
+        run: make test
