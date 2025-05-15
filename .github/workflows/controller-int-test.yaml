@@ -44,7 +44,6 @@ jobs:
 
       - name: Send the coverage output
         if: matrix.os != 'macos-latest'
-        working-directory: controller/kube-jit-operator
         uses: shogo82148/actions-goveralls@v1
         with:
-          path-to-profile: cover.out
+          path-to-profile: controller/kube-jit-operator/cover.out
