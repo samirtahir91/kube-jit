@@ -30,6 +30,7 @@ jobs:
         with:
           version: v1.61
           working-directory: ${{ matrix.component.path }}
+          args: --timeout=5m
 
       - name: Run staticcheck
         uses: dominikh/staticcheck-action@v1
