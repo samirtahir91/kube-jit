@@ -47,6 +47,13 @@ type ClusterConfig struct {
 // and creates a local clientset for the API server
 // It is called during the initialization of the API in main.go
 func InitK8sConfig() {
+	if localClientset != nil && os.Getenv("UNIT_TEST") == "true" {
+		// In unit tests, skip real config loading if fake client is injected
+		// Only run the config map loading and cluster setup
+		loadApiConfigAndClusters()
+		return
+	}
+
 	var config *rest.Config
 	var err error
 
@@ -73,6 +80,11 @@ func InitK8sConfig() {
 		}
 	}
 
+	loadApiConfigAndClusters()
+}
+
+// loadApiConfigAndClusters loads the API configuration and sets up clusters
+func loadApiConfigAndClusters() {
 	// Load ConfigMap of clusters from local file system
 	configPath := utils.MustGetEnv("CONFIG_MOUNT_PATH")
 	configData, err := os.ReadFile(configPath + "/apiConfig.yaml")
