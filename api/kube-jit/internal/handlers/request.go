@@ -7,6 +7,7 @@ import (
 	"kube-jit/pkg/email"
 	"kube-jit/pkg/k8s"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -118,7 +119,13 @@ func SubmitRequest(c *gin.Context) {
 	}
 
 	// Insert namespaces into the request_namespaces table
-	for namespace, groupInfo := range namespaceGroups {
+	var namespaces []string
+	for ns := range namespaceGroups {
+		namespaces = append(namespaces, ns)
+	}
+	sort.Strings(namespaces)
+	for _, namespace := range namespaces {
+		groupInfo := namespaceGroups[namespace]
 		namespaceEntry := models.RequestNamespace{
 			RequestID: dbRequestData.ID,
 			Namespace: namespace,

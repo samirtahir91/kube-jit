@@ -81,7 +81,7 @@
 				
 				<option value="file12">kube-jit/internal/handlers/pending_records.go (98.3%)</option>
 				
-				<option value="file13">kube-jit/internal/handlers/request.go (53.2%)</option>
+				<option value="file13">kube-jit/internal/handlers/request.go (55.0%)</option>
 				
 				<option value="file14">kube-jit/internal/middleware/accesslog.go (100.0%)</option>
 				
@@ -3479,6 +3479,7 @@ import (
         "kube-jit/pkg/email"
         "kube-jit/pkg/k8s"
         "net/http"
+        "sort"
         "time"
 
         "github.com/gin-gonic/gin"
@@ -3590,7 +3591,13 @@ func SubmitRequest(c *gin.Context) <span class="cov8" title="1">{
         }</span>
 
         // Insert namespaces into the request_namespaces table
-        <span class="cov8" title="1">for namespace, groupInfo := range namespaceGroups </span><span class="cov8" title="1">{
+        <span class="cov8" title="1">var namespaces []string
+        for ns := range namespaceGroups </span><span class="cov8" title="1">{
+                namespaces = append(namespaces, ns)
+        }</span>
+        <span class="cov8" title="1">sort.Strings(namespaces)
+        for _, namespace := range namespaces </span><span class="cov8" title="1">{
+                groupInfo := namespaceGroups[namespace]
                 namespaceEntry := models.RequestNamespace{
                         RequestID: dbRequestData.ID,
                         Namespace: namespace,

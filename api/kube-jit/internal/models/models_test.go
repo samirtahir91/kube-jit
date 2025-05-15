@@ -39,10 +39,11 @@ func TestLoginResponse_JSON(t *testing.T) {
 }
 
 func TestRequestData_JSON(t *testing.T) {
-	startTime := time.Now().Add(-time.Hour).Truncate(time.Second)
-	endTime := time.Now().Add(time.Hour).Truncate(time.Second)
-	createdAt := time.Now().Add(-2 * time.Hour).Truncate(time.Second)
-	updatedAt := time.Now().Add(-1 * time.Hour).Truncate(time.Second)
+	now := time.Now().UTC().Truncate(time.Second)
+	startTime := now.Add(-time.Hour)
+	endTime := now.Add(time.Hour)
+	createdAt := now.Add(-2 * time.Hour)
+	updatedAt := now.Add(-1 * time.Hour)
 
 	original := RequestData{
 		GormModel: GormModel{
@@ -78,8 +79,6 @@ func TestRequestData_JSON(t *testing.T) {
 	assert.Equal(t, original, unmarshaled)
 
 	// Verify time formatting (RFC3339Nano is default for time.Time in JSON)
-	// This can be tricky due to timezones if not handled carefully.
-	// Using Truncate helps, and ensuring times are in UTC for JSON is a good practice.
 	var rawMap map[string]interface{}
 	err = json.Unmarshal(jsonData, &rawMap)
 	require.NoError(t, err)
@@ -181,19 +180,9 @@ func TestRequestNamespace_JSON(t *testing.T) {
 	assert.JSONEq(t, expectedJSON, string(jsonData))
 }
 
-// You can add similar tests for other structs like:
-// - Team
-// - Roles
-// - Cluster
-// - SimpleMessageResponse
-// - GormModel (though it's often part of other structs)
-// - NamespaceApprovalInfo
-// - RequestWithNamespaceApprovers
-// - GitHubTokenResponse
-
-// Example for GormModel specifically, if you want to test its omitempty behavior for DeletedAt
 func TestGormModel_JSON_OmitEmpty(t *testing.T) {
-	now := time.Now().Truncate(time.Second)
+	now := time.Now().UTC().Truncate(time.Second)
+	deletedTime := now.Add(time.Hour)
 
 	// Case 1: DeletedAt is nil
 	model1 := GormModel{ID: 1, CreatedAt: now, UpdatedAt: now, DeletedAt: nil}
@@ -202,7 +191,6 @@ func TestGormModel_JSON_OmitEmpty(t *testing.T) {
 	assert.NotContains(t, string(jsonData1), `"DeletedAt"`, "DeletedAt should be omitted when nil")
 
 	// Case 2: DeletedAt is set
-	deletedTime := now.Add(time.Hour)
 	model2 := GormModel{ID: 2, CreatedAt: now, UpdatedAt: now, DeletedAt: &deletedTime}
 	jsonData2, err := json.Marshal(model2)
 	require.NoError(t, err)
