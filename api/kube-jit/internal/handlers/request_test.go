@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -31,6 +32,8 @@ var originalK8sValidateNamespaces func(clusterName string, namespaces []string) 
 }, error)
 var originalK8sCreateK8sObject func(request models.RequestData, approverName string) error
 var originalEmailSendMail func(to, subject, body string) error
+var emailSent chan struct{}
+var emailSentOnce sync.Once
 
 // setupRequestTest configures a Gin router with a mocked DB and session management for request handler tests.
 func setupRequestTest(t *testing.T) (*gin.Engine, sqlmock.Sqlmock, func()) {
@@ -286,6 +289,8 @@ func TestApproveOrRejectRequests(t *testing.T) {
 
 	sampleTime := time.Now().Truncate(time.Second)
 
+	var emailSent chan struct{}
+
 	testCases := []struct {
 		name                   string
 		setupSession           func(s sessions.Session)
@@ -387,9 +392,12 @@ func TestApproveOrRejectRequests(t *testing.T) {
 				}
 			},
 			mockEmail: func() {
+				emailSent = make(chan struct{})
+				emailSentOnce = sync.Once{}
 				email.SendMail = func(to, subject, body string) error {
 					assert.Equal(t, "requestor@example.com", to)
 					assert.Contains(t, subject, "Your JIT request #1 is now Approved")
+					emailSentOnce.Do(func() { close(emailSent) })
 					return nil
 				}
 			},
@@ -450,14 +458,25 @@ func TestApproveOrRejectRequests(t *testing.T) {
 				}
 			}
 
+			// Serve request
 			w := httptest.NewRecorder()
-			r.POST("/approve-reject", ApproveOrRejectRequests) // Ensure route is registered
+			r.POST("/approve-reject", ApproveOrRejectRequests)
 			r.ServeHTTP(w, req)
 
 			assert.Equal(t, tc.expectedStatus, w.Code)
 			if tc.expectedBody != nil {
 				expectedJSON, _ := json.Marshal(tc.expectedBody)
 				assert.JSONEq(t, string(expectedJSON), w.Body.String())
+			}
+
+			// Wait for email goroutine (if this test expects an email)
+			if tc.mockEmail != nil {
+				select {
+				case <-emailSent:
+					// Email sent
+				case <-time.After(time.Second):
+					t.Error("email.SendMail was not called")
+				}
 			}
 		})
 	}

@@ -81,7 +81,7 @@
 				
 				<option value="file12">kube-jit/internal/handlers/pending_records.go (98.3%)</option>
 				
-				<option value="file13">kube-jit/internal/handlers/request.go (52.4%)</option>
+				<option value="file13">kube-jit/internal/handlers/request.go (55.0%)</option>
 				
 				<option value="file14">kube-jit/internal/middleware/accesslog.go (100.0%)</option>
 				
@@ -99,7 +99,7 @@
 				
 				<option value="file21">kube-jit/pkg/k8s/client.go (33.3%)</option>
 				
-				<option value="file22">kube-jit/pkg/k8s/config.go (80.0%)</option>
+				<option value="file22">kube-jit/pkg/k8s/config.go (61.0%)</option>
 				
 				<option value="file23">kube-jit/pkg/k8s/jitgroup.go (54.2%)</option>
 				
@@ -3479,6 +3479,7 @@ import (
         "kube-jit/pkg/email"
         "kube-jit/pkg/k8s"
         "net/http"
+        "sort"
         "time"
 
         "github.com/gin-gonic/gin"
@@ -3590,7 +3591,13 @@ func SubmitRequest(c *gin.Context) <span class="cov8" title="1">{
         }</span>
 
         // Insert namespaces into the request_namespaces table
-        <span class="cov8" title="1">for namespace, groupInfo := range namespaceGroups </span><span class="cov8" title="1">{
+        <span class="cov8" title="1">var namespaces []string
+        for ns := range namespaceGroups </span><span class="cov8" title="1">{
+                namespaces = append(namespaces, ns)
+        }</span>
+        <span class="cov8" title="1">sort.Strings(namespaces)
+        for _, namespace := range namespaces </span><span class="cov8" title="1">{
+                groupInfo := namespaceGroups[namespace]
                 namespaceEntry := models.RequestNamespace{
                         RequestID: dbRequestData.ID,
                         Namespace: namespace,
@@ -3619,7 +3626,7 @@ func SubmitRequest(c *gin.Context) <span class="cov8" title="1">{
                         Message:       "",
                 })
                 go func() </span><span class="cov8" title="1">{
-                        if err := email.SendMail(dbRequestData.Email, fmt.Sprintf("Your JIT request #%d has been submitted", dbRequestData.ID), body); err != nil </span><span class="cov0" title="0">{
+                        if err := email.SendMail(dbRequestData.Email, fmt.Sprintf("Your JIT request #%d has been submitted", dbRequestData.ID), body); err != nil </span><span class="cov8" title="1">{
                                 reqLogger.Warn("Failed to send submission email", zap.String("email", dbRequestData.Email), zap.Error(err))
                         }</span>
                 }()
@@ -4472,34 +4479,46 @@ type ClusterConfig struct {
 // and creates a local clientset for the API server
 // It is called during the initialization of the API in main.go
 func InitK8sConfig() <span class="cov8" title="1">{
-        var config *rest.Config
+        if localClientset != nil &amp;&amp; os.Getenv("UNIT_TEST") == "true" </span><span class="cov8" title="1">{
+                // In unit tests, skip real config loading if fake client is injected
+                // Only run the config map loading and cluster setup
+                loadApiConfigAndClusters()
+                return
+        }</span>
+
+        <span class="cov0" title="0">var config *rest.Config
         var err error
 
         CallbackHostOverride = utils.MustGetEnv("CALLBACK_HOST_OVERRIDE")
 
         // Load in-cluster kube config
         config, err = rest.InClusterConfig()
-        if err != nil </span><span class="cov8" title="1">{
+        if err != nil </span><span class="cov0" title="0">{
                 // Load kubeconfig from environment variable
                 kubeconfigPath := os.Getenv("KUBECONFIG")
-                if kubeconfigPath == "" </span><span class="cov8" title="1">{
+                if kubeconfigPath == "" </span><span class="cov0" title="0">{
                         kubeconfigPath = os.Getenv("HOME") + "/.kube/config"
                 }</span>
-                <span class="cov8" title="1">config, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+                <span class="cov0" title="0">config, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
                 if err != nil </span><span class="cov0" title="0">{
                         panic(err.Error())</span>
                 }
         }
 
-        <span class="cov8" title="1">if localClientset == nil </span><span class="cov0" title="0">{
+        <span class="cov0" title="0">if localClientset == nil </span><span class="cov0" title="0">{
                 localClientset, err = kubernetes.NewForConfig(config)
                 if err != nil </span><span class="cov0" title="0">{
                         panic(err.Error())</span>
                 }
         }
 
+        <span class="cov0" title="0">loadApiConfigAndClusters()</span>
+}
+
+// loadApiConfigAndClusters loads the API configuration and sets up clusters
+func loadApiConfigAndClusters() <span class="cov8" title="1">{
         // Load ConfigMap of clusters from local file system
-        <span class="cov8" title="1">configPath := utils.MustGetEnv("CONFIG_MOUNT_PATH")
+        configPath := utils.MustGetEnv("CONFIG_MOUNT_PATH")
         configData, err := os.ReadFile(configPath + "/apiConfig.yaml")
         if err != nil </span><span class="cov0" title="0">{
                 logger.Fatal("Error reading config file", zap.Error(err))

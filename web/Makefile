@@ -21,6 +21,12 @@ push:
 run:
 		docker run -p 5173:80 ${IMG}
 
+local-test:
+	@cd kube-jit && yarn local-test
+
+test:
+	@cd kube-jit && yarn test
+
 template:
 		helm template -n kube-jit-web kube-jit-web chart/kube-jit-web --create-namespace
 
