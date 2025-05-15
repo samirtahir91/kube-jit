@@ -42,8 +42,8 @@ jobs:
           make test-cache
           make test
 
-      - name: Send the coverage output
-        if: matrix.os != 'macos-latest'
-        uses: shogo82148/actions-goveralls@v1
-        with:
-          path-to-profile: controller/kube-jit-operator/cover.out
+      # - name: Send the coverage output
+      #   if: matrix.os != 'macos-latest'
+      #   uses: shogo82148/actions-goveralls@v1
+      #   with:
+      #     path-to-profile: controller/kube-jit-operator/cover.out
