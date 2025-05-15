@@ -44,7 +44,7 @@ jobs:
     if: (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository)
     defaults:
       run:
-        working-directory: web
+        working-directory: web/kube-jit
     steps:
       - name: Clone the code
         uses: actions/checkout@v4
