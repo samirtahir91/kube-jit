@@ -1,4 +1,4 @@
-name: BDD Tests
+name: Controller BDD Tests
 
 # Trigger the workflow on pull requests and direct pushes to any branch
 on:
