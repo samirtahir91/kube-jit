@@ -14,10 +14,20 @@ import config from '../../config/config';
 
 type Group = { id: string; name: string };
 
+type Permissions = {
+    isAdmin?: boolean | null;
+    isPlatformApprover?: boolean | null;
+    isApprover?: boolean | null;
+    approverGroups?: Group[];
+    adminGroups?: Group[];
+    platformApproverGroups?: Group[];
+    error?: string;
+};
+
 const Profile = ({ user, onSignOut }: { user: UserData; onSignOut: () => void }) => {
     const [showDropdown, setShowDropdown] = useState(false);
     const [showPermissions, setShowPermissions] = useState(false);
-    const [permissions, setPermissions] = useState<any>(null);
+    const [permissions, setPermissions] = useState<Permissions | null>(null);
     const [loading, setLoading] = useState(false);
 
     const handleMouseEnter = () => setShowDropdown(true);
@@ -34,7 +44,7 @@ const Profile = ({ user, onSignOut }: { user: UserData; onSignOut: () => void })
                 { withCredentials: true }
             );
             setPermissions(res.data);
-        } catch (err) {
+        } catch {
             setPermissions({ error: "Failed to fetch permissions" });
         } finally {
             setLoading(false);

@@ -40,11 +40,10 @@ vi.mock('react-bootstrap', async (importOriginal) => {
     const actual = await importOriginal<typeof import('react-bootstrap')>();
 
     // --- Mock for Modal and its sub-components ---
-    const MockModal = ({ show, onHide, children, ...props }: {
+    const MockModal = ({ show, children, ...props }: {
         show: boolean,
-        onHide: () => void,
         children: React.ReactNode,
-        [key: string]: any
+        [key: string]: string | boolean | React.ReactNode
     }) =>
         show ? (
             <div data-testid="mock-modal" {...props}>
@@ -52,20 +51,29 @@ vi.mock('react-bootstrap', async (importOriginal) => {
             </div>
         ) : null;
 
-    (MockModal as any).Header = ({ children, closeButton, ...props }: { children: React.ReactNode, closeButton?: boolean, [key: string]: any }) => (
-        <div data-testid="mock-modal-header" {...props}>
-            {children}
-            {closeButton && <button data-testid="mock-modal-header-close-button" onClick={() => {
-            }}>×</button>}
-        </div>
-    );
-    (MockModal as any).Title = ({ children, ...props }: { children: React.ReactNode, [key: string]: any }) => <div data-testid="mock-modal-title" {...props}>{children}</div>;
-    (MockModal as any).Body = ({ children, ...props }: { children: React.ReactNode, [key: string]: any }) => <div data-testid="mock-modal-body" {...props}>{children}</div>;
-    (MockModal as any).Footer = ({ children, ...props }: { children: React.ReactNode, [key: string]: any }) => <div data-testid="mock-modal-footer" {...props}>{children}</div>;
+    // Use underscore prefix for unused props to avoid lint errors
+    (MockModal as unknown as { Header: React.FC<{ children: React.ReactNode; closeButton?: boolean; [key: string]: unknown }> }).Header =
+        ({ children, closeButton, ...props }) => (
+            <div data-testid="mock-modal-header" {...props}>
+                {children}
+                {closeButton && <button data-testid="mock-modal-header-close-button" onClick={() => { }}>×</button>}
+            </div>
+        );
+    (MockModal as unknown as { Title: React.FC<{ children: React.ReactNode; [key: string]: unknown }> }).Title =
+        ({ children, ...props }) => <div data-testid="mock-modal-title" {...props}>{children}</div>;
+    (MockModal as unknown as { Body: React.FC<{ children: React.ReactNode; [key: string]: unknown }> }).Body =
+        ({ children, ...props }) => <div data-testid="mock-modal-body" {...props}>{children}</div>;
+    (MockModal as unknown as { Footer: React.FC<{ children: React.ReactNode; [key: string]: unknown }> }).Footer =
+        ({ children, ...props }) => <div data-testid="mock-modal-footer" {...props}>{children}</div>;
 
     // --- Mock for Tab and Tab.Pane ---
-    const MockTabContainer = ({ children, ...props }: any) => <div {...props}>{children}</div>;
-    (MockTabContainer as any).Pane = ({ children, eventKey, ...props }: { eventKey: string, children: React.ReactNode, [key: string]: any }) => (
+    type MockTabContainerType = React.FC<{ children: React.ReactNode; [key: string]: unknown }> & {
+        Pane: React.FC<{ eventKey: string; children: React.ReactNode; [key: string]: unknown }>;
+    };
+
+    const MockTabContainer: MockTabContainerType = (({ children, ...props }) => <div {...props}>{children}</div>) as MockTabContainerType;
+
+    MockTabContainer.Pane = ({ children, eventKey, ...props }) => (
         <div data-testid={`mock-tab-pane-${eventKey}`} {...props}>
             {children}
         </div>
@@ -77,7 +85,7 @@ vi.mock('react-bootstrap', async (importOriginal) => {
         onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void,
         variant?: string,
         disabled?: boolean,
-        [key: string]: any
+        [key: string]: unknown
     }) => (
         <button onClick={onClick} data-variant={variant} disabled={disabled} {...props}>
             {children}
@@ -423,12 +431,12 @@ describe('ApproveTabPane', () => {
     });
 
     it('shows loading state on refresh button', async () => {
-        let resolveFetch: any;
-        mockedAxios.get.mockImplementationOnce(() => new Promise(res => resolveFetch = res)); // First call hangs
+        let resolveFetch!: (value: { data: { pendingRequests: PendingRequest[] } }) => void;
+        mockedAxios.get.mockImplementationOnce(() => new Promise(res => { resolveFetch = res; })); // First call hangs
 
         render(<ApproveTabPane {...baseProps} />);
         const refreshButton = screen.getByRole('button', { name: /Refresh/i });
-        
+
         // Wait for initial fetch to start
         await waitFor(() => expect(baseProps.setLoadingInCard).toHaveBeenCalledWith(true));
         expect(refreshButton).toBeDisabled(); // isRefreshing should be true
@@ -438,7 +446,7 @@ describe('ApproveTabPane', () => {
         await waitFor(() => expect(refreshButton).not.toBeDisabled()); // isRefreshing false
 
         // Second fetch for refresh click
-        mockedAxios.get.mockImplementationOnce(() => new Promise(res => resolveFetch = res));
+        mockedAxios.get.mockImplementationOnce(() => new Promise(res => { resolveFetch = res; }));
         fireEvent.click(refreshButton);
         await waitFor(() => expect(refreshButton).toBeDisabled()); // isRefreshing true again
 

@@ -71,9 +71,15 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
                 console.log('SUCCESS TIMEOUT FIRED - Clearing success message');
                 setSuccessMessage('');
             }, 5000);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error approving/rejecting requests:', error);
-            const apiError = error?.response?.data?.error || error.message || 'Error approving/rejecting requests. Please try again.';
+            let apiError = 'Error approving/rejecting requests. Please try again.';
+            if (error && typeof error === 'object' && 'response' in error) {
+                const err = error as { response?: { data?: { error?: string } }; message?: string };
+                apiError = err.response?.data?.error || err.message || apiError;
+            } else if (error instanceof Error) {
+                apiError = error.message || apiError;
+            }
             setErrorMessage(apiError);
             setTimeout(() => setErrorMessage(''), 5000);
         } finally {
@@ -83,7 +89,7 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
 
     useEffect(() => {
         fetchPendingRequests();
-    }, []);
+    },);
 
     return (
         <Tab.Pane eventKey="approve" className="text-start py-3">

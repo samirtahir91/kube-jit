@@ -28,7 +28,7 @@ axios.interceptors.response.use(
             // Call logout endpoint to clear cookies/session
             try {
                 await axios.post(`${config.apiBaseUrl}/kube-jit-api/logout`, {}, { withCredentials: true });
-            } catch (logoutErr) {
+            } catch {
                 // Ignore logout errors
             }
             // Redirect to login page

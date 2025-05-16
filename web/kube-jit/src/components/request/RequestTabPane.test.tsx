@@ -8,11 +8,19 @@ const mockedAxios = axios as unknown as { get: ReturnType<typeof vi.fn>, post: R
 
 vi.mock('react-datepicker', () => ({
   __esModule: true,
-  default: (props: any) => (
+  default: ({
+    selected,
+    onChange,
+    id,
+  }: {
+    selected: Date | null;
+    onChange: (date: Date) => void;
+    id?: string;
+  }) => (
     <input
-      aria-label={props.id}
-      value={props.selected ? props.selected.toISOString().slice(0, 16) : ''}
-      onChange={e => props.onChange(new Date(e.target.value))}
+      aria-label={id}
+      value={selected ? selected.toISOString().slice(0, 16) : ''}
+      onChange={e => onChange(new Date(e.target.value))}
       type="datetime-local"
     />
   ),

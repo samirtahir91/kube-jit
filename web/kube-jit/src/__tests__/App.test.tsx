@@ -5,6 +5,7 @@ import axios from 'axios';
 import App from '../App';
 import config from '../config/config';
 
+
 // --- Mocks ---
 vi.mock('axios');
 const mockedAxios = axios as unknown as {
@@ -63,26 +64,21 @@ vi.mock('react-spinners', () => ({
 // Mock window.location for redirection tests
 const originalLocation = window.location;
 beforeAll(() => {
-    // @ts-ignore
+    // @ts-expect-error: window.location is read-only, but we need to mock it for tests
     delete window.location;
-    // @ts-ignore
     window.location = {
         href: '',
         pathname: '/',
         search: '',
         assign: vi.fn((url: string) => {
-            // @ts-ignore
             window.location.href = url;
-            // @ts-ignore
             window.location.pathname = new URL(url, 'http://localhost').pathname;
         }),
         replace: vi.fn((url: string) => {
-            // @ts-ignore
             window.location.href = url;
-            // @ts-ignore
             window.location.pathname = new URL(url, 'http://localhost').pathname;
         })
-    } as any;
+    } as unknown as string & Location;
 });
 
 afterAll(() => {
@@ -160,7 +156,7 @@ describe('App', () => {
                 ok: true,
                 json: () => Promise.resolve(mockUserData),
             })
-        ) as any;
+        ) as unknown as typeof fetch;
 
         renderApp();
 
@@ -189,7 +185,7 @@ describe('App', () => {
                 ok: true,
                 json: () => Promise.resolve(mockUserData),
             })
-        ) as any;
+        ) as unknown as typeof fetch;
         
         // Mock permissions fetch for after login
         mockedAxios.post.mockImplementation(async (url) => {
@@ -216,8 +212,8 @@ describe('App', () => {
         // Setup logged-in state
         localStorageMock.setItem('tokenExpiry', new Date(Date.now() + 3600 * 1000).toISOString());
         localStorageMock.setItem('loginMethod', 'mockProvider');
-        global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(mockUserData) })) as any;
-        
+        global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(mockUserData) })) as unknown as typeof fetch;
+
         renderApp();
         await waitFor(() => expect(screen.getByTestId('mock-profile')).toBeInTheDocument());
 
@@ -232,10 +228,10 @@ describe('App', () => {
     });
 
     describe('Role-based rendering', () => {
-        const setupLoggedInStateWithPermissions = async (permissions: any) => {
+        const setupLoggedInStateWithPermissions = async (permissions: Record<string, boolean>) => {
             localStorageMock.setItem('tokenExpiry', new Date(Date.now() + 3600 * 1000).toISOString());
             localStorageMock.setItem('loginMethod', 'mockProvider');
-            global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(mockUserData) })) as any;
+            global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(mockUserData) })) as unknown as typeof fetch;
             mockedAxios.post.mockImplementation(async (url) => {
                 if (url.includes('/permissions')) return { data: permissions };
                 if (url.includes('/logout')) return { data: { message: 'Logged out'} };
@@ -279,7 +275,7 @@ describe('App', () => {
     it('handles tab navigation', async () => {
         localStorageMock.setItem('tokenExpiry', new Date(Date.now() + 3600 * 1000).toISOString());
         localStorageMock.setItem('loginMethod', 'mockProvider');
-        global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(mockUserData) })) as any;
+        global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(mockUserData) })) as unknown as typeof fetch;
         mockedAxios.post.mockResolvedValueOnce({ data: { isApprover: true, isAdmin: false, isPlatformApprover: false } }); // For permissions
 
         renderApp();
@@ -317,8 +313,8 @@ describe('App', () => {
         localStorageMock.setItem('loginMethod', 'mockProvider');
         
         // Make fetch slow
-        let resolveFetch: any;
-        global.fetch = vi.fn(() => new Promise(res => { resolveFetch = res; })) as any;
+        let resolveFetch: (value: { ok: boolean; json: () => Promise<typeof mockUserData> }) => void;
+        global.fetch = vi.fn(() => new Promise(res => { resolveFetch = res; })) as unknown as typeof fetch;
 
         renderApp();
         // Wait for spinner to appear
@@ -336,7 +332,7 @@ describe('App', () => {
     it('fetches and passes build SHA to Footer', async () => {
         localStorageMock.setItem('tokenExpiry', new Date(Date.now() + 3600 * 1000).toISOString());
         localStorageMock.setItem('loginMethod', 'mockProvider');
-        global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(mockUserData) })) as any;
+        global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(mockUserData) })) as unknown as typeof fetch;
 
         renderApp();
         await waitFor(() => expect(screen.getByTestId('mock-profile')).toBeInTheDocument());
@@ -360,8 +356,8 @@ describe('App', () => {
                 status: 401,
                 json: () => Promise.resolve({ error: 'Unauthorized' }),
             })
-        ) as any;
-        
+        ) as unknown as typeof fetch;
+
         // Mock logout API call that the interceptor would make
         mockedAxios.post.mockImplementation(async (url) => {
             if (url.includes('/logout')) {
@@ -380,12 +376,12 @@ describe('App', () => {
         // Setup logged-in state
         localStorageMock.setItem('tokenExpiry', new Date(Date.now() + 3600 * 1000).toISOString());
         localStorageMock.setItem('loginMethod', 'mockProvider');
-        global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(mockUserData) })) as any;
+        global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(mockUserData) })) as unknown as typeof fetch;
 
         // Mock permissions to return 401
         mockedAxios.post.mockImplementation(async (url) => {
             if (url.includes('/permissions')) {
-                const error: any = new Error("Unauthorized");
+                const error = new Error("Unauthorized") as Error & { response?: { status: number } };
                 error.response = { status: 401 };
                 throw error; // This will be caught by the interceptor
             }

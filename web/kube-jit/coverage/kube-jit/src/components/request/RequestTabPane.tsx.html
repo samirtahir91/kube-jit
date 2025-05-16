@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">73.19% </span>
+                <span class="strong">72.72% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>344/470</span>
+                <span class='fraction'>344/473</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">73.19% </span>
+                <span class="strong">72.72% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>344/470</span>
+                <span class='fraction'>344/473</span>
             </div>
         
             
@@ -627,7 +627,10 @@
 <a name='L562'></a><a href='#L562'>562</a>
 <a name='L563'></a><a href='#L563'>563</a>
 <a name='L564'></a><a href='#L564'>564</a>
-<a name='L565'></a><a href='#L565'>565</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L565'></a><a href='#L565'>565</a>
+<a name='L566'></a><a href='#L566'>566</a>
+<a name='L567'></a><a href='#L567'>567</a>
+<a name='L568'></a><a href='#L568'>568</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -790,21 +793,15 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -830,10 +827,19 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1345,7 +1351,7 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
 <span class="cstat-no" title="statement not covered" >        const reader = new FileReader();</span>
 <span class="cstat-no" title="statement not covered" >        reader.onload = (event) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >            try {</span>
-<span class="cstat-no" title="statement not covered" >                let data: any;</span>
+<span class="cstat-no" title="statement not covered" >                let data: unknown;</span>
 <span class="cstat-no" title="statement not covered" >                if (file.name.endsWith(".json")) {</span>
 <span class="cstat-no" title="statement not covered" >                    data = JSON.parse(event.target?.result as string);</span>
 <span class="cstat-no" title="statement not covered" >                } else if (file.name.endsWith(".yaml") || file.name.endsWith(".yml")) {</span>
@@ -1354,50 +1360,53 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
 <span class="cstat-no" title="statement not covered" >                    throw new Error("Unsupported file type. Please upload a .yaml, .yml, or .json file.");</span>
 <span class="cstat-no" title="statement not covered" >                }</span>
 &nbsp;
-                // Users and Namespaces (already validated by InputTag)
-<span class="cstat-no" title="statement not covered" >                if (data.users &amp;&amp; userInputTagRef.current) {</span>
-<span class="cstat-no" title="statement not covered" >                    const userArr = Array.isArray(data.users)</span>
-<span class="cstat-no" title="statement not covered" >                        ? data.users</span>
-<span class="cstat-no" title="statement not covered" >                        : data.users.split(/[;, ]/).filter(Boolean);</span>
-<span class="cstat-no" title="statement not covered" >                    userInputTagRef.current.setTagsFromStrings(userArr);</span>
-<span class="cstat-no" title="statement not covered" >                }</span>
-<span class="cstat-no" title="statement not covered" >                if (data.namespaces &amp;&amp; nsInputTagRef.current) {</span>
-<span class="cstat-no" title="statement not covered" >                    const nsArr = Array.isArray(data.namespaces)</span>
-<span class="cstat-no" title="statement not covered" >                        ? data.namespaces</span>
-<span class="cstat-no" title="statement not covered" >                        : data.namespaces.split(/[;, ]/).filter(Boolean);</span>
-<span class="cstat-no" title="statement not covered" >                    nsInputTagRef.current.setTagsFromStrings(nsArr);</span>
-<span class="cstat-no" title="statement not covered" >                }</span>
+<span class="cstat-no" title="statement not covered" >                if (typeof data === 'object' &amp;&amp; data !== null) {</span>
+<span class="cstat-no" title="statement not covered" >                    const d = data as { users?: string[] | string; namespaces?: string[] | string; justification?: string; cluster?: string; role?: string };</span>
 &nbsp;
-                // Justification: enforce 100 char limit
-<span class="cstat-no" title="statement not covered" >                if (data.justification) {</span>
-<span class="cstat-no" title="statement not covered" >                    if (data.justification.length &lt;= 100) {</span>
-<span class="cstat-no" title="statement not covered" >                        setJustification(data.justification);</span>
-<span class="cstat-no" title="statement not covered" >                    } else {</span>
-<span class="cstat-no" title="statement not covered" >                        setErrorMessage("Justification exceeds 100 characters.");</span>
+                    // Users and Namespaces (already validated by InputTag)
+<span class="cstat-no" title="statement not covered" >                    if (d.users &amp;&amp; userInputTagRef.current) {</span>
+<span class="cstat-no" title="statement not covered" >                        const userArr = Array.isArray(d.users)</span>
+<span class="cstat-no" title="statement not covered" >                            ? d.users</span>
+<span class="cstat-no" title="statement not covered" >                            : d.users.split(/[;, ]/).filter(Boolean);</span>
+<span class="cstat-no" title="statement not covered" >                        userInputTagRef.current.setTagsFromStrings(userArr);</span>
 <span class="cstat-no" title="statement not covered" >                    }</span>
+<span class="cstat-no" title="statement not covered" >                    if (d.namespaces &amp;&amp; nsInputTagRef.current) {</span>
+<span class="cstat-no" title="statement not covered" >                        const nsArr = Array.isArray(d.namespaces)</span>
+<span class="cstat-no" title="statement not covered" >                            ? d.namespaces</span>
+<span class="cstat-no" title="statement not covered" >                            : d.namespaces.split(/[;, ]/).filter(Boolean);</span>
+<span class="cstat-no" title="statement not covered" >                        nsInputTagRef.current.setTagsFromStrings(nsArr);</span>
+<span class="cstat-no" title="statement not covered" >                    }</span>
+&nbsp;
+                    // Justification: enforce 100 char limit
+<span class="cstat-no" title="statement not covered" >                    if (d.justification) {</span>
+<span class="cstat-no" title="statement not covered" >                        if (d.justification.length &lt;= 100) {</span>
+<span class="cstat-no" title="statement not covered" >                            setJustification(d.justification);</span>
+<span class="cstat-no" title="statement not covered" >                        } else {</span>
+<span class="cstat-no" title="statement not covered" >                            setErrorMessage("Justification exceeds 100 characters.");</span>
+<span class="cstat-no" title="statement not covered" >                        }</span>
+<span class="cstat-no" title="statement not covered" >                    }</span>
+&nbsp;
+                    // Cluster: only set if value is in allowed clusters
+<span class="cstat-no" title="statement not covered" >                    if (d.cluster &amp;&amp; clusters.includes(d.cluster)) {</span>
+<span class="cstat-no" title="statement not covered" >                        setSelectedCluster({ label: d.cluster, value: d.cluster });</span>
+<span class="cstat-no" title="statement not covered" >                        setClusterError('');</span>
+<span class="cstat-no" title="statement not covered" >                    } else if (d.cluster) {</span>
+<span class="cstat-no" title="statement not covered" >                        setClusterError(`Cluster "${d.cluster}" in upload is not a valid option.`);</span>
+<span class="cstat-no" title="statement not covered" >                        setSelectedCluster(null);</span>
+<span class="cstat-no" title="statement not covered" >                    }</span>
+&nbsp;
+                    // Role: only set if value is in allowed roles
+<span class="cstat-no" title="statement not covered" >                    const allowedRole = roles.find(role =&gt; role.name === d.role);</span>
+<span class="cstat-no" title="statement not covered" >                    if (d.role &amp;&amp; allowedRole) {</span>
+<span class="cstat-no" title="statement not covered" >                        setSelectedRole({ label: d.role, value: d.role });</span>
+<span class="cstat-no" title="statement not covered" >                        setRoleError('');</span>
+<span class="cstat-no" title="statement not covered" >                    } else if (d.role) {</span>
+<span class="cstat-no" title="statement not covered" >                        setRoleError(`Role "${d.role}" in upload is not a valid option.`);</span>
+<span class="cstat-no" title="statement not covered" >                        setSelectedRole(null);</span>
+<span class="cstat-no" title="statement not covered" >                    }</span>
+&nbsp;
+                    // Do NOT set startDate or endDate from bulk upload
 <span class="cstat-no" title="statement not covered" >                }</span>
-&nbsp;
-                // Cluster: only set if value is in allowed clusters
-<span class="cstat-no" title="statement not covered" >                if (data.cluster &amp;&amp; clusters.includes(data.cluster)) {</span>
-<span class="cstat-no" title="statement not covered" >                    setSelectedCluster({ label: data.cluster, value: data.cluster });</span>
-<span class="cstat-no" title="statement not covered" >                    setClusterError('');</span>
-<span class="cstat-no" title="statement not covered" >                } else if (data.cluster) {</span>
-<span class="cstat-no" title="statement not covered" >                    setClusterError(`Cluster "${data.cluster}" in upload is not a valid option.`);</span>
-<span class="cstat-no" title="statement not covered" >                    setSelectedCluster(null);</span>
-<span class="cstat-no" title="statement not covered" >                }</span>
-&nbsp;
-                // Role: only set if value is in allowed roles
-<span class="cstat-no" title="statement not covered" >                const allowedRole = roles.find(role =&gt; role.name === data.role);</span>
-<span class="cstat-no" title="statement not covered" >                if (data.role &amp;&amp; allowedRole) {</span>
-<span class="cstat-no" title="statement not covered" >                    setSelectedRole({ label: data.role, value: data.role });</span>
-<span class="cstat-no" title="statement not covered" >                    setRoleError('');</span>
-<span class="cstat-no" title="statement not covered" >                } else if (data.role) {</span>
-<span class="cstat-no" title="statement not covered" >                    setRoleError(`Role "${data.role}" in upload is not a valid option.`);</span>
-<span class="cstat-no" title="statement not covered" >                    setSelectedRole(null);</span>
-<span class="cstat-no" title="statement not covered" >                }</span>
-&nbsp;
-                // Do NOT set startDate or endDate from bulk upload
-&nbsp;
 <span class="cstat-no" title="statement not covered" >            } catch (err) {</span>
 <span class="cstat-no" title="statement not covered" >                setErrorMessage("Failed to parse file: " + (err as Error).message);</span>
 <span class="cstat-no" title="statement not covered" >            }</span>
@@ -1762,7 +1771,7 @@ export default RequestTabPane;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-05-15T07:57:52.527Z
+                at 2025-05-16T12:32:49.128Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>
