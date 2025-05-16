@@ -101,8 +101,6 @@ describe('RequestTable', () => {
     expect(screen.getByText('admin')).toBeInTheDocument();
     expect(screen.getByText('All good')).toBeInTheDocument();
     expect(screen.getAllByText('prod-ns').length).toBeGreaterThan(0);
-    // or:
-    // expect(screen.getAllByText('prod-ns').some(el => el.tagName === 'TD' || el.tagName === 'STRONG')).toBe(true);
 
     // Filter by cluster (cluster filter is after username/users filters)
     fireEvent.change(screen.getAllByPlaceholderText('Filter')[2], { target: { value: 'dev' } });

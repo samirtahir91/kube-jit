@@ -49,9 +49,6 @@ vi.mock('react-bootstrap', async (importOriginal) => {
         show ? (
             <div data-testid="mock-modal" {...props}>
                 {children}
-                {/* This button is just for the mock's internal structure if needed,
-                    tests usually interact with buttons rendered as part of 'children' (e.g., in Modal.Footer)
-                    or a specific close button if the component uses Modal.Header's closeButton prop. */}
             </div>
         ) : null;
 
@@ -59,10 +56,6 @@ vi.mock('react-bootstrap', async (importOriginal) => {
         <div data-testid="mock-modal-header" {...props}>
             {children}
             {closeButton && <button data-testid="mock-modal-header-close-button" onClick={() => {
-                // In a real scenario, this would call the onHide from the parent Modal.
-                // For testing, if onHide needs to be triggered by this, the parent mock modal
-                // would need to pass its onHide function down or be structured differently.
-                // However, tests usually trigger onHide via other means (e.g., clicking a "Cancel" button).
             }}>×</button>}
         </div>
     );
@@ -71,9 +64,7 @@ vi.mock('react-bootstrap', async (importOriginal) => {
     (MockModal as any).Footer = ({ children, ...props }: { children: React.ReactNode, [key: string]: any }) => <div data-testid="mock-modal-footer" {...props}>{children}</div>;
 
     // --- Mock for Tab and Tab.Pane ---
-    // Tab itself might not be rendered if only Tab.Pane is used directly from it.
-    // If Tab is used as <Tab><Tab.Pane /></Tab>, then MockTab needs to render children.
-    const MockTabContainer = ({ children, ...props }: any) => <div {...props}>{children}</div>; // A simple container for Tab
+    const MockTabContainer = ({ children, ...props }: any) => <div {...props}>{children}</div>;
     (MockTabContainer as any).Pane = ({ children, eventKey, ...props }: { eventKey: string, children: React.ReactNode, [key: string]: any }) => (
         <div data-testid={`mock-tab-pane-${eventKey}`} {...props}>
             {children}
@@ -149,7 +140,7 @@ const getModalButton = (name: RegExp) => {
     return within(modal).getByRole('button', { name });
 };
 
-// Add this helper at the top of your test file (or in a test utils file)
+// Utility: advances timers and retries the callback until it passes or times out
 async function waitForWithTimers<T>(cb: () => T | Promise<T>, step = 50, max = 5000) {
     const start = Date.now();
     let lastErr;
@@ -166,6 +157,7 @@ async function waitForWithTimers<T>(cb: () => T | Promise<T>, step = 50, max = 5
     throw lastErr;
 }
 
+// Test suite for ApproveTabPane
 describe('ApproveTabPane', () => {
     beforeEach(() => {
         vi.clearAllMocks(); // Clears mock call history etc.
@@ -241,7 +233,6 @@ describe('ApproveTabPane', () => {
     });
 
     it('handles approving selected requests', async () => {
-        // Using real timers for this test
         render(<ApproveTabPane {...baseProps} />);
         await screen.findByTestId('request-table'); 
 
@@ -350,7 +341,6 @@ describe('ApproveTabPane', () => {
     });
 
     it('handles error during approve/reject API call with specific message', async () => {
-        // Using real timers for this test initially
         mockedAxios.post.mockRejectedValue({ response: { data: { error: 'API specific error message' } } });
         render(<ApproveTabPane {...baseProps} />);
         await screen.findByTestId('request-table');

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'; // Added within
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import HistoryTabPane from './HistoryTabPane';
@@ -113,7 +113,7 @@ describe('HistoryTabPane', () => {
   it('does not fetch requests on initial load if originTab is not "request"', async () => {
     render(<HistoryTabPane {...baseProps} originTab="other" />);
     expect(screen.getByText('Search access requests')).toBeInTheDocument();
-    // Use a short waitFor to ensure no async calls are made, or simply check mock not called
+    // ensure no async calls are made, or simply check mock not called
     await expect(vi.waitFor(() => expect(mockedAxios.get).toHaveBeenCalled(), {timeout: 50})).rejects.toThrow();
     expect(mockedAxios.get).not.toHaveBeenCalled();
   });

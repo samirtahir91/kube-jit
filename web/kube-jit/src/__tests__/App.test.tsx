@@ -374,10 +374,6 @@ describe('App', () => {
 
         // App.tsx's fetchAllData catch block will setLogin(true)
         await waitFor(() => expect(screen.getByTestId('mock-login')).toBeInTheDocument());
-        
-        // If the 401 interceptor was triggered by an *axios* call, we'd check these:
-        // await waitFor(() => expect(mockedAxios.post).toHaveBeenCalledWith(expect.stringContaining('/logout'), {}, expect.any(Object)));
-        // await waitFor(() => expect(window.location.pathname).toBe('/')); // or window.location.href
     });
 
     it('axios interceptor redirects to login on 401 from permissions API', async () => {
@@ -409,7 +405,7 @@ describe('App', () => {
             expect(window.location.pathname).toBe("/"); 
         });
 
-        // Optionally, check that /permissions was called
+        // Check that /permissions was called
         expect(mockedAxios.post).toHaveBeenCalledWith(
             `${config.apiBaseUrl}/kube-jit-api/permissions`,
             { provider: 'mockProvider' },
