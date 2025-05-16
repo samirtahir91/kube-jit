@@ -3,10 +3,6 @@ FROM docker.io/golang:1.23 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
-# Add  proxy cert into OS cert store
-ADD wss.crt /usr/local/share/ca-certificates/.crt
-RUN chmod 644 /usr/local/share/ca-certificates/.crt && update-ca-certificates
-
 WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -32,9 +28,6 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o ap
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
-
-# add wss cert
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 WORKDIR /
 COPY --from=builder /workspace/api .

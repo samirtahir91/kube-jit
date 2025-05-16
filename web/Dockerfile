@@ -2,8 +2,7 @@
 FROM node:23.11.0-slim AS build-stage
 WORKDIR /app
 COPY ./kube-jit/ /app/
-# ADD wss.crt /etc/ssl/wss.crt
-# ENV NODE_EXTRA_CA_CERTS=/etc/ssl/wss.crt
+
 RUN yarn install
 RUN yarn run build
 
