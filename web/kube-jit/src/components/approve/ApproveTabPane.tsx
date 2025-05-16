@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Tab, Modal, Button } from 'react-bootstrap';
 import RequestTable from '../requestTable/RequestTable';
 import refreshLogo from '../../assets/refresh.svg';
@@ -23,7 +23,7 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [confirmAction, setConfirmAction] = useState<'Approved' | 'Rejected' | null>(null);
 
-    const fetchPendingRequests = async () => {
+    const fetchPendingRequests = useCallback(async () => {
         setLoadingInCard(true);
         setIsRefreshing(true);
         try {
@@ -39,7 +39,7 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
             setLoadingInCard(false);
             setIsRefreshing(false);
         }
-    };
+    }, [setLoadingInCard]);
 
     const handleSelectRequest = (id: number) => {
         setSelectedRequests(prevSelected =>
@@ -89,7 +89,7 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
 
     useEffect(() => {
         fetchPendingRequests();
-    }, []);
+    }, [fetchPendingRequests]);
 
     return (
         <Tab.Pane eventKey="approve" className="text-start py-3">
