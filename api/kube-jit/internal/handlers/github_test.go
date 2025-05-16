@@ -38,9 +38,7 @@ func TestHandleGitHubLogin(t *testing.T) {
 	originalAllowedGithubOrgEnv := os.Getenv("ALLOWED_GITHUB_ORG")
 	originalAllowedDomainEnv := os.Getenv("ALLOWED_DOMAIN")
 
-	// Mocked functions' original states (if you mock them directly)
-	// e.g. originalFetchGitHubUserProfileFunc := fetchGitHubUserProfile
-
+	// Mocked functions' original states
 	defer func() {
 		// Restore package variables
 		oauthProvider = originalOauthProvider
@@ -57,9 +55,6 @@ func TestHandleGitHubLogin(t *testing.T) {
 		os.Setenv("OAUTH_REDIRECT_URI", originalOauthRedirectURIEnv)
 		os.Setenv("ALLOWED_GITHUB_ORG", originalAllowedGithubOrgEnv)
 		os.Setenv("ALLOWED_DOMAIN", originalAllowedDomainEnv)
-
-		// Restore mocked functions if any
-		// fetchGitHubUserProfile = originalFetchGitHubUserProfileFunc
 
 		httpmock.DeactivateAndReset()
 	}()
@@ -230,7 +225,7 @@ func TestHandleGitHubLogin(t *testing.T) {
 		os.Setenv("ALLOWED_GITHUB_ORG", "strictly-this-org-only")
 		defer func() {
 			allowedOrg = originalTestAllowedOrg
-			os.Setenv("ALLOWED_GITHUB_ORG", originalTestAllowedOrg) // Assuming originalTestAllowedOrg was "test-valid-org"
+			os.Setenv("ALLOWED_GITHUB_ORG", originalTestAllowedOrg)
 		}()
 
 		// 1. Mock GitHub token exchange
@@ -276,6 +271,3 @@ func TestHandleGitHubLogin(t *testing.T) {
 	// - No verified email found
 	// - Fetch orgs fails
 }
-
-// You would add similar TestGetGithubProfile function here,
-// ensuring it also does the setup/teardown for config variables if

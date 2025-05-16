@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import Footer from "./Footer";
 import { describe, it, expect } from "vitest";
 
-// kube-jit-gh-teams/web/kube-jit/src/components/footer/Footer.test.tsx
 
 describe("Footer", () => {
     it("renders copyright, project name, GitHub link, and license", () => {

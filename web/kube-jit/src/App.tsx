@@ -71,7 +71,7 @@ function App() {
         navigate("/"); // Redirect to the login page
     };
 
-    // Define checkPermissions outside useEffect
+    // checkPermissions function to check if the user is an admin or approver
     const checkPermissions = async (provider: string | null) => {
         try {
             const payload = {
@@ -93,6 +93,7 @@ function App() {
         }
     };
 
+    // Fetch profile data and check if the user is logged in
     useEffect(() => {
         const tokenExpiry = localStorage.getItem("tokenExpiry");
 
@@ -132,7 +133,7 @@ function App() {
         }
     }, [navigate]);
 
-    // Simplified useEffect to dynamically check approver status and fetch groups after login
+    // Check approver status and fetch groups after login
     useEffect(() => {
         if (data && data.userData) {
             const provider = localStorage.getItem("loginMethod");
@@ -145,6 +146,7 @@ function App() {
         }
     }, [data]);
 
+    // Fetch build SHA once on mount
     useEffect(() => {
         // Fetch build SHA once on mount
         axios.get(`${config.apiBaseUrl}/kube-jit-api/build-sha`)
@@ -171,6 +173,7 @@ function App() {
         );
     }
 
+    // Render the main card if logged in
     if (data && data.userData) {
         return (
             <div className="app-content">
@@ -260,6 +263,7 @@ function App() {
                 <Footer buildSha={buildSha} />
             </div>
         );
+    // If not logged in, show the login page
     } else if (login) {
         return (
             <div className="app-content login-page">

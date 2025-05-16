@@ -6,7 +6,7 @@ import { PendingRequest, Request } from '../../types';
 
 type RequestTableProps = {
     requests: Request[] | PendingRequest[];
-    mode: 'pending' | 'history'; // Add mode to differentiate between tabs
+    mode: 'pending' | 'history'; // differentiate between tabs
     selectable: boolean;
     selectedRequests: number[];
     handleSelectRequest: (id: number) => void;

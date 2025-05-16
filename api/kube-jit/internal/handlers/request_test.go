@@ -45,7 +45,6 @@ func setupRequestTest(t *testing.T) (*gin.Engine, sqlmock.Sqlmock, func()) {
 	InitLogger(testLogger)        // Initialize logger for handlers package
 	db.InitLogger(testLogger)     // Initialize logger for db package
 	k8s.InitLogger(testLogger)    // Initialize logger for k8s package
-	// email.InitLogger(testLogger) // Assuming email package might also have an InitLogger
 
 	mockDb, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if err != nil {
@@ -57,7 +56,7 @@ func setupRequestTest(t *testing.T) (*gin.Engine, sqlmock.Sqlmock, func()) {
 		PreferSimpleProtocol: true,
 	})
 	gormDB, err := gorm.Open(dialector, &gorm.Config{
-		Logger: gormlogger.Default.LogMode(gormlogger.Info), // CHANGED TO Info
+		Logger: gormlogger.Default.LogMode(gormlogger.Error),
 	})
 	if err != nil {
 		t.Fatalf("Failed to open gorm database: %s", err)
@@ -139,7 +138,7 @@ func TestSubmitRequest(t *testing.T) {
 		mockDB                    func(t *testing.T, mock sqlmock.Sqlmock, payload SubmitRequestPayload, expectedRequestID uint)
 		mockEmail                 func() // To set up the mock for email.SendMail
 		expectedStatus            int
-		expectedBody              interface{} // Can be models.SimpleMessageResponse or other specific response
+		expectedBody              interface{}
 	}{
 		{
 			name: "Successful request submission",
@@ -243,7 +242,7 @@ func TestSubmitRequest(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 
 			// Setup session for this specific test case
-			// We need to create a temporary recorder and context to set session values
+			// create a temporary recorder and context to set session values
 			// then extract the cookie to use in the actual request.
 			sessionSetupRecorder := httptest.NewRecorder()
 			_, tempEngine := gin.CreateTestContext(sessionSetupRecorder)
@@ -260,16 +259,15 @@ func TestSubmitRequest(t *testing.T) {
 			tempEngine.ServeHTTP(sessionSetupRecorder, tempSetupReq)
 
 			for _, cookie := range sessionSetupRecorder.Result().Cookies() {
-				if cookie.Name == "kube_jit_session" { // Or your actual session cookie name if split
+				if cookie.Name == "kube_jit_session" {
 					req.AddCookie(cookie)
 					break
 				}
 			}
-			// If using split cookies, you'd add all relevant cookies here.
 
 			// Serve request
 			w := httptest.NewRecorder()
-			r.POST("/submit-request", SubmitRequest) // Ensure the route is registered
+			r.POST("/submit-request", SubmitRequest)
 			r.ServeHTTP(w, req)
 
 			// Assertions
@@ -367,7 +365,6 @@ func TestApproveOrRejectRequests(t *testing.T) {
 
 				reqDataRow := sqlmock.NewRows(requestDataCols).
 					AddRow(requestID, sampleTime, sampleTime, nil, "test-cluster", "view", "Requested", "user123", "User OneTwoThree", `["user123@example.com"]`, `["ns-a","ns-b"]`, "Admin approval test", sampleTime, sampleTime.Add(2*time.Hour), "requestor@example.com", initialApproverIDsJSON, initialApproverNamesJSON, false, "")
-				// Removed ASC from ORDER BY clause to match GORM's actual query
 				mock.ExpectQuery(`SELECT \* FROM "request_data" WHERE "request_data"."id" = \$1 ORDER BY "request_data"."id" LIMIT \$2`).
 					WithArgs(requestID, 1).
 					WillReturnRows(reqDataRow)

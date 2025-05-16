@@ -46,7 +46,7 @@ func setupRouterAndDBMock(t *testing.T) (*gin.Engine, sqlmock.Sqlmock) {
 	var mock sqlmock.Sqlmock
 	var err error
 
-	sqlDB, mock, err = sqlmock.New() // Ensure this is the version compatible with your sqlmock
+	sqlDB, mock, err = sqlmock.New()
 	if err != nil {
 		t.Fatalf("Failed to create sqlmock: %v", err)
 	}
@@ -62,28 +62,19 @@ func setupRouterAndDBMock(t *testing.T) (*gin.Engine, sqlmock.Sqlmock) {
 	}
 
 	// Store the original db.DB instance only if it hasn't been stored yet (e.g. by a concurrent test)
-	// This handling of a global db.DB can be tricky with parallel tests. Consider alternatives if issues arise.
 	if originalDB == nil && db.DB != nil { // A basic attempt to save the original only once
 		originalDB = db.DB
 	} else if originalDB == nil && db.DB == nil {
 		// If db.DB is nil initially, originalDB will also be nil.
-		// This is fine, teardown will handle it.
 	}
 
 	db.DB = gormDB // Replace with mock DB instance
-
-	// It's good practice for setup to return the underlying sql.DB so the test can defer its close.
-	// However, to minimize changes to your existing teardown signature:
-	// We will close the gormDB's underlying connection in teardownDBMock.
-	// For a cleaner approach, consider having setup return sqlDB and tests defer sqlDB.Close().
 
 	return router, mock
 }
 
 // teardownDBMock restores the original database connection and closes the mock's underlying sql.DB.
 func teardownDBMock(mock sqlmock.Sqlmock) {
-	// db.DB currently points to the gormDB instance that uses the sqlmock connection.
-	// We need to close the underlying sql.DB connection that sqlmock created.
 	if db.DB != nil && db.DB != originalDB { // Ensure we are closing the mocked DB, not the original one if already restored
 		gormMockedDB := db.DB
 		sqlDBFromMock, err := gormMockedDB.DB()
@@ -147,7 +138,7 @@ func TestCleanExpiredRequests_Unauthorized_IsAdminMissing(t *testing.T) {
 		// to the "sessionData" context value. Assuming it defaults to false.
 		sessionContextData := map[string]interface{}{
 			"userID":  "test-user",
-			"isAdmin": false, // Adjust if your app treats missing isAdmin differently
+			"isAdmin": false,
 		}
 		c.Set("sessionData", sessionContextData)
 
@@ -208,7 +199,6 @@ func TestCleanExpiredRequests_Success_DeletesRecords(t *testing.T) {
 
 	mock.ExpectBegin()
 	// GORM uses the table name from the model, typically plural snake_case.
-	// Assuming models.RequestData{} maps to "request_data" table.
 	mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM "request_data" WHERE end_date < $1 AND status = $2`)).
 		WithArgs(sqlmock.AnyArg(), "Requested"). // time.Now() is $1, "Requested" is $2
 		WillReturnResult(sqlmock.NewResult(0, expectedDeletedCount))
@@ -235,7 +225,7 @@ func TestCleanExpiredRequests_Success_DeletesRecords(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp CleanExpiredResponse // Assuming CleanExpiredResponse is a defined type
+	var resp CleanExpiredResponse
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, "Expired non-approved requests cleaned", resp.Message)
@@ -258,7 +248,7 @@ func TestCleanExpiredRequests_Success_NoRecordsToDelete(t *testing.T) {
 	router.POST("/admin/clean-expired", func(c *gin.Context) {
 		s := sessions.Default(c)
 		s.Set("isAdmin", true)
-		s.Set("userID", "admin-user") // Example userID
+		s.Set("userID", "admin-user")
 		err := s.Save()
 		assert.NoError(t, err)
 
@@ -276,7 +266,7 @@ func TestCleanExpiredRequests_Success_NoRecordsToDelete(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var resp CleanExpiredResponse // Assuming CleanExpiredResponse is a defined type
+	var resp CleanExpiredResponse
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, "Expired non-approved requests cleaned", resp.Message)
@@ -294,12 +284,12 @@ func TestCleanExpiredRequests_DBError(t *testing.T) {
 	mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM "request_data" WHERE end_date < $1 AND status = $2`)).
 		WithArgs(sqlmock.AnyArg(), "Requested").
 		WillReturnError(dbQueryError)
-	mock.ExpectRollback() // Assuming an error in Exec leads to a rollback
+	mock.ExpectRollback()
 
 	router.POST("/admin/clean-expired", func(c *gin.Context) {
 		s := sessions.Default(c)
 		s.Set("isAdmin", true)
-		s.Set("userID", "admin-user") // Example userID
+		s.Set("userID", "admin-user")
 		err := s.Save()
 		assert.NoError(t, err)
 

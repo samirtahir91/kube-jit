@@ -5,7 +5,6 @@ metadata:
   namespace: kube-jit-web
   annotations:
     kubernetes.io/ingressClassName: "gce"
-    networking.gke.io/ssl-cert: "signed"  # Name of your uploaded cert
 spec:
   rules:
     - host: jit-test.samirtahir.dev

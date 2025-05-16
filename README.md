@@ -26,7 +26,7 @@ Kube JIT enables organizations to reduce standing privileges and improve complia
 - **Auditing & Compliance:** All access requests and grants are logged for auditability and compliance.
 - **Kubernetes Native:** Works with standard Kubernetes RBAC and integrates seamlessly with your existing clusters.
 - **Automatic Expiry:** Ensures that all granted permissions are automatically revoked after the approved time window.
-- **Extensible:** Designed to support additional identity providers and custom approval workflows.
+- **Extensible:** Designed to support additional identity providers.
 - **Secure by Design:** Minimizes standing privileges and enforces least-privilege access.
 
 ## Installation
@@ -37,7 +37,7 @@ Kube JIT enables organizations to reduce standing privileges and improve complia
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) access to all clusters
 - [Helm 3](https://helm.sh/docs/intro/install/) installed
 - Identity provider (Azure/Microsoft, Google, or GitHub)
-- Go 1.20+ for development (if building from source)
+- Node 22.15.0+ (for web), Go 1.20+ (for API and controller) for development (if building from source)
 - Docker (for building images, if not using pre-built)
 
 ### 2. Deploy the API and Web UI (Management Cluster)
