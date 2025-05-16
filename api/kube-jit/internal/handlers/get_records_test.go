@@ -44,7 +44,7 @@ func setupGetRecordsTest(t *testing.T) (*gin.Engine, sqlmock.Sqlmock, func()) {
 		PreferSimpleProtocol: true,
 	})
 	gormDB, err := gorm.Open(dialector, &gorm.Config{
-		Logger: gormlogger.Default.LogMode(gormlogger.Info), // Use gormlogger.Info for verbose GORM logs
+		Logger: gormlogger.Default.LogMode(gormlogger.Silent), // Suppress GORM logging
 	})
 	if err != nil {
 		t.Fatalf("Failed to open gorm database: %s", err)

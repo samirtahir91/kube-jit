@@ -168,7 +168,8 @@ func TestHandleGitHubLogin(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		var respData models.SimpleMessageResponse
-		json.Unmarshal(w.Body.Bytes(), &respData)
+		err := json.Unmarshal(w.Body.Bytes(), &respData)
+		assert.NoError(t, err)
 		assert.Equal(t, "Code query parameter is required", respData.Error)
 		httpmock.Reset()
 	})
@@ -187,7 +188,8 @@ func TestHandleGitHubLogin(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code) // HandleGitHubLogin returns 400 for this
 		var respData models.SimpleMessageResponse
-		json.Unmarshal(w.Body.Bytes(), &respData)
+		err := json.Unmarshal(w.Body.Bytes(), &respData)
+		assert.NoError(t, err)
 		assert.Equal(t, "Error fetching access token from GitHub", respData.Error)
 		httpmock.Reset()
 	})
@@ -213,7 +215,8 @@ func TestHandleGitHubLogin(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 		var respData models.SimpleMessageResponse
-		json.Unmarshal(w.Body.Bytes(), &respData)
+		err := json.Unmarshal(w.Body.Bytes(), &respData)
+		assert.NoError(t, err)
 		assert.Contains(t, respData.Error, "error fetching user data from GitHub")
 		httpmock.Reset()
 	})
@@ -260,7 +263,8 @@ func TestHandleGitHubLogin(t *testing.T) {
 
 		assert.Equal(t, http.StatusForbidden, w.Code)
 		var respData models.SimpleMessageResponse
-		json.Unmarshal(w.Body.Bytes(), &respData)
+		err := json.Unmarshal(w.Body.Bytes(), &respData)
+		assert.NoError(t, err)
 		assert.Equal(t, "Unauthorized org", respData.Error)
 		httpmock.Reset()
 	})

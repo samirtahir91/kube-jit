@@ -183,10 +183,12 @@ func main() <span class="cov0" title="0">{
         if err != nil </span><span class="cov0" title="0">{
                 panic(err)</span>
         }
-        <span class="cov0" title="0">defer logger.Sync()
+        <span class="cov0" title="0">defer func() </span><span class="cov0" title="0">{
+                _ = logger.Sync()
+        }</span>()
 
         // Register gob types for db
-        gob.Register(map[string]any{})
+        <span class="cov0" title="0">gob.Register(map[string]any{})
 
         // Initialize zap logger in all packages
         handlers.InitLogger(logger)
