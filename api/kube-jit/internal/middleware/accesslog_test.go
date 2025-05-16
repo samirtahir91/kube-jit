@@ -99,7 +99,7 @@ func TestAccessLogger(t *testing.T) {
 			assert.Equal(t, int64(http.StatusOK), fields["status"], "Status code mismatch")
 			assert.Equal(t, http.MethodGet, fields["method"], "HTTP method mismatch")
 			assert.Equal(t, "/test", fields["path"], "Path mismatch")
-			assert.Equal(t, "query=param", fields["query"], "Query mismatch") // Corrected expected value
+			assert.Equal(t, "query=param", fields["query"], "Query mismatch")
 			assert.Equal(t, "192.0.2.1", fields["ip"], "Client IP mismatch")
 			assert.Equal(t, "test-agent", fields["user-agent"], "User agent mismatch")
 

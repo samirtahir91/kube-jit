@@ -33,7 +33,7 @@ func TestLoginResponse_JSON(t *testing.T) {
 	// Assert equality
 	assert.Equal(t, original, unmarshaled, "Original and unmarshaled LoginResponse should be equal")
 
-	// Optional: Assert specific JSON structure or values if needed
+	// Assert specific JSON structure or values if needed
 	expectedJSON := `{"userData":{"id":"user123","name":"Test User","email":"test@example.com","avatar_url":"http://example.com/avatar.png","provider":"github"},"expiresIn":3600}`
 	assert.JSONEq(t, expectedJSON, string(jsonData), "JSON output for LoginResponse is not as expected")
 }

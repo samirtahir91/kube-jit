@@ -164,13 +164,6 @@ func TestSetupMiddleware_SessionSplitCombine(t *testing.T) {
 		s := sessions.Default(c)
 		s.Set(sessionKey, reqBody["payload"])
 		// No s.Save() needed here, SplitAndCombineSessionMiddleware handles saving "data"
-		// by reading from session.Get("data") after c.Next()
-		// For this test, we are setting the "data" key directly as the custom middleware expects.
-		// The custom middleware reads session.Get("data") and writes it to cookies.
-		// And on incoming, it reads cookies and does session.Set("data", ...)
-		// So, to test the writing part, we need to ensure "data" is set.
-		// The auth middleware sets "sessionData", but the split/combine middleware uses "data".
-		// Let's assume the "data" key is the one managed by SplitAndCombine.
 		s.Set("data", reqBody["payload"]) // This is what SplitSessionData will look for
 		c.Status(http.StatusOK)
 	})
@@ -231,8 +224,7 @@ func TestSetupMiddleware_SessionSplitCombine(t *testing.T) {
 		err := json.Unmarshal(getW.Body.Bytes(), &getRespBody)
 		assert.NoError(t, err)
 
-		// Asserting map equality can be tricky with testify if types differ (e.g. int vs float64 from JSON)
-		// We compare the marshaled JSON strings for a robust comparison of complex structures.
+		// compare the marshaled JSON strings for a robust comparison of complex structures.
 		expectedPayloadJSON, _ := json.Marshal(payloadToSet)
 		retrievedPayloadJSON, _ := json.Marshal(getRespBody["retrieved"])
 		assert.JSONEq(t, string(expectedPayloadJSON), string(retrievedPayloadJSON), "Retrieved session data does not match set data")

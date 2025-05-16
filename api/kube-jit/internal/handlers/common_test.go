@@ -128,7 +128,6 @@ func TestCommonInitLogic(t *testing.T) {
 
 			// Manually run the logic that init() would perform on package variables
 			// This is because init() itself only runs once per package load.
-			// We are testing the logic, not the Go init mechanism itself.
 			tt.runInitLogicManually()
 
 			assert.Equal(t, tt.expectedDomain, allowedDomain, "allowedDomain mismatch")
@@ -153,8 +152,7 @@ func TestGetOauthClientId(t *testing.T) {
 	originalAzureAuthURL := os.Getenv("AZURE_AUTH_URL")
 	originalAzureTokenURL := os.Getenv("AZURE_TOKEN_URL")
 
-	// Mock getAzureOAuthConfig if it's complex or makes external calls
-	// For this test, we'll assume it can be called if AZURE_AUTH_URL is set.
+	// Mock getAzureOAuthConfig
 	originalGetAzureCfg := getAzureOAuthConfig
 	defer func() {
 		getAzureOAuthConfig = originalGetAzureCfg
@@ -165,7 +163,7 @@ func TestGetOauthClientId(t *testing.T) {
 		os.Setenv("AZURE_TOKEN_URL", originalAzureTokenURL)
 	}()
 
-	r := setupTestRouter() // Assumes setupTestRouter is available
+	r := setupTestRouter()
 	r.GET("/client_id", GetOauthClientId)
 
 	testCases := []struct {
@@ -226,7 +224,7 @@ func TestGetOauthClientId(t *testing.T) {
 			clientID = tc.setupClientID
 			redirectUri = tc.setupRedirectURI
 			os.Setenv("AZURE_AUTH_URL", tc.setupAzureAuthURL)
-			// AZURE_TOKEN_URL is also needed by getAzureOAuthConfig, set a dummy if not testing its value
+			// AZURE_TOKEN_URL is also needed by getAzureOAuthConfig
 			os.Setenv("AZURE_TOKEN_URL", "https://dummy.token.url")
 
 			// If provider is Azure, ensure getAzureOAuthConfig returns a config with the expected AuthURL
@@ -489,7 +487,7 @@ func TestGetApprovingGroups(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w) // Create context to set session data
 
-		// Simulate session data being set by a middleware (like your auth middleware)
+		// Simulate session data being set
 		// The GetSessionData function expects "sessionData" in the Gin context.
 		sessionMap := map[string]interface{}{
 			"token": "fake-user-token",

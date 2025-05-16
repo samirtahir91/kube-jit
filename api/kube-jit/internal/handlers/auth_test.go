@@ -34,7 +34,7 @@ func setupTestRouter() *gin.Engine {
 	r := gin.Default()
 
 	store := cookie.NewStore([]byte("secret"))
-	r.Use(sessions.Sessions("mysession", store)) // "mysession" is the default name used by sessions.Default(c)
+	r.Use(sessions.Sessions("mysession", store))
 	return r
 }
 
