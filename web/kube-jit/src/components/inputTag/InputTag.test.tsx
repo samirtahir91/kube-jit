@@ -3,6 +3,9 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import InputTag from './InputTag';
 
+type InputTagRef = { resetTags: () => void };
+const ref = createRef<InputTagRef>();
+
 const regexPattern = /^[a-z0-9-]+$/;
 const tagError = 'Invalid tag!';
 const placeholder = 'Add tag...';
@@ -73,7 +76,6 @@ describe('InputTag', () => {
   it('can reset tags via ref', () => {
     const onTagsChange = vi.fn();
     const setTagError = vi.fn();
-    const ref = createRef<any>();
     render(
       <InputTag
         ref={ref}
@@ -91,7 +93,9 @@ describe('InputTag', () => {
     fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
 
     // Reset tags
-    ref.current.resetTags();
+    if (ref.current) {
+      ref.current.resetTags();
+    }
     expect(onTagsChange).toHaveBeenCalledWith([]);
   });
 });

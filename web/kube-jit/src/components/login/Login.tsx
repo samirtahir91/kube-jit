@@ -7,10 +7,11 @@ import NavBrand from "../navBrand/NavBrand";
 import axios from "axios";
 import config from "../../config/config";
 import "./Login.css";
+import { ApiResponse } from "../../types";
 
 type LoginProps = {
-  onLoginSuccess: (data: any) => void;
-  setLoading: React.Dispatch<React.SetStateAction<boolean>>; // Add setLoading as a prop
+  onLoginSuccess: (data: ApiResponse) => void;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess, setLoading }) => {

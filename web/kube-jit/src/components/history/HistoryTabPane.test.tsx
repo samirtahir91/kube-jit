@@ -19,7 +19,17 @@ vi.mock('../requestTable/RequestTable', () => ({
 
 // Mock react-datepicker
 vi.mock('react-datepicker', () => {
-    const MockDatePicker = ({ selected, onChange, placeholderText, id }: any) => (
+    const MockDatePicker = ({
+      selected,
+      onChange,
+      placeholderText,
+      id,
+    }: {
+      selected: Date | null;
+      onChange: (date: Date) => void;
+      placeholderText?: string;
+      id?: string;
+    }) => (
       <input
         id={id}
         data-testid={`datepicker-${id}`}

@@ -152,7 +152,7 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
         const reader = new FileReader();
         reader.onload = (event) => {
             try {
-                let data: any;
+                let data: unknown;
                 if (file.name.endsWith(".json")) {
                     data = JSON.parse(event.target?.result as string);
                 } else if (file.name.endsWith(".yaml") || file.name.endsWith(".yml")) {
@@ -161,50 +161,53 @@ const RequestTabPane = ({ username, userId, setLoadingInCard, setActiveTab, setO
                     throw new Error("Unsupported file type. Please upload a .yaml, .yml, or .json file.");
                 }
 
-                // Users and Namespaces (already validated by InputTag)
-                if (data.users && userInputTagRef.current) {
-                    const userArr = Array.isArray(data.users)
-                        ? data.users
-                        : data.users.split(/[;, ]/).filter(Boolean);
-                    userInputTagRef.current.setTagsFromStrings(userArr);
-                }
-                if (data.namespaces && nsInputTagRef.current) {
-                    const nsArr = Array.isArray(data.namespaces)
-                        ? data.namespaces
-                        : data.namespaces.split(/[;, ]/).filter(Boolean);
-                    nsInputTagRef.current.setTagsFromStrings(nsArr);
-                }
+                if (typeof data === 'object' && data !== null) {
+                    const d = data as { users?: string[] | string; namespaces?: string[] | string; justification?: string; cluster?: string; role?: string };
 
-                // Justification: enforce 100 char limit
-                if (data.justification) {
-                    if (data.justification.length <= 100) {
-                        setJustification(data.justification);
-                    } else {
-                        setErrorMessage("Justification exceeds 100 characters.");
+                    // Users and Namespaces (already validated by InputTag)
+                    if (d.users && userInputTagRef.current) {
+                        const userArr = Array.isArray(d.users)
+                            ? d.users
+                            : d.users.split(/[;, ]/).filter(Boolean);
+                        userInputTagRef.current.setTagsFromStrings(userArr);
                     }
+                    if (d.namespaces && nsInputTagRef.current) {
+                        const nsArr = Array.isArray(d.namespaces)
+                            ? d.namespaces
+                            : d.namespaces.split(/[;, ]/).filter(Boolean);
+                        nsInputTagRef.current.setTagsFromStrings(nsArr);
+                    }
+
+                    // Justification: enforce 100 char limit
+                    if (d.justification) {
+                        if (d.justification.length <= 100) {
+                            setJustification(d.justification);
+                        } else {
+                            setErrorMessage("Justification exceeds 100 characters.");
+                        }
+                    }
+
+                    // Cluster: only set if value is in allowed clusters
+                    if (d.cluster && clusters.includes(d.cluster)) {
+                        setSelectedCluster({ label: d.cluster, value: d.cluster });
+                        setClusterError('');
+                    } else if (d.cluster) {
+                        setClusterError(`Cluster "${d.cluster}" in upload is not a valid option.`);
+                        setSelectedCluster(null);
+                    }
+
+                    // Role: only set if value is in allowed roles
+                    const allowedRole = roles.find(role => role.name === d.role);
+                    if (d.role && allowedRole) {
+                        setSelectedRole({ label: d.role, value: d.role });
+                        setRoleError('');
+                    } else if (d.role) {
+                        setRoleError(`Role "${d.role}" in upload is not a valid option.`);
+                        setSelectedRole(null);
+                    }
+
+                    // Do NOT set startDate or endDate from bulk upload
                 }
-
-                // Cluster: only set if value is in allowed clusters
-                if (data.cluster && clusters.includes(data.cluster)) {
-                    setSelectedCluster({ label: data.cluster, value: data.cluster });
-                    setClusterError('');
-                } else if (data.cluster) {
-                    setClusterError(`Cluster "${data.cluster}" in upload is not a valid option.`);
-                    setSelectedCluster(null);
-                }
-
-                // Role: only set if value is in allowed roles
-                const allowedRole = roles.find(role => role.name === data.role);
-                if (data.role && allowedRole) {
-                    setSelectedRole({ label: data.role, value: data.role });
-                    setRoleError('');
-                } else if (data.role) {
-                    setRoleError(`Role "${data.role}" in upload is not a valid option.`);
-                    setSelectedRole(null);
-                }
-
-                // Do NOT set startDate or endDate from bulk upload
-
             } catch (err) {
                 setErrorMessage("Failed to parse file: " + (err as Error).message);
             }

@@ -19,7 +19,7 @@ const AdminTabPane = ({ setLoadingInCard }: { setLoadingInCard: (b: boolean) => 
             );
             setResult(`${res.data.message}. Deleted: ${res.data.deleted}`);
             setTimeout(() => setResult(null), 4000); // Clear after 4 seconds
-        } catch (err: any) {
+        } catch {
             setError("Error cleaning expired requests.");
             setTimeout(() => setError(null), 5000);
         } finally {

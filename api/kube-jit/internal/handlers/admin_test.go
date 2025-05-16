@@ -62,10 +62,8 @@ func setupRouterAndDBMock(t *testing.T) (*gin.Engine, sqlmock.Sqlmock) {
 	}
 
 	// Store the original db.DB instance only if it hasn't been stored yet (e.g. by a concurrent test)
-	if originalDB == nil && db.DB != nil { // A basic attempt to save the original only once
+	if originalDB == nil && db.DB != nil {
 		originalDB = db.DB
-	} else if originalDB == nil && db.DB == nil {
-		// If db.DB is nil initially, originalDB will also be nil.
 	}
 
 	db.DB = gormDB // Replace with mock DB instance
@@ -74,7 +72,7 @@ func setupRouterAndDBMock(t *testing.T) (*gin.Engine, sqlmock.Sqlmock) {
 }
 
 // teardownDBMock restores the original database connection and closes the mock's underlying sql.DB.
-func teardownDBMock(mock sqlmock.Sqlmock) {
+func teardownDBMock(t *testing.T, mock sqlmock.Sqlmock) {
 	if db.DB != nil && db.DB != originalDB { // Ensure we are closing the mocked DB, not the original one if already restored
 		gormMockedDB := db.DB
 		sqlDBFromMock, err := gormMockedDB.DB()
@@ -85,12 +83,12 @@ func teardownDBMock(mock sqlmock.Sqlmock) {
 
 	db.DB = originalDB // Restore the original DB instance (which might be nil)
 
-	mock.ExpectationsWereMet()
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestCleanExpiredRequests_Unauthorized_NotAdmin(t *testing.T) {
 	router, mock := setupRouterAndDBMock(t)
-	defer teardownDBMock(mock)
+	defer teardownDBMock(t, mock)
 
 	router.POST("/admin/clean-expired", func(c *gin.Context) {
 		s := sessions.Default(c)
@@ -125,7 +123,7 @@ func TestCleanExpiredRequests_Unauthorized_NotAdmin(t *testing.T) {
 
 func TestCleanExpiredRequests_Unauthorized_IsAdminMissing(t *testing.T) {
 	router, mock := setupRouterAndDBMock(t)
-	defer teardownDBMock(mock)
+	defer teardownDBMock(t, mock)
 
 	router.POST("/admin/clean-expired", func(c *gin.Context) {
 		s := sessions.Default(c)
@@ -159,7 +157,7 @@ func TestCleanExpiredRequests_Unauthorized_IsAdminMissing(t *testing.T) {
 
 func TestCleanExpiredRequests_Unauthorized_IsAdminNotBool(t *testing.T) {
 	router, mock := setupRouterAndDBMock(t)
-	defer teardownDBMock(mock)
+	defer teardownDBMock(t, mock)
 
 	router.POST("/admin/clean-expired", func(c *gin.Context) {
 		s := sessions.Default(c)
@@ -172,7 +170,7 @@ func TestCleanExpiredRequests_Unauthorized_IsAdminNotBool(t *testing.T) {
 		// to the "sessionData" context value. Assuming it defaults to false.
 		sessionContextData := map[string]interface{}{
 			"userID":  "test-user",
-			"isAdmin": false, // Adjust if your app treats this differently
+			"isAdmin": false,
 		}
 		c.Set("sessionData", sessionContextData)
 
@@ -193,7 +191,7 @@ func TestCleanExpiredRequests_Unauthorized_IsAdminNotBool(t *testing.T) {
 
 func TestCleanExpiredRequests_Success_DeletesRecords(t *testing.T) {
 	router, mock := setupRouterAndDBMock(t)
-	defer teardownDBMock(mock)
+	defer teardownDBMock(t, mock)
 
 	expectedDeletedCount := int64(5)
 
@@ -207,7 +205,7 @@ func TestCleanExpiredRequests_Success_DeletesRecords(t *testing.T) {
 	router.POST("/admin/clean-expired", func(c *gin.Context) {
 		s := sessions.Default(c)
 		s.Set("isAdmin", true)
-		s.Set("userID", "admin-user") // Example userID
+		s.Set("userID", "admin-user")
 		err := s.Save()
 		assert.NoError(t, err)
 
@@ -235,7 +233,7 @@ func TestCleanExpiredRequests_Success_DeletesRecords(t *testing.T) {
 
 func TestCleanExpiredRequests_Success_NoRecordsToDelete(t *testing.T) {
 	router, mock := setupRouterAndDBMock(t)
-	defer teardownDBMock(mock)
+	defer teardownDBMock(t, mock)
 
 	expectedDeletedCount := int64(0)
 
@@ -276,7 +274,7 @@ func TestCleanExpiredRequests_Success_NoRecordsToDelete(t *testing.T) {
 
 func TestCleanExpiredRequests_DBError(t *testing.T) {
 	router, mock := setupRouterAndDBMock(t)
-	defer teardownDBMock(mock)
+	defer teardownDBMock(t, mock)
 
 	dbQueryError := errors.New("simulated database error")
 

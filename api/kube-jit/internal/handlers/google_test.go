@@ -142,12 +142,13 @@ func TestHandleGoogleLogin(t *testing.T) {
 			assert.Empty(t, r.Form.Get("client_secret"), "client_secret should not be in form body when using Basic Auth")
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			err = json.NewEncoder(w).Encode(map[string]interface{}{
 				"access_token": "mocked_google_access_token",
 				"token_type":   "Bearer",
 				"expires_in":   3600,
 				"id_token":     "mocked_id_token",
 			})
+			assert.NoError(t, err)
 		}))
 		defer mockTokenServer.Close()
 
@@ -242,7 +243,8 @@ func TestHandleGoogleLogin(t *testing.T) {
 		r.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 		var resp models.SimpleMessageResponse
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
 		assert.Equal(t, "Failed to exchange token", resp.Error)
 	})
 }
@@ -302,7 +304,8 @@ func TestFetchGoogleUserProfileHelper(t *testing.T) {
 			assert.Equal(t, "/oauth2/v2/userinfo", r.URL.Path)
 			assert.Equal(t, "Bearer fake-access-token", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(expectedUser)
+			err := json.NewEncoder(w).Encode(expectedUser)
+			assert.NoError(t, err)
 		}))
 		defer server.Close()
 

@@ -15,24 +15,21 @@ const baseProps = {
 const originalLocation = window.location;
 
 beforeAll(() => {
-  // Delete the existing location and assign a mock
-  // @ts-ignore
+  // @ts-expect-error: mocking window.location for test
   delete window.location;
-  // @ts-ignore
   window.location = {
     href: '',
-    search: '' as any,
+    search: '' as unknown as string,
     pathname: '/',
     assign: vi.fn((url: string) => {
-      // @ts-ignore
       window.location.href = url;
     }),
-  } as any;
+  } as unknown as string & Location;
 });
 
 afterAll(() => {
   // Restore the original window.location
-  (window.location as any) = originalLocation;
+  window.location = originalLocation as string & Location;
 });
 
 describe('Login', () => {

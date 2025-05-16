@@ -11,14 +11,9 @@ import AdminTabPane from "./components/admin/AdminTabPane";
 import Footer from "./components/footer/Footer";
 import axios from "axios";
 import { SyncLoader } from "react-spinners";
-import { UserData } from "./types";
 import config from "./config/config";
+import { ApiResponse } from "./types";
 
-
-type ApiResponse = {
-    userData: UserData;
-    expiresIn: number;
-};
 
 // 401 interceptio redirect to logout and clear cookies
 axios.interceptors.response.use(
@@ -28,7 +23,7 @@ axios.interceptors.response.use(
             // Call logout endpoint to clear cookies/session
             try {
                 await axios.post(`${config.apiBaseUrl}/kube-jit-api/logout`, {}, { withCredentials: true });
-            } catch (logoutErr) {
+            } catch {
                 // Ignore logout errors
             }
             // Redirect to login page

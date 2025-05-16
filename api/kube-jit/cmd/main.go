@@ -50,7 +50,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer logger.Sync()
+	defer func() {
+		_ = logger.Sync()
+	}()
 
 	// Register gob types for db
 	gob.Register(map[string]any{})

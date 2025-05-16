@@ -32,7 +32,6 @@ var originalK8sValidateNamespaces func(clusterName string, namespaces []string) 
 }, error)
 var originalK8sCreateK8sObject func(request models.RequestData, approverName string) error
 var originalEmailSendMail func(to, subject, body string) error
-var emailSent chan struct{}
 var emailSentOnce sync.Once
 
 // setupRequestTest configures a Gin router with a mocked DB and session management for request handler tests.
@@ -56,7 +55,7 @@ func setupRequestTest(t *testing.T) (*gin.Engine, sqlmock.Sqlmock, func()) {
 		PreferSimpleProtocol: true,
 	})
 	gormDB, err := gorm.Open(dialector, &gorm.Config{
-		Logger: gormlogger.Default.LogMode(gormlogger.Error),
+		Logger: gormlogger.Default.LogMode(gormlogger.Silent), // Uncomment for verbose GORM logs
 	})
 	if err != nil {
 		t.Fatalf("Failed to open gorm database: %s", err)
@@ -149,6 +148,8 @@ func TestSubmitRequest(t *testing.T) {
 					"name":     "Test User",
 					"provider": "github",
 				})
+				err := s.Save()
+				assert.NoError(t, err)
 			},
 			payload: SubmitRequestPayload{
 				Role:          models.Roles{Name: "view"},
@@ -252,7 +253,8 @@ func TestSubmitRequest(t *testing.T) {
 				if tc.setupSession != nil {
 					tc.setupSession(s)
 				}
-				s.Save()
+				err := s.Save()
+				assert.NoError(t, err)
 				c.Status(http.StatusOK)
 			})
 			tempSetupReq, _ := http.NewRequest(http.MethodGet, "/setup_session_endpoint", nil)
@@ -309,6 +311,8 @@ func TestApproveOrRejectRequests(t *testing.T) {
 					"email":              "requestor@example.com", // Email of the original requestor for notification
 					"isPlatformApprover": false,
 				})
+				err := s.Save()
+				assert.NoError(t, err)
 			},
 			payload: AdminApproveRequest{
 				ApproverID:   "admin001",
@@ -441,7 +445,8 @@ func TestApproveOrRejectRequests(t *testing.T) {
 				if tc.setupSession != nil {
 					tc.setupSession(s)
 				}
-				s.Save()
+				err := s.Save()
+				assert.NoError(t, err)
 				c.Status(http.StatusOK)
 			})
 			tempSetupReq, _ := http.NewRequest(http.MethodGet, "/setup_session_endpoint_approve", nil)

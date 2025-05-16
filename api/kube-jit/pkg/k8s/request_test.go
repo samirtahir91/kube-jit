@@ -1,7 +1,6 @@
 package k8s
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -11,48 +10,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/fake"
 	k8stesting "k8s.io/client-go/testing"
-)
-
-// --- Mocks ---
-
-type fakeResource struct {
-	createCalled bool
-	createObj    *unstructured.Unstructured
-	createErr    error
-}
-
-func (f *fakeResource) Create(ctx context.Context, obj *unstructured.Unstructured, opts metav1.CreateOptions) (*unstructured.Unstructured, error) {
-	f.createCalled = true
-	f.createObj = obj
-	return obj, f.createErr
-}
-
-// Only implement the Resource method needed for this test
-type fakeDynamicClient struct {
-	resource *fakeResource
-}
-
-func (f *fakeDynamicClient) Resource(gvr schema.GroupVersionResource) dynamicResourceInterface {
-	return f.resource
-}
-
-// dynamicResourceInterface is a minimal interface for testing
-type dynamicResourceInterface interface {
-	Create(ctx context.Context, obj *unstructured.Unstructured, opts metav1.CreateOptions) (*unstructured.Unstructured, error)
-}
-
-// Patch createDynamicClient and utils.GenerateSignedURL for testing
-var (
-	origCreateDynamicClient  = createDynamicClient
-	origGenerateSignedURL    = utils.GenerateSignedURL
-	origCallbackHostOverride = CallbackHostOverride
 )
 
 func TestCreateK8sObject_Success(t *testing.T) {

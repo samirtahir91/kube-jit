@@ -115,15 +115,17 @@ func TestHandleAzureLogin(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		mockTokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			r.ParseForm()
+			err := r.ParseForm()
+			assert.NoError(t, err)
 			assert.Equal(t, "auth_code", r.Form.Get("code"))
 			assert.Equal(t, "authorization_code", r.Form.Get("grant_type"))
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			err = json.NewEncoder(w).Encode(map[string]interface{}{
 				"access_token": "mocked_access_token",
 				"token_type":   "Bearer",
 				"expires_in":   3600,
 			})
+			assert.NoError(t, err)
 		}))
 		defer mockTokenServer.Close()
 
@@ -179,7 +181,8 @@ func TestHandleAzureLogin(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		var resp models.SimpleMessageResponse
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
 		assert.Equal(t, "Code query parameter is required", resp.Error)
 	})
 
@@ -198,18 +201,20 @@ func TestHandleAzureLogin(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 		var resp models.SimpleMessageResponse
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
 		assert.Equal(t, "Failed to exchange token", resp.Error)
 	})
 
 	t.Run("fetch user profile fails", func(t *testing.T) {
 		mockTokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			err := json.NewEncoder(w).Encode(map[string]interface{}{
 				"access_token": "valid_token_for_profile_fail",
 				"token_type":   "Bearer",
 				"expires_in":   3600,
 			})
+			assert.NoError(t, err)
 		}))
 		defer mockTokenServer.Close()
 		os.Setenv("AZURE_TOKEN_URL", mockTokenServer.URL)
@@ -225,18 +230,20 @@ func TestHandleAzureLogin(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 		var resp models.SimpleMessageResponse
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
 		assert.Equal(t, "graph API error", resp.Error)
 	})
 
 	t.Run("unauthorized domain", func(t *testing.T) {
 		mockTokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			err := json.NewEncoder(w).Encode(map[string]interface{}{
 				"access_token": "valid_token_for_unauth_domain",
 				"token_type":   "Bearer",
 				"expires_in":   3600,
 			})
+			assert.NoError(t, err)
 		}))
 		defer mockTokenServer.Close()
 		os.Setenv("AZURE_TOKEN_URL", mockTokenServer.URL)
@@ -256,7 +263,8 @@ func TestHandleAzureLogin(t *testing.T) {
 
 		assert.Equal(t, http.StatusForbidden, w.Code)
 		var resp models.SimpleMessageResponse
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
 		assert.Equal(t, "Unauthorized domain", resp.Error)
 	})
 }
@@ -315,7 +323,8 @@ func TestGetAzureProfile(t *testing.T) {
 
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 		var respMsg models.SimpleMessageResponse
-		json.Unmarshal(w.Body.Bytes(), &respMsg)
+		err := json.Unmarshal(w.Body.Bytes(), &respMsg)
+		assert.NoError(t, err)
 		assert.Equal(t, "Unauthorized: no token in session data", respMsg.Error)
 	})
 
@@ -336,7 +345,8 @@ func TestGetAzureProfile(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 		var respMsg models.SimpleMessageResponse
-		json.Unmarshal(w.Body.Bytes(), &respMsg)
+		err := json.Unmarshal(w.Body.Bytes(), &respMsg)
+		assert.NoError(t, err)
 		assert.Equal(t, "graph API error", respMsg.Error)
 	})
 }
@@ -353,7 +363,8 @@ func TestFetchAzureUserProfile(t *testing.T) {
 			assert.Equal(t, "/v1.0/me", r.URL.Path)
 			assert.Equal(t, "Bearer fake-access-token", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(expectedUser)
+			err := json.NewEncoder(w).Encode(expectedUser)
+			assert.NoError(t, err)
 		}))
 		defer server.Close()
 
@@ -405,7 +416,8 @@ func TestGetAzureGroups(t *testing.T) {
 			assert.Equal(t, "/v1.0/me/memberOf", r.URL.Path)
 			assert.Equal(t, "Bearer fake-access-token", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(mockResponse)
+			err := json.NewEncoder(w).Encode(mockResponse)
+			assert.NoError(t, err)
 		}))
 		defer server.Close()
 
