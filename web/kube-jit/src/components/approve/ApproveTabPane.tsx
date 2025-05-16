@@ -89,7 +89,7 @@ const ApproveTabPane = ({ userId, username, setLoadingInCard }: ApproveTabPanePr
 
     useEffect(() => {
         fetchPendingRequests();
-    },);
+    }, []);
 
     return (
         <Tab.Pane eventKey="approve" className="text-start py-3">

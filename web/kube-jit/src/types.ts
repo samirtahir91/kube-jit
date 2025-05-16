@@ -19,6 +19,11 @@ export type Request = {
     namespaceApprovals?: NamespaceApprovalInfo[];
 };
 
+export type ApiResponse = {
+    userData: UserData;
+    expiresIn: number;
+};
+
 export type UserData = {
 	avatar_url: string;
 	name: string;

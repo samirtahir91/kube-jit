@@ -7,11 +7,10 @@ import NavBrand from "../navBrand/NavBrand";
 import axios from "axios";
 import config from "../../config/config";
 import "./Login.css";
-import { UserData } from '../../types';
-
+import { ApiResponse } from "../../types";
 
 type LoginProps = {
-  onLoginSuccess: (data: UserData) => void;
+  onLoginSuccess: (data: ApiResponse) => void;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
