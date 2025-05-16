@@ -17,13 +17,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
+const labelAdoptTrue = "true"
+
 // namespacePredicate checks namespaces have the label "jit.kubejit.io/adopt=true"
 // and if BOTH the annotation AnnotationGroupID AND AnnotationGroupName exist
 func namespacePredicate() predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			labels := e.Object.GetLabels()
-			if labels[LabelAdopt] != "true" {
+			if labels[LabelAdopt] != labelAdoptTrue {
 				return false
 			}
 			annotations := e.Object.GetAnnotations()
@@ -31,7 +33,7 @@ func namespacePredicate() predicate.Predicate {
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			labels := e.ObjectNew.GetLabels()
-			if labels[LabelAdopt] != "true" {
+			if labels[LabelAdopt] != labelAdoptTrue {
 				return false
 			}
 			oldAnnotations := e.ObjectOld.GetAnnotations()
@@ -42,7 +44,7 @@ func namespacePredicate() predicate.Predicate {
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			labels := e.Object.GetLabels()
-			return labels[LabelAdopt] == "true"
+			return labels[LabelAdopt] == labelAdoptTrue
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
 			return false
@@ -126,7 +128,7 @@ func (r *JitGroupCacheReconciler) RebuildJitGroupCache(ctx context.Context, l lo
 	l.Info("Rebuilding JitGroupCache from scratch")
 
 	var nsList corev1.NamespaceList
-	if err := r.List(ctx, &nsList, client.MatchingLabels{LabelAdopt: "true"}); err != nil {
+	if err := r.List(ctx, &nsList, client.MatchingLabels{LabelAdopt: labelAdoptTrue}); err != nil {
 		l.Error(err, "Failed to list namespaces for JitGroupCache rebuild")
 		return err
 	}

@@ -93,10 +93,12 @@ func (r *JitGroupCacheReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 // SetupWithManager sets up the controller with the Manager.
 func (r *JitGroupCacheReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// On startup, trigger a reconcile with empty request to rebuild the cache
-	mgr.Add(manager.RunnableFunc(func(ctx context.Context) error {
+	if err := mgr.Add(manager.RunnableFunc(func(ctx context.Context) error {
 		l := logf.FromContext(ctx)
 		return r.RebuildJitGroupCache(ctx, l)
-	}))
+	})); err != nil {
+		return err
+	}
 
 	// Predicate to only allow events for the JitGroupCache with the correct name
 	onlyJitGroupCacheName := predicate.NewPredicateFuncs(func(obj client.Object) bool {

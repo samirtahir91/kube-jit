@@ -70,7 +70,9 @@ func (r *JitRequestReconciler) callbackToApi(ctx context.Context, jitRequest *ji
 		l.Error(err, "Failed to send HTTP request")
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		l.Error(fmt.Errorf("received non-OK response: %d", resp.StatusCode), "Received non-OK response")
@@ -146,15 +148,15 @@ func (r *JitRequestReconciler) rejectInvalidRole(ctx context.Context, l logr.Log
 }
 
 // rejectUnauthorisedApiCall rejects when callback to api fails with 401
-func (r *JitRequestReconciler) rejectUnauthorisedApiCall(ctx context.Context, l logr.Logger, jitRequest *jitv1.JitRequest) (ctrl.Result, error) {
-	errorMsg := "Callback to api failed is not allowed"
-	r.raiseEvent(jitRequest, "Warning", UnauthorizedApi, errorMsg)
-	if err := r.updateStatus(ctx, jitRequest, StatusRejected, errorMsg); err != nil {
-		l.Error(err, "failed to update status to Rejected")
-		return ctrl.Result{}, err
-	}
-	return ctrl.Result{}, nil
-}
+// func (r *JitRequestReconciler) rejectUnauthorisedApiCall(ctx context.Context, l logr.Logger, jitRequest *jitv1.JitRequest) (ctrl.Result, error) {
+// 	errorMsg := "Callback to api failed is not allowed"
+// 	r.raiseEvent(jitRequest, "Warning", UnauthorizedApi, errorMsg)
+// 	if err := r.updateStatus(ctx, jitRequest, StatusRejected, errorMsg); err != nil {
+// 		l.Error(err, "failed to update status to Rejected")
+// 		return ctrl.Result{}, err
+// 	}
+// 	return ctrl.Result{}, nil
+// }
 
 // deleteOwnedObjects deletes role binding(s) in case of k8s GC failed to delete
 func (r *JitRequestReconciler) deleteOwnedObjects(ctx context.Context, jitRequest *jitv1.JitRequest) error {
