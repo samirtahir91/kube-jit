@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"encoding/json"
-	"kube-jit/pkg/sessioncookie"
 	"kube-jit/pkg/utils"
 	"time"
 
