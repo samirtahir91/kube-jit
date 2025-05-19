@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"encoding/json"
-	"kube-jit/pkg/sessioncookie"
 	"kube-jit/pkg/utils"
 	"time"
 
@@ -37,7 +36,6 @@ func SetupMiddleware(r *gin.Engine) {
 	cookieSecret := utils.MustGetEnv("HMAC_SECRET")
 	store := cookie.NewStore([]byte(cookieSecret))
 	r.Use(sessions.Sessions("mysession", store))
-	r.Use(sessioncookie.SplitAndCombineSessionMiddleware())
 
 	logger.Info("Middleware setup complete", zap.Strings("allowOrigins", allowOrigins))
 }
