@@ -27,6 +27,9 @@ run:
 local-test:
 	@cd kube-jit && yarn local-test
 
+local-install:
+	@cd kube-jit && yarn install
+
 test:
 	@cd kube-jit && yarn test
 
