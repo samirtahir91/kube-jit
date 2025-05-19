@@ -2,9 +2,6 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# Build/commit SHA, updated on new release (git rev-parse --short HEAD)
-buildSha: "2df04b0"
-
 replicaCount: 1
 
 image:
