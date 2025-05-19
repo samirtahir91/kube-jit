@@ -150,8 +150,6 @@ spec:
             valueFrom:
               fieldRef:
                   fieldPath: metadata.namespace
-          - name: BUILD_SHA
-            value: {{ .Values.buildSha | quote }}
           {{- if .Values.config.smtp.enabled }}
           - name: SMTP_HOST
             value: {{ .Values.config.smtp.host | quote }}

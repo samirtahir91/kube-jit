@@ -29,6 +29,10 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o ap
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
 
+# Get the short git commit SHA
+ARG BUILD_SHA
+ENV BUILD_SHA=${BUILD_SHA}
+
 WORKDIR /
 COPY --from=builder /workspace/api .
 # for the swagger-ui openapi3
