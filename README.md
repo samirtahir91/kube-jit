@@ -21,10 +21,12 @@ Kube JIT enables organizations to reduce standing privileges and improve complia
 
 - **Just-in-Time Access:** Grant temporary RBAC permissions to users only when needed, with automatic expiry and revocation.
 - **Multi-Provider Integration:** Supports Azure/Microsoft OAuth, Google OAuth, and GitHub OAuth (via GitHub Apps).
-- **Group/Team-Based Approval:** Leverages your identity provider’s groups or teams for namespace ownership and access approval workflows.
-- **Self-Service Requests:** Users can request access via a web UI or API, reducing operational overhead.
+- **Group/Team-Based Approval:** Leverages your identity provider’s groups or teams for namespace ownership and access approval workflows. For each Namespace requested, the owning group/team will need to approve your request.
+- **Self-Service Requests:** Users can request access via a web UI, reducing operational overhead.
+- **Multi-user Requests:** Users can request access for multiple users.
+- **Multi-Namespace Requests:** Users can request access to multiple Namespaces.
 - **Auditing & Compliance:** All access requests and grants are logged for auditability and compliance.
-- **Kubernetes Native:** Works with standard Kubernetes RBAC and integrates seamlessly with your existing clusters.
+- **Kubernetes Native:** Works with standard Kubernetes RBAC and integrates seamlessly with your existing clusters and cluster roles.
 - **Automatic Expiry:** Ensures that all granted permissions are automatically revoked after the approved time window.
 - **Extensible:** Designed to support additional identity providers.
 - **Secure by Design:** Minimizes standing privileges and enforces least-privilege access.
