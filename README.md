@@ -78,6 +78,10 @@ helm install -n kube-jit-web kube-jit-web chart/kube-jit-web --create-namespace 
 
 
 ### 3. Deploy the Controller (Downstream Clusters)
+
+> **Note:**  
+>The controller can work completely independantly from the API and WEB components, if you really wanted to, you could integrate it into your own approval solutions/pipelines. Since it's basically managing a Rolebinding's life-cycle via a CRD (the callback url is in the spec itself per JitRequest if you wanted to post status updates to your own solution).
+
 ```sh
 # Switch context to your downstream cluster
 kubectl config use-context <downstream-cluster-context>
