@@ -40,6 +40,15 @@ Kube JIT enables organizations to reduce standing privileges and improve complia
 - Node 22.15.0+ (for web), Go 1.20+ (for API and controller) for development (if building from source)
 - Docker (for building images, if not using pre-built)
 
+#### Public images:
+You can use the latest public images in DockerHub:
+- `samirtahir91076/kube-jit-web:latest`
+  - See [tags](https://hub.docker.com/r/samirtahir91076/kube-jit-web/tags)
+- `samirtahir91076/kube-jit-api:latest`
+  - See [tags](https://hub.docker.com/r/samirtahir91076/kube-jit-api/tags) 
+- `samirtahir91076/kube-jit-operator:latest`
+  - See [tags](https://hub.docker.com/r/samirtahir91076/kube-jit-operator/tags) 
+
 ### 2. Deploy the API and Web UI (Management Cluster)
 
 These components should be deployed **together on your management cluster** using the provided Helm charts and sample values.
@@ -80,7 +89,7 @@ helm install -n kube-jit-web kube-jit-web chart/kube-jit-web --create-namespace 
 ### 3. Deploy the Controller (Downstream Clusters)
 
 > **Note:**  
->The controller can work completely independantly from the API and WEB components, if you really wanted to, you could integrate it into your own approval solutions/pipelines. Since it's basically managing a Rolebinding's life-cycle via a CRD (the callback url is in the spec itself per JitRequest if you wanted to post status updates to your own solution).
+>The controller can work completely independently from the API and WEB components, if you really wanted to, you could integrate it into your own approval solutions/pipelines. Since it's basically managing a Rolebinding's life-cycle via a CRD (the callback url is in the spec itself per JitRequest if you wanted to post status updates to your own solution).
 
 ```sh
 # Switch context to your downstream cluster
