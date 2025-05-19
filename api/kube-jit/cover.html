@@ -81,7 +81,7 @@
 				
 				<option value="file12">kube-jit/internal/handlers/pending_records.go (98.3%)</option>
 				
-				<option value="file13">kube-jit/internal/handlers/request.go (55.0%)</option>
+				<option value="file13">kube-jit/internal/handlers/request.go (54.2%)</option>
 				
 				<option value="file14">kube-jit/internal/middleware/accesslog.go (100.0%)</option>
 				
@@ -89,7 +89,7 @@
 				
 				<option value="file16">kube-jit/internal/middleware/logger.go (100.0%)</option>
 				
-				<option value="file17">kube-jit/internal/middleware/middleware.go (81.8%)</option>
+				<option value="file17">kube-jit/internal/middleware/middleware.go (80.0%)</option>
 				
 				<option value="file18">kube-jit/internal/routes/routes.go (100.0%)</option>
 				
@@ -3628,7 +3628,7 @@ func SubmitRequest(c *gin.Context) <span class="cov8" title="1">{
                         Message:       "",
                 })
                 go func() </span><span class="cov8" title="1">{
-                        if err := email.SendMail(dbRequestData.Email, fmt.Sprintf("Your JIT request #%d has been submitted", dbRequestData.ID), body); err != nil </span><span class="cov8" title="1">{
+                        if err := email.SendMail(dbRequestData.Email, fmt.Sprintf("Your JIT request #%d has been submitted", dbRequestData.ID), body); err != nil </span><span class="cov0" title="0">{
                                 reqLogger.Warn("Failed to send submission email", zap.String("email", dbRequestData.Email), zap.Error(err))
                         }</span>
                 }()
@@ -4018,7 +4018,6 @@ func InitLogger(l *zap.Logger) <span class="cov8" title="1">{
 
 import (
         "encoding/json"
-        "kube-jit/pkg/sessioncookie"
         "kube-jit/pkg/utils"
         "time"
 
@@ -4053,7 +4052,6 @@ func SetupMiddleware(r *gin.Engine) <span class="cov8" title="1">{
         cookieSecret := utils.MustGetEnv("HMAC_SECRET")
         store := cookie.NewStore([]byte(cookieSecret))
         r.Use(sessions.Sessions("mysession", store))
-        r.Use(sessioncookie.SplitAndCombineSessionMiddleware())
 
         logger.Info("Middleware setup complete", zap.Strings("allowOrigins", allowOrigins))</span>
 }
