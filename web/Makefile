@@ -18,14 +18,26 @@ build:
 push:
 		docker push ${IMG}
 
-run:
+run-docker:
 		docker run -p 5173:80 ${IMG}
+
+run:
+	@cd kube-jit && yarn dev
 
 local-test:
 	@cd kube-jit && yarn local-test
 
+local-install:
+	@cd kube-jit && yarn install
+
 test:
 	@cd kube-jit && yarn test
+
+lint:
+	@cd kube-jit && yarn lint
+
+build-local:
+	@cd kube-jit && yarn build
 
 template:
 		helm template -n kube-jit-web kube-jit-web chart/kube-jit-web --create-namespace
