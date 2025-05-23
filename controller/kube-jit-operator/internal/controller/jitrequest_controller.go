@@ -47,6 +47,7 @@ type JitRequestReconciler struct {
 // +kubebuilder:rbac:groups=jit.kubejit.io,resources=jitrequests/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=jit.kubejit.io,resources=jitrequests/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is the main loop for reconciling a JitRequest
 func (r *JitRequestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -87,15 +88,21 @@ func (r *JitRequestReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 func jitRequestPredicate() predicate.Predicate {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			oldJitRequest := e.ObjectOld.(*jitv1.JitRequest)
-			newJitRequest := e.ObjectNew.(*jitv1.JitRequest)
-
-			if oldJitRequest.Status.State == StatusRejected &&
-				newJitRequest.Status.State == StatusRejected {
-				return false
+			oldJitRequest, okOld := e.ObjectOld.(*jitv1.JitRequest)
+			newJitRequest, okNew := e.ObjectNew.(*jitv1.JitRequest)
+			if !okOld || !okNew {
+				// Should not happen for JitRequest controller
+				return true // Reconcile on type mismatch just in case
 			}
 
-			return newJitRequest.Status.State == StatusRejected
+			// If already rejected and stays rejected, and resource version is the same (no other changes), ignore.
+			if oldJitRequest.Status.State == StatusRejected &&
+				newJitRequest.Status.State == StatusRejected &&
+				oldJitRequest.GetResourceVersion() == newJitRequest.GetResourceVersion() {
+				return false
+			}
+			// Otherwise, reconcile if resource version changed (covers spec, status, metadata changes)
+			return oldJitRequest.GetResourceVersion() != newJitRequest.GetResourceVersion()
 		},
 	}
 }
@@ -103,7 +110,7 @@ func jitRequestPredicate() predicate.Predicate {
 // SetupWithManager sets up the controller with the Manager.
 func (r *JitRequestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&jitv1.JitRequest{}, builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}, jitRequestPredicate())).
+		For(&jitv1.JitRequest{}, builder.WithPredicates(jitRequestPredicate())).
 		Named("jitrequest").
 		Complete(r)
 }

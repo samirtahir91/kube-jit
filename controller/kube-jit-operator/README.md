@@ -161,7 +161,7 @@ make test-cache
 make test
 ```
 
-### E2E Testing (ToDo - dont run yet)
+### E2E Testing (ToDo - Currently blocked by Kind cluster setup issues. Do not run yet.)
 - Tests will be run against a Kind cluster
 ```sh
 # If on MAC
