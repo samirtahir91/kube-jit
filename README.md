@@ -4,7 +4,7 @@ Kube JIT is an open source solution for implementing secure, self-service, just-
 
 Kube JIT enables organizations to reduce standing privileges and improve compliance by granting temporary, auditable access to Kubernetes namespaces or roles. Approval workflows are managed using your existing group or team structures in your chosen identity provider, making access management seamless and secure.
 
-<img src="https://i.imgur.com/wDnBiHK.gif" width="100%" height="100%"/>
+![](https://github.com/samirtahir91/samirtahir91_public/blob/master/kubeJit4.gif)
 
 ## Architecture
 
