@@ -9,7 +9,7 @@ Kube JIT enables organizations to reduce standing privileges and improve complia
 
 ## Architecture
 
-![Diagram](Kube-JIT.svg)
+![Diagram](Kube-JIT.drawio.svg)
 
 1. **User requests access** to a Kubernetes resource (namespace, role, etc.).
 2. **Identity group/team** is used to determine group membership and route approval requests using annotations and label on Namespaces.
