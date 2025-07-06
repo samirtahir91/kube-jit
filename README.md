@@ -9,7 +9,7 @@ Kube JIT enables organizations to reduce standing privileges and improve complia
 
 ## Architecture
 
-![Diagram](docs/diagrams/Kube-JIT.svg)
+![Diagram](Kube-JIT.drawio.svg)
 
 1. **User requests access** to a Kubernetes resource (namespace, role, etc.).
 2. **Identity group/team** is used to determine group membership and route approval requests using annotations and label on Namespaces.
@@ -67,7 +67,7 @@ These components should be deployed **together on your management cluster** usin
 
 ```sh
 # Clone the repo and cd into it
-git clone https://github.com/your-org/kube-jit-gh-teams.git
+git clone https://github.com/samirtahir91/kube-jit.git
 cd kube-jit-gh-teams
 
 # (Optional) Build and load images if running locally
