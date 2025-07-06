@@ -67,7 +67,7 @@ These components should be deployed **together on your management cluster** usin
 
 ```sh
 # Clone the repo and cd into it
-git clone https://github.com/your-org/kube-jit-gh-teams.git
+git clone https://github.com/samirtahir91/kube-jit.git
 cd kube-jit-gh-teams
 
 # (Optional) Build and load images if running locally
