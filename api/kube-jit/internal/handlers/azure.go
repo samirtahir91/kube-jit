@@ -81,9 +81,7 @@ func HandleAzureLogin(c *gin.Context) {
 		// Log the detailed error from the Exchange call
 		logger.Error("Failed to exchange Azure token",
 			zap.Error(err), // This will print the underlying error from the oauth2 library
-			zap.String("codeUsed", code),
 			zap.String("clientIDUsed", currentAzureOAuthConfig.ClientID),
-			zap.String("clientSecretUsed", currentAzureOAuthConfig.ClientSecret), // Be careful logging secrets, even in tests
 			zap.String("redirectURIUsed", currentAzureOAuthConfig.RedirectURL),
 			zap.String("tokenURLUsed", currentAzureOAuthConfig.Endpoint.TokenURL),
 		)
